@@ -9,9 +9,13 @@
  *   GET  /orders/:id        → إيصال واحد (لرابط /order?id=…)
  *   GET  /orders?email=…    → إيصالات المشتري
  *   GET  /licences/:key     → { valid, order, seats, domains }
+ *   GET  /catalog          → استثناءات الكتالوج التي تكتبها لوحة الإدارة
+ *   /admin/*               → لوحة الإدارة (انظر server/admin.js وserver/README.md)
  *
  * التخزين: إن ضبطتَ SUPABASE_URL + SUPABASE_SERVICE_KEY يُرسَل الطلب إلى
  * PostgREST، وإلا يُكتب في server/orders.jsonl (كافٍ للتجربة ولساعة الصحو).
+ * بيانات الإدارة (المستخدمون + تعديلات المنتجات + السرّ) ملفات JSON بجانبه
+ * كلها في .gitignore: admins.json · products.json · .admin-secret · orders.jsonl.
  *
  * ملاحظة أمان: لا تثق بالمجاميع القادمة من المتصفح — يُعاد حساب
  * subtotal/vat من بنود الطلب ويُرفض أي طلب لا يطابق (400).
@@ -23,12 +27,14 @@ import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import { templates } from '../src/data/templates.js'
 import { loadDotEnv } from '../scripts/dotenv.mjs'
+import { createAdminApi } from './admin.js'
+import { VAT as VAT_RATE } from '../src/data/tax.js'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 loadDotEnv(ROOT) // PORT / SUPABASE_* من .env إن وُجد — node لا يقرأه وحده
 
 const PORT = Number(process.env.PORT || 8787)
-const VAT = 0.15
+const VAT = VAT_RATE
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const FILE = path.join(HERE, 'orders.jsonl')
 
@@ -49,6 +55,14 @@ const send = (res, code, body) => {
 const now = () => new Date().toISOString().slice(0, 10)
 const rand = (n) => Array.from({ length: n }, () => Math.random().toString(36).slice(2, 6).toUpperCase()).join('-')
 const rid = () => `QALB-${rand(1)}-${Date.now().toString(36).slice(-4).toUpperCase()}`
+
+const admin = createAdminApi({
+  dir: HERE,
+  vat: VAT,
+  env: process.env,
+  orders: load,
+  baseIds: () => templates.map((t) => t.id),
+})
 
 async function load() {
   if (remote) {
@@ -82,8 +96,9 @@ async function save(order) {
 function recompute(body) {
   const lines = Array.isArray(body.lines) ? body.lines : []
   if (!lines.length) throw new Error('lines required')
+  const table = PRICES()
   const unit = (id) => {
-    const hit = PRICES[id]
+    const hit = table[id]
     if (hit == null) throw new Error(`unknown template: ${id}`)
     return hit
   }
@@ -98,16 +113,18 @@ function recompute(body) {
 }
 
 /**
- * كتالوج الأسعار — مصدر واحد للحقيقة: نفس الملف الذي تبني منه الواجهة قوائمها.
- * في الإنتاج الحقيقي اقرأه من جدول products بدل الاستيراد، لكن لا تثق أبدًا
- * بمجموع يرسله المتصفح.
+ * كتالوج الأسعار — مصدر واحد للحقيقة: نفس الوحدة التي يدمج بها المتجر تعديلات
+ * لوحة الإدارة (src/data/catalog.js + server/products.json). القالب المخفيّ
+ * لا يظهر هنا، فلا يمكن شراؤه بعد إخفائه.
  */
-const PRICES = Object.fromEntries(templates.map((t) => [t.id, t.price]))
+const PRICES = () => admin.prices()
 
 const server = createServer(async (req, res) => {
   const u = new URL(req.url, 'http://x')
   if (req.method === 'OPTIONS') return send(res, 204, {})
-  if (u.pathname === '/health') return send(res, 200, { ok: true, store: remote ? 'supabase' : 'jsonl', vat: VAT })
+  if (u.pathname === '/health') return send(res, 200, { ok: true, store: remote ? 'supabase' : 'jsonl', vat: VAT, admin: admin.enabled() })
+
+  if (await admin.handle(req, res, u)) return
 
   try {
     if (req.method === 'POST' && u.pathname === '/orders') {
@@ -173,4 +190,7 @@ const server = createServer(async (req, res) => {
   }
 })
 
-server.listen(PORT, '0.0.0.0', () => console.log(`qalb api · http://0.0.0.0:${PORT} · store=${remote ? 'supabase' : 'jsonl'}`))
+server.listen(PORT, '0.0.0.0', () => {
+  admin.enabled() // يهيّئ حساب المالك من ADMIN_PASSWORD قبل أول طلب، فلا تُخبر /health بغير الحقيقة
+  console.log(`qalb api · http://0.0.0.0:${PORT} · store=${remote ? 'supabase' : 'jsonl'} · admin=${admin.enabled() ? 'on' : 'off'}`)
+})

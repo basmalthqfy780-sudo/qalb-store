@@ -3,5 +3,6 @@ Allow: /
 Disallow: /checkout
 Disallow: /order
 Disallow: /cart
+Disallow: /admin
 
 Sitemap: https://qalb.store/sitemap.xml

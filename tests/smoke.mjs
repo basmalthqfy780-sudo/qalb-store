@@ -86,6 +86,7 @@ const cases = [
   { name: 'success', url: 'http://localhost/order', order: true, expect: ['تم الدفع بنجاح', 'مفتاح الترخيص', 'تحميل حزمة البدء', 'qalb@qalb.store'] },
   { name: 'wishlist', url: 'http://localhost/wishlist', wish: '["nova","aether"]', expect: ['المفضلة', 'أيثر'] },
   { name: '404', url: 'http://localhost/nope', expect: ['404', 'الصفحة غير موجودة'] },
+  { name: 'admin (first run)', url: 'http://localhost/admin', expect: ['أنشئ حساب الإدارة الأول', 'على هذا الجهاز فقط', 'إنشاء الحساب والدخول'] },
   {
     name: 'order lookup',
     url: 'http://localhost/track',
@@ -1182,5 +1183,262 @@ for (const c of cases) {
   }
 }
 
-console.log(failed ? `\n${failed} check group(s) failed` : `\nall ${cases.length + 6} check groups passed`)
+/* ---------------- admin: the gate, the catalogue edits, the access list ---------------- */
+{
+  const checks = []
+  const bad = []
+  const ok = (name, cond, extra = '') => {
+    checks.push(name)
+    if (!cond) bad.push(name + (extra ? ` (${extra})` : ''))
+  }
+  const submit = (g) => {
+    const f = g.doc.querySelector('#main form')
+    const b = f && [...f.querySelectorAll('button')].find((x) => x.type === 'submit')
+    if (!b) throw new Error('no submit button in the form')
+    b.click()
+  }
+  const fill = (g, id, v) => {
+    const el = g.doc.getElementById(id)
+    if (!el) throw new Error(`no field #${id}`)
+    const set = Object.getOwnPropertyDescriptor(g.win.HTMLInputElement.prototype, 'value').set
+    set.call(el, v)
+    el.dispatchEvent(new g.win.Event('input', { bubbles: true }))
+  }
+  const click = (g, re, sel = 'button') => {
+    const b = [...g.doc.querySelectorAll(sel)].find((x) => re.test((x.textContent || '').trim()))
+    if (!b) throw new Error(`no control matching ${re}`)
+    b.click()
+  }
+
+  const g = await render('http://localhost/admin')
+
+  /* --- the first run creates the owner; it does not invent a session --- */
+  ok('a first run asks to create the owner, not to sign in', /أنشئ حساب الإدارة الأول/.test(g.txt()))
+  ok('the local-mode limit is stated on the gate itself', /على هذا الجهاز فقط/.test(g.txt()), g.txt().slice(0, 70))
+  fill(g, 'ad-name', 'نوف')
+  fill(g, 'ad-email', 'nouf@qalb.store')
+  fill(g, 'ad-pass', 'super-secret-1')
+  fill(g, 'ad-again', 'super-secret-2')
+  submit(g)
+  await g.wait()
+  ok('mismatched confirmation is refused before anything is stored', /كلمتا السر غير متطابقتين/.test(g.txt()))
+  ok('a refused submit writes no account', !g.win.localStorage.getItem('qalb.admin.v1'))
+  fill(g, 'ad-again', 'super-secret-1')
+  submit(g)
+  await g.wait()
+  ok('the dashboard opens once the owner exists', !!g.doc.querySelector('[data-admin]'), g.txt().slice(0, 60))
+  ok(
+    'the password is stored only as a hash',
+    !/super-secret-1/.test(g.win.localStorage.getItem('qalb.admin.v1') || ''),
+    (g.win.localStorage.getItem('qalb.admin.v1') || '').slice(0, 60),
+  )
+
+  /* --- finance: derived from the order log, not typed in --- */
+  ok('revenue is read from the (empty) order log, not invented', /إجمالي الدخل/.test(g.txt()) && /لا طلبات مسجّلة بعد/.test(g.txt()))
+  ok(
+    'the 30-day chart draws one bar per day',
+    g.doc.querySelectorAll('[data-chart] rect').length === 30,
+    String(g.doc.querySelectorAll('[data-chart] rect').length),
+  )
+  ok('the source of the numbers is named', /qalb\.orders\.v1/.test(g.txt()))
+
+  /* --- products: an override, never a rewrite of the source file --- */
+  click(g, /المنتجات$/)
+  await g.wait()
+  ok(
+    'every product is listed for editing',
+    g.doc.querySelectorAll('[data-admin] tbody tr').length >= 15,
+    String(g.doc.querySelectorAll('[data-admin] tbody tr').length),
+  )
+  click(g, /^تعديل$/)
+  await g.wait()
+  ok('the editor is labelled with the row it edits', /تعديل · /.test(g.txt()))
+  fill(g, 'pe-price', '199')
+  click(g, /^حفظ$/)
+  await g.wait()
+  const ov = JSON.parse(g.win.localStorage.getItem('qalb.products.v1') || '{}')
+  ok('the new price lands in the override store', ov.aether && ov.aether.price === 199, JSON.stringify(ov.aether))
+  ok('the source catalogue file was not rewritten', /price: 249,/.test(readFileSync('src/data/templates.js', 'utf8')))
+  ok('the row admits it is edited', /معدَّل/.test(g.txt()))
+  const novaRow = [...g.doc.querySelectorAll('tbody tr')].find((r) => /نوفا/.test(r.textContent))
+  ok('the product to hide is on the page', !!novaRow)
+  if (novaRow) {
+    ;[...novaRow.querySelectorAll('button')].find((b) => /إخفاء/.test(b.textContent || '')).click()
+    await g.wait()
+  }
+  ok('hiding is stored as published:false', JSON.parse(g.win.localStorage.getItem('qalb.products.v1')).nova.published === false)
+  click(g, /مخفيّة/)
+  await g.wait()
+  const hiddenRows = [...g.doc.querySelectorAll('[data-admin] tbody tr')]
+  ok(
+    'the hidden filter lists only hidden products',
+    hiddenRows.length === 1 && /نوفا/.test(hiddenRows[0].textContent || ''),
+    String(hiddenRows.length),
+  )
+  click(g, /الكل/)
+  await g.wait()
+  ok('the hidden row stays visible to the admin, with a way back', /نوفا/.test(g.txt()) && /إظهار/.test(g.txt()))
+  ok('the buyable price table drops it', /14\D*\/\D*15/.test(g.txt()), (g.txt().match(/الأسعار[^\n]{0,40}/) || [''])[0])
+  fill(g, 'ad-q', 'aether')
+  await g.wait()
+  ok(
+    'the panel can find a product by id',
+    g.doc.querySelectorAll('[data-admin] tbody tr').length === 1,
+    String(g.doc.querySelectorAll('[data-admin] tbody tr').length),
+  )
+
+  /* --- access: add, and refuse to remove the account in use --- */
+  click(g, /الصلاحيات$/)
+  await g.wait()
+  fill(g, 'au-name', 'سلمى')
+  fill(g, 'au-mail', 'salma@qalb.store')
+  fill(g, 'au-pass', 'second-pass-12')
+  submit(g)
+  await g.wait()
+  ok('a second admin appears in the list', /salma@qalb.store/.test(g.txt()))
+  ok('the new account is an admin, not an owner', /\bsalma@qalb\.store\b[\s\S]*?مسؤول/.test(g.txt()))
+  const ownerRow = [...g.doc.querySelectorAll('li')].find((li) => /أنت/.test(li.textContent))
+  ok('the current account is marked as you', !!ownerRow)
+  if (ownerRow) {
+    const rm = () => [...ownerRow.querySelectorAll('button')].find((b) => /حذف|أؤكد الحذف/.test(b.textContent || ''))
+    rm().click()
+    await g.wait()
+    ok('removal asks for confirmation first', !!rm() && /أؤكد الحذف/.test(rm().textContent || ''))
+    rm().click()
+    await g.wait()
+  }
+  ok('you cannot delete the account you are signed in with', /أنت/.test(g.txt()) && /nouf@qalb.store/.test(g.txt()))
+
+  /* --- signing out really closes the panel --- */
+  click(g, /تسجيل الخروج/)
+  await g.wait()
+  ok('sign out returns to the gate', /دخول الإدارة/.test(g.txt()) && !g.doc.querySelector('[data-admin]'))
+  fill(g, 'ad-pass', 'wrong-password-x')
+  submit(g)
+  await g.wait()
+  ok('a wrong password is refused', /كلمة السر غير صحيحة/.test(g.txt()))
+  ok('and it does not open the panel', !g.doc.querySelector('[data-admin]'))
+  ok('a login is ambiguous once a second account exists', !g.doc.querySelector('[data-admin]'))
+  fill(g, 'ad-email', 'nouf@qalb.store')
+  fill(g, 'ad-pass', 'super-secret-1')
+  submit(g)
+  await g.wait()
+  ok('the right credentials open it again', !!g.doc.querySelector('[data-admin]'))
+  g.dom.window.close()
+
+  /* --- the storefront obeys the same overrides --- */
+  const seeded = {
+    'qalb.products.v1': JSON.stringify({ aether: { price: 199 }, nova: { published: false } }),
+    'qalb.cart.v1': JSON.stringify([{ id: 'aether', qty: 1 }]),
+  }
+  const cart = await render('http://localhost/cart', seeded)
+  const cartMain = cart.doc.getElementById('main')?.textContent || ''
+  ok('the cart charges the price set in the panel', /199/.test(cartMain) && !/249/.test(cartMain), cartMain.replace(/\s+/g, ' ').slice(0, 70))
+  cart.dom.window.close()
+
+  const stranded = await render('http://localhost/cart', {
+    'qalb.products.v1': JSON.stringify({ nova: { published: false } }),
+    'qalb.cart.v1': JSON.stringify([{ id: 'nova', qty: 1 }]),
+  })
+  const strandedMain = stranded.doc.getElementById('main')?.textContent || ''
+  ok(
+    'a hidden product cannot be kept or paid for in a cart',
+    /سلتك فارغة/.test(strandedMain) && !/نوفا/.test(strandedMain),
+    strandedMain.replace(/\s+/g, ' ').slice(0, 50),
+  )
+  stranded.dom.window.close()
+
+  const cat = await render('http://localhost/templates', { 'qalb.products.v1': JSON.stringify({ nova: { published: false } }) })
+  ok('a hidden product is gone from the catalogue', !/نوفا/.test(cat.txt()))
+  ok('the rest of the catalogue is untouched', /أيثر/.test(cat.txt()))
+  cat.dom.window.close()
+
+  const okAether = await render('http://localhost/template/aether-portfolio', {
+    'qalb.products.v1': JSON.stringify({ aether: { price: 199, download: 'https://dl.qalb.store/aether.zip' } }),
+  })
+  ok(
+    'the product page shows the edited price',
+    /199/.test(okAether.txt()) && !/249/.test(okAether.txt()),
+    okAether.txt().replace(/\s+/g, ' ').slice(0, 90),
+  )
+  okAether.dom.window.close()
+
+  if (bad.length) {
+    failed++
+    console.log('✗ admin · gate · catalogue · access')
+    bad.forEach((n) => console.log('   failed: ' + n))
+  } else {
+    console.log(`✓ admin · gate · catalogue · access  (${checks.length} assertions)`)
+  }
+}
+
+/* ---------------- i18n: both languages, every key used, none missing ---------------- */
+{
+  const checks = []
+  const bad = []
+  const ok = (name, cond, extra = '') => {
+    checks.push(name)
+    if (!cond) bad.push(name + (extra ? ` (${extra})` : ''))
+  }
+  // importing the admin file merges the panel's copy onto the same dictionary
+  await import('../src/i18n/admin-strings.js')
+  const flat = (o, pre = '') =>
+    Object.entries(o).flatMap(([k, v]) => (typeof v === 'string' ? [pre + k] : v && typeof v === 'object' ? flat(v, `${pre}${k}.`) : []))
+  const ar = flat(dict.ar)
+  const en = flat(dict.en)
+  const keys = new Set([...ar, ...en])
+  const ns = new Set(ar.map((k) => k.split('.')[0]))
+  ok('arabic and english hold the same number of strings', ar.length === en.length, `${ar.length} vs ${en.length}`)
+  ok(
+    'no language is missing a key the other has',
+    ar.filter((k) => !en.includes(k)).length === 0 && en.filter((k) => !ar.includes(k)).length === 0,
+    ar
+      .filter((k) => !en.includes(k))
+      .concat(en.filter((k) => !ar.includes(k)))
+      .join(','),
+  )
+
+  // a reference is any quoted "ns.key" in the source: t('x.y'), tables of { k: 'x.y' }, ternaries…
+  const files = readdirSync('src', { recursive: true })
+    .filter((f) => /\.(js|jsx)$/.test(f))
+    .map((f) => `src/${f}`)
+  const refs = new Set()
+  const dynamic = []
+  for (const f of files) {
+    const src = readFileSync(f, 'utf8')
+    for (const m of src.matchAll(/['"]([a-z][a-z0-9_]*(?:\.[a-zA-Z0-9_]+)+)['"]/g)) if (ns.has(m[1].split('.')[0])) refs.add(m[1])
+    for (const m of src.matchAll(/[^A-Za-z0-9_$.]t\(\s*`([^`]+)`/g)) if (ns.has(m[1].split('.')[0])) dynamic.push(m[1])
+  }
+  const esc = (x) => x.replace(/[.*+?^[\]()|{}$]/g, '\\$&')
+  const pats = dynamic.map(
+    (d) =>
+      new RegExp(
+        `^${d
+          .split(/\$\{[^}]*\}/)
+          .map(esc)
+          .join('[^.]+')}$`,
+      ),
+  )
+  const used = (k) => refs.has(k) || pats.some((r) => r.test(k))
+  const missing = [...refs].filter((k) => !keys.has(k))
+  const dead = [...keys].filter((k) => !used(k))
+  ok('every string the code asks for exists in the dictionary', missing.length === 0, missing.join(','))
+  ok('no string sits in the dictionary unused', dead.length === 0, dead.slice(0, 6).join(','))
+  ok(
+    'the panel’s copy is a separate module, not storefront weight',
+    !/admin: \{/.test(readFileSync('src/i18n/translations.js', 'utf8')) &&
+      /dict\.en\.admin = admin\.en/.test(readFileSync('src/i18n/admin-strings.js', 'utf8')),
+  )
+  ok('a placeholder survives in both languages to be substituted', dict.ar.footer.rights.includes('{y}') && dict.en.footer.rights.includes('{y}'))
+
+  if (bad.length) {
+    failed++
+    console.log('✗ i18n · parity · no missing or dead keys')
+    bad.forEach((n) => console.log('   failed: ' + n))
+  } else {
+    console.log(`✓ i18n · parity · no missing or dead keys  (${checks.length} assertions)`)
+  }
+}
+
+console.log(failed ? `\n${failed} check group(s) failed` : `\nall ${cases.length + 8} check groups passed`)
 process.exit(failed ? 1 : 0)

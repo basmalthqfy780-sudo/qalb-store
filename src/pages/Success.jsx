@@ -87,27 +87,31 @@ export default function Success() {
     setTimeout(() => URL.revokeObjectURL(url), 1500)
   }
 
+  /** What this order actually contains. Links come from the store, never invented here. */
+  const rows = (order.lines || []).map((l) => ({ tpl: byId(l.id), qty: l.qty })).filter((r) => r.tpl)
+
   /** A manifest generated from the real order lines — not a copy of the guide. */
   const downloadFiles = () => {
-    const rows = (order.lines || [])
-      .map((l) => ({ tpl: byId(l.id), qty: l.qty }))
-      .filter((r) => r.tpl)
-      .flatMap(({ tpl, qty }) => {
-        const files = (tpl.stack && tpl.stack.length ? tpl.stack : ['README']).map(
-          (tech) =>
-            `  · ${tpl.id}/${String(tech)
-              .toLowerCase()
-              .replace(/[^a-z0-9]+/g, '-')}/`,
-        )
-        return [`\n[${tpl.id}] ${tpl.name.en} — ${tpl.type} x${qty}`, ...files]
-      })
+    const lines = rows.flatMap(({ tpl, qty }) => {
+      const files = (tpl.stack && tpl.stack.length ? tpl.stack : ['README']).map(
+        (tech) =>
+          `  · ${tpl.id}/${String(tech)
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')}/`,
+      )
+      return [
+        `\n[${tpl.id}] ${tpl.name.en} — ${tpl.type} x${qty}`,
+        tpl.download ? `  download: ${tpl.download}` : '  download: not attached yet — ask us for it',
+        ...files,
+      ]
+    })
     const body = [
       `Qalb — ${lang === 'ar' ? 'حزمة التسليم' : 'delivery manifest'}`,
       `Order: ${order.id}`,
       `Date: ${order.date}`,
       `Licence key: ${order.key}`,
       `Licences: ${order.count}`,
-      ...rows,
+      ...lines,
       '',
       `Support: ${SUPPORT_MAIL}`,
     ].join('\n')
@@ -217,6 +221,35 @@ export default function Success() {
               <Icon n="file" className="size-4" />
               {t('success.guide')}
             </Btn>
+          </div>
+          <div className="border-t border-line px-6 py-5">
+            <p className="text-[12px] font-bold text-muted">{t('success.files')}</p>
+            {rows.length === 0 ? (
+              <p className="mt-2 text-[12.5px] leading-relaxed text-muted">{t('success.noLines')}</p>
+            ) : (
+              <ul className="mt-3 flex flex-col gap-2">
+                {rows.map(({ tpl, qty }) => (
+                  <li key={tpl.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-bg/60 px-4 py-3">
+                    <span className="text-[13px] font-bold">
+                      {lang === 'ar' ? tpl.name.ar : tpl.name.en} <span className="num text-muted">×{qty}</span>
+                    </span>
+                    {tpl.download ? (
+                      <a
+                        href={tpl.download}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 text-[12.5px] font-bold text-brand hover:underline"
+                      >
+                        <Icon n="download" className="size-4" />
+                        {t('success.file')}
+                      </a>
+                    ) : (
+                      <span className="text-[12px] text-muted">{t('success.noFile')}</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
           <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-line bg-bg/40 px-6 py-4 text-[12.5px]">
             {[

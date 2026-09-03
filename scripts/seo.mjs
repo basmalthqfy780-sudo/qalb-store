@@ -25,7 +25,7 @@ mkdirSync(PUB, { recursive: true })
 /* ---------------- robots.txt ---------------- */
 writeFileSync(
   path.join(PUB, 'robots.txt'),
-  `User-agent: *\nAllow: /\nDisallow: /checkout\nDisallow: /order\nDisallow: /cart\n\nSitemap: ${SITE}/sitemap.xml\n`,
+  `User-agent: *\nAllow: /\nDisallow: /checkout\nDisallow: /order\nDisallow: /cart\nDisallow: /admin\n\nSitemap: ${SITE}/sitemap.xml\n`,
 )
 
 /* ---------------- sitemap.xml ---------------- */

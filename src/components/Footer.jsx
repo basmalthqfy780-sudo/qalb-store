@@ -34,9 +34,9 @@ export default function Footer() {
       head: t('footer.company'),
       links: [
         { to: '/#story', label: t('footer.about') },
-        { to: '/#testimonials', label: t('footer.blog') },
+        { to: '/#testimonials', label: t('footer.stories') },
         { to: '/#contact', label: t('footer.contact') },
-        { to: '/#bundles', label: t('footer.gift') },
+        { to: '/admin', label: t('footer.admin') },
       ],
     },
     {

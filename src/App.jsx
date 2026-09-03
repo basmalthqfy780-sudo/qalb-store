@@ -19,6 +19,7 @@ const Wishlist = lazy(() => import('./pages/Wishlist'))
 const Track = lazy(() => import('./pages/Track'))
 const Licence = lazy(() => import('./pages/Licence'))
 const NotFound = lazy(() => import('./pages/NotFound'))
+const Admin = lazy(() => import('./pages/Admin'))
 
 function RouteFallback() {
   const { t } = useI18n()
@@ -90,6 +91,7 @@ export default function App() {
               <Route path="/wishlist" element={<Wishlist />} />
               <Route path="/track" element={<Track />} />
               <Route path="/licence" element={<Licence />} />
+              <Route path="/admin" element={<Admin />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>

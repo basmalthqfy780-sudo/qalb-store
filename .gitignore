@@ -4,6 +4,12 @@ tests/build
 coverage
 uploads/
 .npm/
+
+# بيانات حيّة يكتبها خادم الطلبات — لا تُودَع أبدًا
+server/orders.jsonl
+server/admins.json
+server/products.json
+server/.admin-secret
 .cache
 .DS_Store
 *.local
