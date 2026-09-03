@@ -27,7 +27,7 @@ jobs:
       - name: Format
         run: npm run format:check
 
-      - name: Tests (real app bundled and rendered in jsdom)
+      - name: Tests (real app rendered in jsdom + admin API over a spawned server)
         run: npm test
 
       - name: Build
