@@ -98,6 +98,7 @@ const admin = {
     noDownload: 'لا رابط بعد',
     protectedDl: 'تسليم موقّع لكل طلب على حدة',
     noOrders: 'لا طلبات مسجّلة بعد',
+    personalized: 'مُخصَّص ببيانات المشتري',
     noOrdersHint: 'سجل الطلبات على هذا الجهاز فارغ — جرّب مسار الشراء أولًا أو انتقل إلى وضع rest.',
     noProductsFound: 'لا منتج يطابق البحث',
     noteLocal:
@@ -249,6 +250,7 @@ const admin = {
     noDownload: 'none yet',
     protectedDl: 'Signed, per-order delivery',
     noOrders: 'No orders recorded yet',
+    personalized: 'Personalised by the buyer',
     noOrdersHint: 'The order log on this device is empty - run a checkout first, or switch to rest mode.',
     noProductsFound: 'No product matches the search',
     noteLocal:

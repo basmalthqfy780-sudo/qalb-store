@@ -9,6 +9,10 @@ const CART_KEY = 'qalb.cart.v1'
 const WISH_KEY = 'qalb.wish.v1'
 const COUPON_KEY = 'qalb.coupon.v1'
 const RECENT_KEY = 'qalb.recent.v1'
+const PERSONAL_KEY = 'qalb.personalize.v1'
+
+/** حقول التخصيص الاختياري — فارغة تعني «لا تُحقن شيء»، فالقالب يصل بنصوصه التجريبية */
+export const EMPTY_PERSONAL = { on: false, name: '', role: '', email: '', phone: '', website: '', bio: '' }
 
 const load = (k, fb) => {
   try {
@@ -34,6 +38,8 @@ export function StoreProvider({ children }) {
   const [coupon, setCoupon] = useState(() => load(COUPON_KEY, null))
   const [recent, setRecent] = useState(() => load(RECENT_KEY, []))
   const [toasts, setToasts] = useState([])
+  // تُحمَل مرّة واحدة وتُرفَق بكل طلب: صفحة المنتج تكتبها، والدفع يرسلها، والإيصال يقرأها
+  const [personal, setPersonalState] = useState(() => ({ ...EMPTY_PERSONAL, ...load(PERSONAL_KEY, {}) }))
   // لقطة الكتالوج بعد دمج استثناءات لوحة الإدارة — قيمة حقيقية في الحالة،
   // فتُعاد الحسابات عند تغييرها بدل ما نعلّق على عدّاد لا تعرفه القواعد
   const [catalog, setCatalog] = useState(() => templates)
@@ -43,6 +49,7 @@ export function StoreProvider({ children }) {
   useEffect(() => save(WISH_KEY, wish), [wish])
   useEffect(() => save(COUPON_KEY, coupon), [coupon])
   useEffect(() => save(RECENT_KEY, recent), [recent])
+  useEffect(() => save(PERSONAL_KEY, personal), [personal])
 
   /**
    * الاستثناءات المكتوبة من لوحة الإدارة تُدمج هنا وحدها — نفس الوحدة التي
@@ -149,7 +156,14 @@ export function StoreProvider({ children }) {
     }
   }, [items, coupon])
 
+  /** يُحدَّث ثم يُنقّى في طبقة التوليد — المخزن لا يعرف قواعد الحقول */
+  const setPersonal = useCallback((patch) => setPersonalState((p) => ({ ...p, ...patch })), [])
+  const resetPersonal = useCallback(() => setPersonalState({ ...EMPTY_PERSONAL }), [])
+
   const value = {
+    personal,
+    setPersonal,
+    resetPersonal,
     catalog,
     refreshCatalog,
     lines,

@@ -24,16 +24,16 @@ npm run dev
 
 ## العقد (نفسه `src/api/index.js`)
 
-| الطريقة | المسار                      | وظيفة                                                                                                                     |
-| ------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `POST`  | `/orders`                   | يستقبل المسودة ويعيد `{ id, key, date, subtotal, discount, vat, total, lines, … }`                                        |
-| `GET`   | `/orders/:id`               | الإيصال — يُفتح منه `/order?id=…`                                                                                         |
-| `GET`   | `/orders?email=`            | إيصالات المشتري (بلا حسابات)                                                                                              |
-| `GET`   | `/licences/:key`            | `{ valid, order, seats, domains }`                                                                                        |
-| `GET`   | `/download/:id?order=&key=` | بوابة التسليم لكل منتج: تتحقق من الطلب والمفتاح ثم ٣٠٢ إلى `/dl/<token>`                                                  |
-| `GET`   | `/download-all?order=&key=` | حزمة واحدة فيها كل منتجات الطلب، كلٌّ في مجلده                                                                            |
-| `GET`   | `/dl/:token`                | يسلّم `qalb-<id>-<order>.zip` — توكن موقّع، ١٠ دقائق، يُستخدم مرة واحدة                                                   |
-| `GET`   | `/health`                   | الحالة ونوع التخزين، وهل لوحة الإدارة مفعّلة (`admin: true/false`)، ومدّة صلاحية رابط التسليم (`deliver: { ttl, perIp }`) |
+| الطريقة | المسار                      | وظيفة                                                                                                                                                                                         |
+| ------- | --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POST`  | `/orders`                   | يستقبل المسودة ويعيد `{ id, key, date, subtotal, discount, vat, total, lines, … }` — ويُقبل معه `personalize` اختياريًا (يُنقَّى بـ`sanitizePersonal` ويُخزَّن مع الطلب، فيُقرأ عند كل توليد) |
+| `GET`   | `/orders/:id`               | الإيصال — يُفتح منه `/order?id=…`                                                                                                                                                             |
+| `GET`   | `/orders?email=`            | إيصالات المشتري (بلا حسابات)                                                                                                                                                                  |
+| `GET`   | `/licences/:key`            | `{ valid, order, seats, domains }`                                                                                                                                                            |
+| `GET`   | `/download/:id?order=&key=` | بوابة التسليم لكل منتج: تتحقق من الطلب والمفتاح ثم ٣٠٢ إلى `/dl/<token>`                                                                                                                      |
+| `GET`   | `/download-all?order=&key=` | حزمة واحدة فيها كل منتجات الطلب، كلٌّ في مجلده                                                                                                                                                |
+| `GET`   | `/dl/:token`                | يسلّم `qalb-<id>-<order>.zip` — توكن موقّع، ١٠ دقائق، يُستخدم مرة واحدة                                                                                                                       |
+| `GET`   | `/health`                   | الحالة ونوع التخزين، وهل لوحة الإدارة مفعّلة (`admin: true/false`)، ومدّة صلاحية رابط التسليم (`deliver: { ttl, perIp }`)                                                                     |
 
 قواعد يطبّقها الخادم فعليًا (تحقّقتُ منها بـ`curl`):
 
@@ -57,7 +57,7 @@ npm run dev
 | `GET`      | `/catalog`                                                                                  | `{ overrides, prices }` — يقرأه المتجر عند الإقلاع ليطبّق طبقة اللوحة                                                     |
 | `POST`     | `/admin/login` · `/admin/logout` · `/admin/session`                                         | جلسة: كوكي `qalb_admin` (HttpOnly · SameSite=Strict) أو `Bearer` للوضع المحلي                                             |
 | `GET`      | `/admin/stats`                                                                              | دخل، ضريبة مستخرجة من ١٥٪ تشملها الأسعار، عدد الطلبات، المشترون، متوسط السلة، ٣٠ يومًا، الأكثر مبيعًا                     |
-| `GET`      | `/admin/orders?limit=` · `/admin/export.csv`                                                | آخر الطلبات · تصدير CSV باثني عشر عمودًا                                                                                  |
+| `GET`      | `/admin/orders?limit=` · `/admin/export.csv`                                                | آخر الطلبات · تصدير CSV بثلاثة عشر عمودًا (آخرها `personalized` علمٌ لا قيم — بيانات المشتري لا تخرج إلى الملف)           |
 | `GET/POST` | `/admin/products` · `PATCH/DELETE /admin/products/:id` · `POST /admin/products/:id/restore` | جدول التجاوزات: سعر، سعر قبل الخصم، رابط تنزيل (`http(s)` عام أو `/download/<id>` محمي)، نصوص، فئة، نشر/إخفاء، منتج مخصّص |
 | `GET/POST` | `/admin/users` · `DELETE /admin/users/:id` · `POST /admin/users/:id/password`               | المسؤولون: إضافة، حذف، إعادة تعيين كلمة السر                                                                              |
 
@@ -95,6 +95,29 @@ npm run dev
 
 في الـ payload رقم الطلب ومعرّف القالب وتاريخ الانتهاء وnonce عشوائي؛ التوقيع
 HMAC-SHA256 بمفتاح من `DOWNLOAD_SECRET` أو `server/.download-secret` (٠٦٠٠ يُنشأ تلقائيًا).
+
+## تخصيص الحزمة ببيانات المشتري
+
+`POST /orders` يقبل حقلًا اختياريًا `personalize`:
+
+```json
+{
+  "on": true,
+  "name": "نورة الحربي",
+  "role": "مصممة واجهات",
+  "email": "noura@studio.sa",
+  "phone": "+966 55 123 4567",
+  "website": "https://noura.studio.sa",
+  "bio": "سطر عن أعمالك"
+}
+```
+
+- يُمرَّ على `sanitizePersonal` (في `src/data/deliverable.js`، وهي نفسها التي يستدعيها المتجر قبل الإرسال): سطر واحد لكل حقل، سقف ‏80/90/160/40/160/700 محرفًا، بلا وسوم — حقل فيه `<` أو `>` يُرفَض كلّه ويبقى نص القالب.
+- `on:false` أو غياب الحقل أو كائن فارغ ⇒ `personalize: null` في السجل، فتُسلَّم الحزمة بنصوصها التجريبية.
+- تُخزَّن القيم منقّاة داخل سطر الطلب في `orders.jsonl`، لأن كل رابط تنزيل يبني الحزمة من الطلب نفسه: رابط مُعاد توليده بعد أسبوع يعطي نفس الملفات.
+- عند `GET /dl/<token>` تُحقن في `content/profile.json` و`index.html` و`resume.*` و`cover-letter.md`؛ و`LICENSE.txt` وسطر التتبّع يبقى عليهما اسم ولوحة المشتري من بيانات الطلب أصلًا.
+- لا يُصدَّر نصّها في `admin/export.csv` ولا يُعرض في اللوحة: علم `personalized` فقط.
+
 القواعد التي يطبّقها الكود فعلًا (مغطّاة في `npm run test:api`):
 
 | حالة                                                               | النتيجة                                                                           |

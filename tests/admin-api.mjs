@@ -10,7 +10,7 @@
  */
 import { spawn } from 'node:child_process'
 import { existsSync, readdirSync, rmSync, readFileSync, mkdtempSync } from 'node:fs'
-import { zipNames } from '../src/data/zip.js'
+import { zipNames, zipRead } from '../src/data/zip.js'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -440,6 +440,87 @@ try {
       'each protected path is real zip bytes, and only the hand-added URL is passed through',
       zips + seller === ids.length && seller === 1,
       `zips=${zips} seller=${seller} of ${ids.length}`,
+    )
+  }
+
+  /* --- تخصيص المشتّر: ما يُكتب عند الدفع يجب أن يكون داخل الملفات المُسلَّمة --- */
+  {
+    const typed = {
+      on: true,
+      name: 'نورة الحربي',
+      role: 'مديرة <b onmouseover=alert(1)>منتج</b>',
+      email: 'noura@studio.sa',
+      phone: '+966 55 123 4567',
+      website: 'https://noura.studio.sa/work?x=1',
+      bio: 'أبني واجهات للمنتجات المالية ' + 'ز'.repeat(900),
+    }
+    const buy = await call('POST', '/orders', {
+      body: {
+        email: 'noura@studio.sa',
+        name: 'نورة الحربي',
+        total: live.nova,
+        subtotal: live.nova,
+        lines: [{ id: 'nova', qty: 1 }],
+        personalize: typed,
+      },
+      header: false,
+    })
+    const po = buy.json || {}
+    ok(
+      'an order accepts the optional personalisation',
+      buy.status === 201 && !!po.personalize && po.personalize.name.length <= 80,
+      JSON.stringify(po.personalize || {}).slice(0, 90),
+    )
+    ok(
+      'a field carrying markup is dropped, and the clean ones still go in',
+      !po.personalize.role && po.personalize.name === 'نورة الحربي' && /مصممة|نورة/.test(JSON.stringify(po.personalize)),
+      JSON.stringify(po.personalize),
+    )
+    ok(
+      'the link becomes a host and the blurb one capped line',
+      po.personalize.website === 'noura.studio.sa' && po.personalize.bio.length === 700,
+      `${po.personalize.website}/${po.personalize.bio.length}`,
+    )
+    const again = await call('GET', '/orders/' + po.id, { header: false })
+    ok('it is stored with the order, so a second download is identical', JSON.stringify(again.json.personalize) === JSON.stringify(po.personalize))
+    const pg = await dlGet(`/download/nova?order=${po.id}&key=${po.key}`)
+    const pd = await dlGet(pg.loc)
+    const pbuf = new Uint8Array(pd.buf)
+    const prof = JSON.parse(zipRead(pbuf, 'content/profile.json'))
+    const res = zipRead(pbuf, 'resume.html')
+    ok(
+      'the delivered profile.json prints the buyer, not the demo',
+      prof.name.ar === 'نورة الحربي' && prof.name.en === prof.name.ar && prof.qalb.personalized === true,
+      JSON.stringify(prof.name),
+    )
+    ok(
+      'the CV shows the name, the phone and the buyer’s own link',
+      /نورة الحربي/.test(res) && /\+966 55 123 4567/.test(res) && /noura\.studio\.sa/.test(res),
+    )
+    ok(
+      'the rejected field never reaches the delivered file at all',
+      (res.match(/<script/g) || []).length === 2 && !/alert\(1\)/.test(res) && !/onmouseover/.test(res),
+      (res.match(/<script[^>]*>/g) || []).join(','),
+    )
+    ok('and the licence still names the licensee', zipRead(pbuf, 'LICENSE.txt').includes('نورة الحربي'))
+    const plain = await call('POST', '/orders', {
+      body: { email: 'plain@qalb.store', name: 'عادي', total: live.nova, subtotal: live.nova, lines: [{ id: 'nova', qty: 1 }] },
+      header: false,
+    })
+    const pg2 = await dlGet(`/download/nova?order=${plain.json.id}&key=${plain.json.key}`)
+    const pd2 = await dlGet(pg2.loc)
+    const prof2 = JSON.parse(zipRead(new Uint8Array(pd2.buf), 'content/profile.json'))
+    ok(
+      'an order that skipped the fields ships the demo copy untouched',
+      plain.json.personalize === null && prof2.name.ar === 'سارة العتيبي' && !prof2.qalb.personalized,
+      JSON.stringify(prof2.name),
+    )
+    const csv = await call('GET', '/admin/export.csv', { token: TOKEN, raw: true })
+    const mine = csv.text.split('\n').find((l) => l.includes(po.id)) || ''
+    ok(
+      'the export flags a personalised order without carrying its text',
+      /personalized/.test(csv.text.split('\n')[0]) && /"?yes"?\s*$/.test(mine) && !csv.text.includes('أبني واجهات'),
+      mine.slice(-40),
     )
   }
 

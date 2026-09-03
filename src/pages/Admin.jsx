@@ -687,7 +687,15 @@ function Orders({ orders }) {
                     {o.email}
                   </span>
                 </td>
-                <td className="num px-3 py-2.5 text-center">{num(o.count || (o.lines || []).length)}</td>
+                <td className="num px-3 py-2.5 text-center">
+                  {num(o.count || (o.lines || []).length)}
+                  {o.personalize ? (
+                    // القيم نفسها لا تُعرض في اللوحة: يكفي أنها طُبعت في حزمة هذا الطلب
+                    <Pill tone="brand" className="ms-1.5">
+                      {t('admin.personalized')}
+                    </Pill>
+                  ) : null}
+                </td>
                 <td className="px-3 py-2.5 text-center">
                   <Money v={o.total} size="text-[13px]" />
                 </td>

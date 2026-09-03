@@ -66,7 +66,7 @@ const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`
 
 /** تصدير الطلبات كما هي — بلا أرقام مخترعة */
 export function csvOf(orders = []) {
-  const head = ['id', 'date', 'name', 'email', 'method', 'items', 'subtotal', 'discount', 'vat', 'total', 'key', 'lines']
+  const head = ['id', 'date', 'name', 'email', 'method', 'items', 'subtotal', 'discount', 'vat', 'total', 'key', 'lines', 'personalized']
   const rows = orders.map((o) =>
     [
       o.id,
@@ -81,6 +81,7 @@ export function csvOf(orders = []) {
       o.total,
       o.key,
       (o.lines || []).map((l) => `${l.id}×${l.qty}`).join(' '),
+      o.personalize ? 'yes' : 'no', // القيمة نفسها لا تُصدَّر: يكفي أن الطلب مُخصَّص
     ]
       .map(esc)
       .join(','),

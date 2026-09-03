@@ -7,9 +7,9 @@ import { build } from 'esbuild'
 import { readFileSync, mkdirSync, readdirSync, existsSync } from 'node:fs'
 import { JSDOM, VirtualConsole } from 'jsdom'
 import { dict } from '../src/i18n/translations.js'
-import { templates } from '../src/data/templates.js'
-import { isProtectedDownload, kindOf, packageFiles, packageZip } from '../src/data/deliverable.js'
-import { zipNames } from '../src/data/zip.js'
+import { byId, templates } from '../src/data/templates.js'
+import { isProtectedDownload, kindOf, packageFiles, packageZip, sanitizePersonal } from '../src/data/deliverable.js'
+import { zipNames, zipRead } from '../src/data/zip.js'
 import { claimStaleReload, clearStaleReload, isStaleLoadError } from '../src/lib/load-error.js'
 
 const out = 'tests/build/app.js'
@@ -1713,6 +1713,299 @@ for (const c of cases) {
   }
 }
 
+/* ---------------- personalisation · what the buyer types is what lands in the files ---------------- */
+{
+  const checks = []
+  const ok = (name, cond, extra = '') => checks.push([cond ? name : `${name} — ${extra}`, !!cond])
+  const buyer = {
+    on: true,
+    name: 'نورة الحربي',
+    role: 'مصممة واجهات',
+    email: 'noura@studio.sa',
+    phone: '+966 55 123 4567',
+    website: 'https://noura.studio.sa/work?x=1',
+    bio: 'أبني واجهات للمنتجات المالية منذ ست سنوات',
+  }
+
+  /* the cleaner — one function, used by the store and by server/worker.js alike */
+  const clean = sanitizePersonal(buyer)
+  ok(
+    'typed values survive the cleaner',
+    clean.name === 'نورة الحربي' && clean.role === 'مصممة واجهات' && clean.email === 'noura@studio.sa',
+    JSON.stringify(clean),
+  )
+  ok('a link is reduced to a host, never kept as a url', clean.website === 'noura.studio.sa', clean.website)
+  ok('the blurb becomes one finished sentence', /سنوات\.$/.test(clean.bio), clean.bio.slice(-24))
+  ok('an unusable e-mail is dropped instead of written', !sanitizePersonal({ on: true, name: 'N', email: 'not an email' }).email)
+  ok('an unusable phone is dropped too', !sanitizePersonal({ on: true, name: 'N', phone: '+966-not-a-number' }).phone)
+  ok(
+    'a field with markup is dropped whole rather than printed mangled',
+    !sanitizePersonal({ on: true, name: '<img src=x onerror=alert(1)>', bio: 'نصّ سليم' }).name &&
+      sanitizePersonal({ on: true, name: '<img src=x onerror=alert(1)>', bio: 'نصّ سليم' }).bio === 'نصّ سليم.',
+  )
+  ok('control characters cannot smuggle a newline into a file', !/[\n\t]/.test(sanitizePersonal({ on: true, bio: 'a\nb\tc' }).bio))
+  ok('every field has a hard cap', sanitizePersonal({ on: true, bio: 'أ'.repeat(4000) }).bio.length === 700)
+  ok(
+    'switched off, nothing is injected at all',
+    sanitizePersonal({ ...buyer, on: false }) === null && sanitizePersonal({}) === null && sanitizePersonal(null) === null,
+  )
+
+  /* the site package */
+  const site = byId('aether')
+  const ord = { id: 'QALB-P1', key: 'K-1-Q2', name: 'نورة الحربي', email: 'noura@studio.sa', date: '2026-09-04', personalize: buyer }
+  const files = packageFiles(site, ord)
+  const body = (n) => (files.find((f) => f.path === n) || {}).body || ''
+  const prof = JSON.parse(body('content/profile.json'))
+  ok(
+    'content/profile.json prints the buyer, not the demo',
+    prof.name.ar === 'نورة الحربي' && prof.name.en === 'نورة الحربي',
+    JSON.stringify(prof.name),
+  )
+  ok('the role and the about line follow', prof.role.ar === 'مصممة واجهات' && /للمنتجات المالية/.test(prof.blurb.ar), prof.blurb.ar.slice(0, 40))
+  ok(
+    'the contact block is filled',
+    prof.contact.email === 'noura@studio.sa' && prof.contact.phone === '+966 55 123 4567',
+    JSON.stringify(prof.contact),
+  )
+  ok('the site host is the buyer’s own link', prof.host === 'noura.studio.sa', prof.host)
+  ok('and the profile says so', prof.qalb.personalized === true)
+  const html = body('index.html')
+  ok(
+    'the shipped page prints the name in the title and the header',
+    /<title[^>]*>نورة الحربي/.test(html) && html.includes('<h1 data-f="name">نورة الحربي</h1>'),
+  )
+  ok(
+    'the footer signature is the buyer’s',
+    (html.match(/<span data-brand>([^<]*)<\/span>/g) || []).every((x) => /نورة الحربي/.test(x)),
+    (html.match(/data-brand>([^<]*)/) || [])[1],
+  )
+  ok('the demo name is nowhere in the delivered page', !/لمار|Lamar/.test(html))
+  ok('the inline JSON used from file:// carries it too', /id="profile">[\s\S]{0,400}نورة الحربي/.test(html))
+  ok('README names the fields that were printed', /طُبعت بياناتك في الحزمة/.test(body('README.md')))
+
+  /* the actual archive bytes, not the in-memory strings */
+  const bytes = packageZip(site, ord)
+  ok('the ZIP holds the personalised profile', JSON.parse(zipRead(bytes, 'content/profile.json')).name.ar === 'نورة الحربي')
+  ok('and its index.html prints the name', zipRead(bytes, 'index.html').includes('نورة الحربي'))
+  ok('the licence still names the licensee', zipRead(bytes, 'LICENSE.txt').includes('نورة الحربي'))
+
+  /* the CV package */
+  const cv = byId('nova')
+  const cvFiles = packageFiles(cv, { ...ord, id: 'QALB-P2' })
+  const cvBody = (n) => (cvFiles.find((f) => f.path === n) || {}).body || ''
+  ok(
+    'the CV header shows the buyer name and role',
+    cvBody('resume.html').includes('<h1 data-f="name">نورة الحربي</h1>') && /مصممة واجهات/.test(cvBody('resume.html')),
+  )
+  ok(
+    'with the phone and the e-mail in the contact line',
+    /noura@studio\.sa/.test(cvBody('resume.html')) && /\+966 55 123 4567/.test(cvBody('resume.html')),
+  )
+  ok('the markdown CV is written with it', cvBody('resume.md').includes('نورة الحربي') && cvBody('resume.md').includes('مصممة واجهات'))
+  ok(
+    'and the cover letter signs with the buyer’s name',
+    cvBody('cover-letter.md')
+      .split('·')
+      .some((x) => /نورة الحربي/.test(x)),
+  )
+  const untouched = packageFiles(cv, { id: 'Q', key: 'K' })
+  const tprof = JSON.parse((untouched.find((f) => f.path === 'content/profile.json') || {}).body)
+  ok('an order without personalisation keeps the demo copy', tprof.name.ar === 'سارة العتيبي' && !tprof.qalb.personalized, JSON.stringify(tprof.name))
+
+  /* the product page: asked for once, kept for the rest of the purchase */
+  const fill = (g, id, v) => {
+    const el = g.doc.getElementById(id)
+    if (!el) throw new Error(`no field #${id}`)
+    const proto = el.tagName === 'TEXTAREA' ? g.win.HTMLTextAreaElement.prototype : g.win.HTMLInputElement.prototype
+    Object.getOwnPropertyDescriptor(proto, 'value').set.call(el, v)
+    el.dispatchEvent(new g.win.Event('input', { bubbles: true }))
+  }
+  const pp = await render('http://localhost/template/aether-portfolio')
+  ok('the product page offers the fields before the buyer pays', /تخصيص القالب قبل التنزيل/.test(pp.txt()))
+  ok('and keeps them closed until asked', !pp.doc.getElementById('pe-name'))
+  const tick = pp.doc.querySelector('#personalize input[type="checkbox"]')
+  if (tick) tick.click()
+  await pp.wait()
+  ok('one tick opens the fields', !!pp.doc.getElementById('pe-name') && !!pp.doc.getElementById('pe-bio'))
+  ok('and the panel says plainly what the data is used for', /لحظة التوليد/.test(pp.txt()))
+  fill(pp, 'pe-name', 'نورة الحربي')
+  fill(pp, 'pe-bio', 'أبني واجهات للمنتجات المالية')
+  await pp.wait()
+  ok('a live line shows what will be printed', /ما سيُطبع في الحزمة/.test(pp.txt()) && /نورة الحربي/.test(pp.txt()))
+  fill(pp, 'pe-role', 'مديرة <b>منتج</b>')
+  await pp.wait()
+  ok('a field that cannot be printed is said so, on the field itself', /لن يُطبع هذا الحقل/.test(pp.txt()))
+  fill(pp, 'pe-role', 'مصممة واجهات')
+  await pp.wait()
+  ok('and the warning goes away once it is usable', !/لن يُطبع هذا الحقل/.test(pp.txt()) && /مصممة واجهات/.test(pp.txt()))
+  ok('it is stored for the rest of the purchase', JSON.parse(pp.win.localStorage.getItem('qalb.personalize.v1') || '{}').name === 'نورة الحربي')
+  pp.dom.window.close()
+
+  const again = await render('http://localhost/template/aether-portfolio', {
+    'qalb.personalize.v1': JSON.stringify({ on: true, name: 'نورة الحربي' }),
+  })
+  ok('and survives a reload', (again.doc.getElementById('pe-name') || {}).value === 'نورة الحربي')
+  again.dom.window.close()
+
+  /* the whole purchase: typed → order → receipt → bytes */
+  const g = await render(
+    'http://localhost/checkout',
+    { 'qalb.cart.v1': JSON.stringify([{ id: 'nova', qty: 1 }]), 'qalb.personalize.v1': JSON.stringify(buyer) },
+    {
+      boot: (win) => {
+        win.__blobs = []
+        win.__clicks = []
+        win.Blob = class {
+          constructor(parts, opts) {
+            win.__blobs.push({ parts: parts || [], type: opts && opts.type })
+            this.size = (parts || []).reduce((n, x) => n + (x.length || 0), 0)
+          }
+        }
+        win.URL.createObjectURL = () => 'blob:stub'
+        win.URL.revokeObjectURL = () => {}
+        win.HTMLAnchorElement.prototype.click = function () {
+          win.__clicks.push(this.download || this.href)
+        }
+      },
+    },
+  )
+  ok(
+    'checkout starts with the same fields already filled',
+    /تخصيص القالب قبل التنزيل/.test(g.txt()) && (g.doc.getElementById('pe-name') || {}).value === 'نورة الحربي',
+  )
+  ok('and states the fallback to the billing details', /يُؤخذ من بيانات الفاتورة/.test(g.txt()))
+  const step = async () => {
+    const b = [...g.doc.querySelectorAll('button')].find((x) => /متابعة|تأكيد الطلب والدفع/.test(x.textContent || ''))
+    if (b) b.click()
+    await new Promise((r) => setTimeout(r, 1200))
+    await g.wait()
+  }
+  fill(g, 'co-email', 'noura@studio.sa')
+  fill(g, 'co-name', 'نورة الحربي')
+  await g.wait()
+  await step()
+  fill(g, 'co-card', '4111 1111 1111 1111')
+  fill(g, 'co-exp', '12/29')
+  fill(g, 'co-cvv', '123')
+  await g.wait()
+  await step()
+  const agree = [...g.doc.querySelectorAll('form input[type="checkbox"]')].pop()
+  if (agree && !agree.checked) agree.click()
+  await g.wait()
+  await step()
+  const placed = JSON.parse(g.win.localStorage.getItem('qalb.orders.v1') || '[]')[0] || {}
+  ok(
+    'the order stores the cleaned payload',
+    !!placed.personalize && placed.personalize.name === 'نورة الحربي' && placed.personalize.website === 'noura.studio.sa',
+    JSON.stringify(placed.personalize || {}),
+  )
+  ok(
+    'the receipt shows what was injected',
+    /خُصِّصت الملفات بهذه البيانات/.test(g.txt()) && /نورة الحربي/.test(g.txt()),
+    g.txt().replace(/\s+/g, ' ').slice(0, 80),
+  )
+  ok('and tells the buyer the files stay editable', /عدّل content\/profile\.json بنفسك/.test(g.txt()))
+  const dl = g.btn(/تحميل الحزمة/)
+  if (dl) dl.click()
+  await g.wait()
+  const got = (g.win.__blobs || []).slice(-1)[0]
+  const gz = got && got.parts[0]
+  ok(
+    'the archive the buyer downloads is the personalised one',
+    !!gz && JSON.parse(zipRead(gz, 'content/profile.json')).name.ar === 'نورة الحربي',
+    gz ? zipNames(gz).length + ' entries' : 'no bytes',
+  )
+  ok(
+    'downloaded under the order’s own file name',
+    /^qalb-nova-qalb-[a-z0-9]+-[a-z0-9]+\.zip$/.test(String((g.win.__clicks || []).slice(-1)[0])),
+    String((g.win.__clicks || []).slice(-1)[0]),
+  )
+  g.dom.window.close()
+
+  /* rest mode: the same payload must leave the browser, or the server ships the demo */
+  {
+    const calls = []
+    const receipt = {
+      id: 'QALB-RST-1',
+      key: 'RST-KEY-1234',
+      date: '2026-09-04',
+      email: 'noura@studio.sa',
+      name: 'نورة الحربي',
+      total: 89,
+      count: 1,
+      method: 'card',
+      lines: [{ id: 'nova', qty: 1 }],
+      personalize: {
+        name: 'نورة الحربي',
+        role: 'مصممة واجهات',
+        email: 'noura@studio.sa',
+        phone: '+966 55 123 4567',
+        website: 'noura.studio.sa',
+        bio: 'أبني واجهات للمنتجات المالية.',
+      },
+    }
+    const g2 = await render(
+      'http://localhost/checkout',
+      { 'qalb.cart.v1': JSON.stringify([{ id: 'nova', qty: 1 }]), 'qalb.personalize.v1': JSON.stringify(buyer) },
+      {
+        boot: (win) => {
+          win.__QALB_ENV = { VITE_QALB_API: 'rest', VITE_QALB_API_BASE: 'http://api.test' }
+          win.fetch = (url, init) => {
+            calls.push({ url, body: init?.body ? JSON.parse(init.body) : null })
+            return Promise.resolve({ ok: true, status: 201, json: async () => receipt })
+          }
+        },
+      },
+    )
+    const fill2 = (id, v) => {
+      const el = g2.doc.getElementById(id)
+      if (!el) return
+      Object.getOwnPropertyDescriptor(g2.win.HTMLInputElement.prototype, 'value').set.call(el, v)
+      el.dispatchEvent(new g2.win.Event('input', { bubbles: true }))
+    }
+    const step2 = async () => {
+      const b = [...g2.doc.querySelectorAll('button')].find((x) => /متابعة|تأكيد الطلب والدفع/.test(x.textContent || ''))
+      if (b) b.click()
+      await new Promise((r) => setTimeout(r, 900))
+      await g2.wait()
+    }
+    fill2('co-email', 'noura@studio.sa')
+    fill2('co-name', 'نورة الحربي')
+    await g2.wait()
+    await step2()
+    fill2('co-card', '4111 1111 1111 1111')
+    fill2('co-exp', '12/29')
+    fill2('co-cvv', '123')
+    await g2.wait()
+    await step2()
+    const agree2 = [...g2.doc.querySelectorAll('form input[type="checkbox"]')].pop()
+    if (agree2 && !agree2.checked) agree2.click()
+    await g2.wait()
+    await step2()
+    const post = calls.find((c) => c.url === 'http://api.test/orders')
+    ok(
+      'rest mode sends the cleaned personalisation with the order',
+      !!post && post.body?.personalize?.name === 'نورة الحربي' && post.body?.personalize?.website === 'noura.studio.sa',
+      JSON.stringify((post && post.body && post.body.personalize) || {}),
+    )
+    ok(
+      'and the server receipt repeats it',
+      /خُصِّصت الملفات بهذه البيانات/.test(g2.txt()) && /QALB-RST-1/.test(g2.txt()),
+      g2.txt().replace(/\s+/g, ' ').slice(0, 60),
+    )
+    g2.dom.window.close()
+  }
+
+  const badGroup = checks.filter(([, pass]) => !pass)
+  if (badGroup.length) {
+    failed++
+    console.log('✗ personalisation · typed once, printed in every file')
+    badGroup.forEach(([n]) => console.log('   failed: ' + n))
+  } else {
+    console.log(`✓ personalisation · typed once, printed in every file  (${checks.length} assertions)`)
+  }
+}
+
 /* ---------------- delivery · real packages, signed links, no dead buttons ---------------- */
 {
   const checks = []
@@ -1884,6 +2177,6 @@ for (const c of cases) {
 console.log(
   failed
     ? `\n${failed} check group(s) failed`
-    : `\nall ${cases.length + 11} check groups passed · ${cases.length} routes / ${routeChecks} expectations`,
+    : `\nall ${cases.length + 12} check groups passed · ${cases.length} routes / ${routeChecks} expectations`,
 )
 process.exit(failed ? 1 : 0)

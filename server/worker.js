@@ -32,6 +32,7 @@ import { loadDotEnv } from '../scripts/dotenv.mjs'
 import { createAdminApi } from './admin.js'
 import { createDeliverApi } from './deliver.js'
 import { VAT as VAT_RATE } from '../src/data/tax.js'
+import { sanitizePersonal } from '../src/data/deliverable.js'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 loadDotEnv(ROOT) // PORT / SUPABASE_* من .env إن وُجد — node لا يقرأه وحده
@@ -192,6 +193,8 @@ const server = createServer(async (req, res) => {
         methodLabel: body.methodLabel || null,
         invoice: !!body.invoice,
         vatNo: body.vatNo || null,
+        // تخصيص المشتّر الاختياري: تُنقّى هنا بنفس دالة المتجر، ثم تُقرأ عند التوليد
+        personalize: sanitizePersonal(body.personalize),
         idempotency: idem || null,
         ...math,
       }

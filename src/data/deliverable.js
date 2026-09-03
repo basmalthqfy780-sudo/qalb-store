@@ -7,6 +7,8 @@
  * من نفس الدالة ومن نفس بيانات `templates.js`.
  *
  * كل حزمة تحمل:
+ *   بيانات المشتري  ما كتبه في «تخصيص القالب» يُطبع داخل content/profile.json وindex.html
+ *                    وresume.* — بعد تنقيته في sanitizePersonal (سطر واحد، بلا وسوم، بسقف طول).
  *   LICENSE.txt  رخصة مقيدة باسم المشتري ورقم طلبه ومفتاحه (مضادة لإعادة التوزيع).
  *   watermark    نفس المعرّفات في تعليق أعلى كل ملف نصي، فأي تسريب قابل للتتبّع.
  *   محتوى حيّ    بيانات العرض نفسها التي شاهدها المشتّر في معاينة الموقع.
@@ -125,6 +127,72 @@ ${'='.repeat(68)}
 `
 }
 
+/* ========================= بيانات المشتّر المُحقَنة ========================= */
+
+/** سقف لكل حقل: ما يدخل الحزمة لا يتجاوز هذا مهما أرسل المتصفّح */
+export const PERSONAL_LIMITS = { name: 80, role: 90, email: 160, phone: 40, website: 160, bio: 700 }
+
+/**
+ * سطر واحد، بلا محارف تحكّم، ولا أقواس وسوم: الحقل يُطبع في HTML وJSON وMarkdown.
+ * المحارف تُصفّى بالشفرة لا بنمط — `no-control-regex` مقصود: محرف تحكّم داخل ملف
+ * مُسلَّم يُفسد سطر التتبّع أعلى الحزمة ويطير منه رقم الطلب.
+ * ومن كتب وسمًا يُتجاهل حقله كلّه (null) بدل أن تُطبع نسخة مشوَّهة في سيرة المشتّر:
+ * لا يُسلَّم نصّ مُحرَّف للناس، والواجهة تُخبره أن الحقل لن يُطبع.
+ */
+const flat = (v, max) => {
+  const s =
+    Array.from(String(v == null ? '' : v), (c) => {
+      const n = c.charCodeAt(0)
+      return n < 32 || n === 127 ? ' ' : c
+    })
+      .join('')
+      .replace(/\s+/g, ' ')
+      .trim() || ''
+  if (/[<>]/.test(s)) return null
+  return s.slice(0, max) || null
+}
+
+/**
+ * تنقية تخصيص المشتّر قبل أن يصير جزءًا من ملف مُسلَّم — ترجع null حين لا تخصيص،
+ * فتبقى نصوص النموذج كما هي ولا تُستبدل بخواء. يستدعيها المتجر (البناء المحلي في
+ * صفحة الإيصال) ويستدعيها الخادم (server/worker.js عند الحفظ)، فلا يختلف ما يراه
+ * المشتّر في الإيصال عمّا يُلغَه رابط التنزيل.
+ */
+export function sanitizePersonal(raw) {
+  if (!raw || typeof raw !== 'object' || raw.on === false) return null
+  const out = {}
+  for (const key of Object.keys(PERSONAL_LIMITS)) {
+    const v = flat(raw[key], PERSONAL_LIMITS[key])
+    if (v) out[key] = v // null = حقل مرفوض: يبقى نص القالب التجريبي ولا يُطبع شيء
+  }
+  if (out.email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(out.email)) delete out.email
+  if (out.phone && !/^[+\d][\d\s().+-]{5,39}$/.test(out.phone)) delete out.phone
+  if (out.website) {
+    // مضيف نظيف فقط (بلا مسار ولا مصادقة ولا مخطّط آخر): يُطبع كنص لا كرابط
+    const host = out.website
+      .replace(/^(?:https?:)?\/\//i, '')
+      .split('/')[0]
+      .split('@')
+      .pop()
+    if (!/^[a-z0-9-]+(?:\.[a-z0-9-]+)+$/i.test(host)) delete out.website
+    else out.website = host.toLowerCase()
+  }
+  if (out.bio) out.bio = (out.bio.replace(/[।.\s]*$/, '') + '.').slice(0, PERSONAL_LIMITS.bio) // النبذة جملة: تُطبع بعد نقطة في القوالب
+  return Object.keys(out).length ? out : null
+}
+
+/** تُبدّل قيم النموذج ببيانات المشتّر؛ الحقل الذي لم يُكتب يبقى كما هو */
+function applyPersonal(p, w) {
+  if (w.name) p.name = { ar: w.name, en: w.name }
+  if (w.role) p.role = { ar: w.role, en: w.role }
+  if (w.bio) p.blurb = { ar: w.bio, en: w.bio }
+  if (w.email) p.contact = { ...p.contact, email: w.email }
+  if (w.phone) p.contact = { ...p.contact, phone: w.phone }
+  if (w.website) p.host = w.website
+  p.qalb = { ...p.qalb, personalized: true }
+  return p
+}
+
 /* ============================ مولّدات الملفات ============================ */
 
 /** لون النص فوق لون التمييز: داكن على الفاتح وفاتح على الغامق (AA في الحالتين) */
@@ -149,11 +217,11 @@ const accentFor = (tpl, site) => {
   return id && PALETTE.some((c) => c.id === id) ? accentHex(id) : BRAND_HEX
 }
 
-const profileFor = (tpl, k) => {
+const profileFor = (tpl, k, personal = null) => {
   const site = k !== 'cv' ? siteFor(tpl) : null
   const demo = k !== 'site' ? demoFor(tpl) : null
   const base = site || demo || {}
-  return {
+  const prof = {
     qalb: { template: tpl.id, slug: tpl.slug || null, kind: k, seats: 1, price: tpl.price },
     lang: 'ar',
     dir: 'rtl',
@@ -194,9 +262,10 @@ const profileFor = (tpl, k) => {
       : [],
     services: { ar: list(tpl.bestFor, 'ar'), en: list(tpl.bestFor, 'en') },
   }
+  return personal ? applyPersonal(prof, personal) : prof
 }
 
-const readmeFor = (tpl, k, order) => {
+const readmeFor = (tpl, k, order, personal = null) => {
   const hasSite = k !== 'cv'
   const hasCv = k !== 'site'
   const files = []
@@ -224,7 +293,9 @@ const readmeFor = (tpl, k, order) => {
 > ${pick(tpl.tagline, 'en')}
 > ${pick(tpl.tagline, 'ar')}
 
-حزمة مُسلَّمة من **قالب / Qalb**${order.id ? ` — طلب \`${order.id}\`` : ''}${order.key ? ` · مفتاح رخصة \`${order.key}\`` : ''}
+حزمة مُسلَّمة من **قالب / Qalb**${order.id ? ` — طلب \`${order.id}\`` : ''}${order.key ? ` · مفتاح رخصة \`${order.key}\`` : ''}${
+    personal ? `\n\n> طُبعت بياناتك في الحزمة عند التوليد: ${Object.keys(personal).join(' · ')}. الحقول الأخرى ما زالت نصوصًا تجريبية.` : ''
+  }
 ${order.name ? `مرخّصة لـ ${order.name}${order.email ? ` (${order.email})` : ''} — رخصة مقعد واحد، التفاصيل في \`LICENSE.txt\`.\n` : ''}
 ## ما في الحزمة
 
@@ -697,7 +768,9 @@ ${layout === 'side' ? aside : tail}
   </body>
 </html>
 `
-  const md = `# ${p.name.ar} — ${p.name.en}
+  // مشتّر كتب اسمه بلغة واحدة: لا يُكرَّر مرّتين في عنوان السيرة
+  const nameLine = p.name.en && p.name.en !== p.name.ar ? `${p.name.ar} — ${p.name.en}` : p.name.ar
+  const md = `# ${nameLine}
 
 **${p.role.en || p.role.ar}** · ${p.city.en || p.city.ar} · ${p.contact.email || 'you@example.com'} · ${p.contact.phone || '+966 5X XXX XXXX'} · ${p.host}
 
@@ -950,12 +1023,13 @@ export function packageFiles(tpl, ctx = {}) {
   const order = { id: ctx.id, key: ctx.key, name: ctx.name, email: ctx.email, date: ctx.date }
   const hasSite = k !== 'cv'
   const hasCv = k !== 'site'
-  const p = profileFor(tpl, k)
+  const personal = sanitizePersonal(ctx.personalize)
+  const p = profileFor(tpl, k, personal)
   const mark = markOf(order)
   const out = [{ path: 'LICENSE.txt', body: licenceText(tpl, order) }]
   const add = (path, body) => out.push({ path, body: commentFor(path, mark) + body })
 
-  add('README.md', readmeFor(tpl, k, order))
+  add('README.md', readmeFor(tpl, k, order, personal))
 
   if (hasSite) {
     add('index.html', siteHtml(tpl, p))

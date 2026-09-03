@@ -277,6 +277,18 @@ export default function Success() {
                 {t('success.manifest')}
               </button>
             </div>
+            {order.personalize ? (
+              <p className="mt-2 flex items-start gap-2 rounded-xl border border-brand/25 bg-brand/[0.05] px-3 py-2 text-[11.5px] leading-relaxed text-dim">
+                <Icon n="spark" className="mt-0.5 size-3.5 shrink-0 text-brand" />
+                <span>
+                  <b className="text-ink/85">{t('success.personalized')}</b>{' '}
+                  {Object.entries(order.personalize)
+                    .map(([k, v]) => `${t(k === 'website' ? 'personal.site' : `personal.${k}`)}: ${v}`)
+                    .join(' · ')}{' '}
+                  {t('success.personalizedNote')}
+                </span>
+              </p>
+            ) : null}
             {rows.length === 0 ? (
               <p className="mt-2 text-[12.5px] leading-relaxed text-muted">{t('success.noLines')}</p>
             ) : (

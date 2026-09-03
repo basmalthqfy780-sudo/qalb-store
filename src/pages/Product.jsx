@@ -22,6 +22,7 @@ import QuickView from '../components/QuickView'
 import { useSeo, productLd } from '../components/Seo'
 import { Btn, Head, Icon, Money, Pill, Reveal, Stars } from '../components/ui'
 import { useStore } from '../store/StoreContext'
+import Personalize from '../components/Personalize'
 
 export default function Product() {
   const { slug } = useParams()
@@ -484,6 +485,9 @@ export default function Product() {
                   </Link>
                 )}
               </div>
+
+              {/* يُكتب هنا ويُدفَع هنا: نفس الحقول في خطوة الدفع، ونفس المخزن يربطهما */}
+              <Personalize compact className="mt-5" />
 
               <ul className="mt-6 space-y-2.5">
                 {[

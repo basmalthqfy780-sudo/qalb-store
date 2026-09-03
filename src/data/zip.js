@@ -124,3 +124,28 @@ export function zipNames(bytes) {
   }
   return names
 }
+
+/**
+ * قراءة ملف واحد من أرشيف stored — مع التحقق من CRC، فلا يكتفي الفحص بوجود الاسم.
+ * تُستعمل في الاختبارات (للتأكد أن ما يُلغَه المشتّر هو ما كُتب فعلًا) وفي أي مكان
+ * يحتاج قراءة ما داخل الحزمة بلا مكتبة فك ضغط.
+ */
+export function zipRead(bytes, want) {
+  const v = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
+  const enc = new TextDecoder()
+  let i = 0
+  while (i + 30 <= bytes.length && v.getUint32(i, true) === 0x04034b50) {
+    const crc = v.getUint32(i + 14, true)
+    const size = v.getUint32(i + 18, true)
+    const nLen = v.getUint16(i + 26, true)
+    const eLen = v.getUint16(i + 28, true)
+    const name = enc.decode(bytes.subarray(i + 30, i + 30 + nLen))
+    const body = bytes.subarray(i + 30 + nLen, i + 30 + nLen + size)
+    if (name === want) {
+      if (crc32(body) !== crc) throw new Error(`zipRead: crc mismatch in ${name}`)
+      return enc.decode(body)
+    }
+    i += 30 + nLen + eLen + size
+  }
+  return null
+}

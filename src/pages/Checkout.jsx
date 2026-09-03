@@ -3,6 +3,8 @@ import { submitOrder, apiMode } from '../api'
 import { Link, useNavigate } from 'react-router-dom'
 import { useI18n, dec } from '../i18n'
 import { useStore, VAT } from '../store/StoreContext'
+import Personalize from '../components/Personalize'
+import { sanitizePersonal } from '../data/deliverable'
 import { Logo } from '../components/Navbar'
 import { Btn, Icon, Money } from '../components/ui'
 import { useSeo } from '../components/Seo'
@@ -17,7 +19,7 @@ const methodById = (id) => METHODS.find((m) => m.id === id)
 
 export default function Checkout() {
   const { t, lang, L } = useI18n()
-  const { items, totals, coupon, clear } = useStore()
+  const { items, totals, coupon, clear, personal } = useStore()
   const nav = useNavigate()
   const [step, setStep] = useState(0)
   const [busy, setBusy] = useState(false)
@@ -98,6 +100,7 @@ export default function Checkout() {
       method: f.method,
       methodLabel: t(methodById(f.method)?.k || 'checkout.card'),
       coupon: coupon?.code || null,
+      personalize: inject, // null = لا تخصيص، فتصل الحزمة بنصوصها التجريبية
       couponPct: coupon?.pct || 0,
       invoice: !!f.invoice,
       vatNo: f.vat || null,
@@ -117,6 +120,19 @@ export default function Checkout() {
   }
 
   const steps = [t('checkout.step1'), t('checkout.step2'), t('checkout.step3')]
+
+  /**
+   * بيانات المشتّر التي تُطبع في الحزمة: الحقل الفارغ يُؤخذ من الفاتورة، وما لا
+   * يُقبل يُهمل في sanitizePersonal — فتبقى المعاينة هنا هي البايتات نفسها لاحقًا.
+   */
+  const inject = personal.on
+    ? sanitizePersonal({ ...personal, name: personal.name || f.name, email: personal.email || f.email, phone: personal.phone || f.phone })
+    : null
+  const injectText = inject
+    ? Object.entries(inject)
+        .map(([k, v]) => `${t(k === 'website' ? 'personal.site' : `personal.${k}`)}: ${v}`)
+        .join(' · ')
+    : ''
 
   return (
     <div className="min-h-[80vh]">
@@ -196,6 +212,8 @@ export default function Checkout() {
                   </span>
                 </label>
               </div>
+
+              <Personalize className="mt-6" />
             </Section>
           )}
 
@@ -301,6 +319,15 @@ export default function Checkout() {
                 <Review label={t('checkout.method')} value={t(methodById(f.method)?.k || 'checkout.card')} />
                 {f.invoice && <Review label={t('checkout.invoice')} value={f.vat ? `VAT ${f.vat}` : t('checkout.yes')} />}
                 {f.card && <Review label={t('checkout.cardNumber')} value={`•••• ${f.card.slice(-4)}`} />}
+                {inject ? (
+                  <div className="rounded-xl border border-brand/30 bg-brand/[0.05] px-3 py-2.5">
+                    <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-brand">
+                      <Icon n="spark" className="size-3.5" />
+                      {t('personal.preview')}
+                    </p>
+                    <p className="mt-1 text-[12px] leading-relaxed text-dim">{injectText}</p>
+                  </div>
+                ) : null}
                 <Review label={t('checkout.promo')} value={coupon?.code || '—'} />
               </div>
               <ul className="mt-5 space-y-2.5">
