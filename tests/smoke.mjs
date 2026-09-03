@@ -1495,12 +1495,38 @@ for (const c of cases) {
   )
   ok('a placeholder survives in both languages to be substituted', dict.ar.footer.rights.includes('{y}') && dict.en.footer.rights.includes('{y}'))
 
+  /*
+   * No string may promise something the code does not do. There is no mailer and no
+   * fiscal integration in this repo, so any line about sending e-mail or issuing an
+   * e-invoice has to say plainly that it does not happen on its own. A claim with a
+   * delivery verb and no negation next to it is exactly what this catches.
+   */
+  const mail = { ar: 'لا|لن|لم|غير|بدون|ليس', en: 'not|no |never|unless|without' }
+  const allStrings = (o, pre = '') =>
+    Object.entries(o).flatMap(([k, v]) => (typeof v === 'string' ? [[pre + k, v]] : v && typeof v === 'object' ? allStrings(v, `${pre}${k}.`) : []))
+  for (const lang of ['ar', 'en']) {
+    const promises = allStrings(dict[lang]).filter(
+      ([, s]) =>
+        /(يُرسل|نُرسل|أُرسل|تُرسل|تُرسَل|تُصدر|يصدر|sent to|are emailed|is emailed|is issued|we send|will send)/i.test(s) &&
+        /(بريد|e-?mail|فاتورة|invoice|ZATCA|هيئة الزكاة)/i.test(s),
+    )
+    const bare = promises.filter(([, s]) => !new RegExp(mail[lang], 'i').test(s)).map(([k]) => k)
+    ok(`no ${lang} line promises an e-mail or an invoice that nothing backs`, bare.length === 0, bare.slice(0, 4).join(','))
+  }
+  ok(
+    'the receipt and the billing note say what really happens',
+    dict.ar.checkout.billingNote.startsWith('لا يُرسل شيء بالبريد') &&
+      /^Nothing is emailed automatically/.test(dict.en.checkout.billingNote) &&
+      dict.ar.success.sub.includes('في هذه الصفحة') &&
+      /on this page/.test(dict.en.success.sub),
+  )
+
   if (bad.length) {
     failed++
-    console.log('✗ i18n · parity · no missing or dead keys')
+    console.log('✗ i18n · parity · no dead keys · no unbacked promise')
     bad.forEach((n) => console.log('   failed: ' + n))
   } else {
-    console.log(`✓ i18n · parity · no missing or dead keys  (${checks.length} assertions)`)
+    console.log(`✓ i18n · parity · no dead keys · no unbacked promise  (${checks.length} assertions)`)
   }
 }
 
