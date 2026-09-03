@@ -101,7 +101,7 @@ export default function Checkout() {
       couponPct: coupon?.pct || 0,
       invoice: !!f.invoice,
       vatNo: f.vat || null,
-      lines: items.map((i) => ({ id: i.id, slug: i.slug, qty: i.qty })),
+      lines: items.map((i) => ({ id: i.id, slug: i.slug, qty: i.qty, price: i.price })),
     }
 
     submitOrder(draft)

@@ -36,8 +36,10 @@ export function computeStats(orders = [], { vat = 0.15, overrides = {}, days = 3
     for (const l of o.lines || []) {
       const cur = byProduct.get(l.id) || { id: l.id, qty: 0, revenue: 0, price: prices[l.id] ?? null, hidden: prices[l.id] == null }
       cur.qty += Number(l.qty || 1)
-      // حصة الإيراد تُقسَّم من صافي الطلب نفسه — لا تخمين لسعر وقت الشراء
-      cur.revenue = money(cur.revenue + total * ((Number(prices[l.id] ?? 0) * (l.qty || 1)) / sub))
+      // حصة الإيراد تُقسَّم من صافي الطلب نفسه، بسعر السطر المسجَّل وقت الدفع؛
+      // الطلبات الأقدم (بلا سعر مختم) تُحسب بالسعر الحالي — لا اختلاق رقم
+      const paid = Number(l.price ?? prices[l.id] ?? 0)
+      cur.revenue = money(cur.revenue + total * ((paid * (l.qty || 1)) / sub))
       byProduct.set(l.id, cur)
     }
   }

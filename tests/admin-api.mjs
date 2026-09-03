@@ -1,13 +1,16 @@
 /**
  * فحص تكامل حقيقي لطبقة الإدارة: يشغّل server/worker.js كعملية فعلية ويتكلم
- * معها بـ HTTP (لا محاكاة)، ثم ينظّف الملفات التي كتبتها.
+ * معها بـ HTTP (لا محاكاة) داخل مجلد بيانات مؤقت — لا يمسّ server/orders.jsonl
+ * ولا admins.json ولا products.json عندك إطلاقًا، ثم يحذف المؤقت.
  *   node tests/admin-api.mjs        (أو npm test — يشغّله بعد فحص الواجهة)
  * يغطّي: المصادقة والتجزئة، الحدود (آخر مالك/الحذف الذاتي/ترقية الدور)،
  * خانق المحاولات، حارس CSRF، وتنقية الحقول — وأن سعر المنتج المخفيّ أو المعدَّل
  * يسري فعلًا على /orders، لا على الواجهة وحدها.
  */
 import { spawn } from 'node:child_process'
-import { existsSync, rmSync, readFileSync } from 'node:fs'
+import { existsSync, rmSync, readFileSync, mkdtempSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 
 const PORT = 8899
 const BASE = `http://127.0.0.1:${PORT}`
@@ -24,11 +27,11 @@ const ok = (n, c, got) => {
   }
 }
 
-const files = ['server/orders.jsonl', 'server/admins.json', 'server/products.json', 'server/.admin-secret']
-for (const f of files) if (existsSync(f)) rmSync(f)
+// a fresh temp data dir: the suite writes and deletes only here, never in server/
+const DATA = mkdtempSync(join(tmpdir(), 'qalb-admin-api-'))
 
 const srv = spawn(process.execPath, ['server/worker.js'], {
-  env: { ...process.env, PORT: String(PORT), ADMIN_PASSWORD: PW, ADMIN_EMAIL: 'boss@qalb.store', ADMIN_NAME: 'Boss' },
+  env: { ...process.env, PORT: String(PORT), ADMIN_PASSWORD: PW, ADMIN_EMAIL: 'boss@qalb.store', ADMIN_NAME: 'Boss', QALB_DATA_DIR: DATA },
   stdio: ['ignore', 'pipe', 'pipe'],
 })
 let log = ''
@@ -72,7 +75,7 @@ const call = async (method, path, { body, token, header = true, raw = false } = 
 try {
   const h = await wait()
   ok('health reports admin enabled after bootstrap', h.admin === true, JSON.stringify(h))
-  ok('bootstrap wrote server/admins.json from ADMIN_PASSWORD', existsSync('server/admins.json'))
+  ok('bootstrap wrote admins.json into the data dir', existsSync(join(DATA, 'admins.json')))
 
   /* --- auth --- */
   const bad = await call('POST', '/admin/login', { body: { password: 'wrong-password-xx' }, header: false })
@@ -107,7 +110,7 @@ try {
     JSON.stringify(rejected.json),
   )
   const injected = await call('PATCH', '/admin/products/aether', { body: { price: 150, __proto__: 1, id: 'hacked', type: 'x' }, token: TOKEN })
-  const afterInject = JSON.parse(readFileSync('server/products.json', 'utf8'))
+  const afterInject = JSON.parse(readFileSync(join(DATA, 'products.json'), 'utf8'))
   ok(
     'unknown fields never reach the store',
     injected.status === 200 && afterInject.aether.price === 150 && !('id' in afterInject.aether),
@@ -243,6 +246,22 @@ try {
     s.top[0]?.id === 'aether' && s.top[0].qty === 1 && s.top[0].revenue === 150 && typeof s.top[0].name === 'string' && s.top[0].name.length > 1,
     JSON.stringify(s.top[0]),
   )
+  /* a reprice after a sale must not rewrite what the sale earned */
+  const again = await call('PATCH', '/admin/products/aether', { token: TOKEN, body: { price: '199' } })
+  ok('repricing an already-sold product is accepted', again.status === 200 && again.json.prices?.aether === 199, String(again.json.prices?.aether))
+  const st2 = await call('GET', '/admin/stats', { token: TOKEN })
+  ok(
+    'the money already collected stays as paid, not as priced today',
+    st2.json.revenue === 150 && st2.json.top[0].revenue === 150,
+    JSON.stringify({ rev: st2.json.revenue, top: st2.json.top[0].revenue }),
+  )
+  ok('the same row still shows the current price next to it', st2.json.top[0].price === 199, String(st2.json.top[0].price))
+  const ords = await call('GET', '/admin/orders?limit=5', { token: TOKEN })
+  ok(
+    'the stored order line carries the price that was charged',
+    ords.json.orders?.[0]?.lines?.[0]?.price === 150 && ords.json.orders?.[0]?.lines?.[0]?.id === 'aether',
+    JSON.stringify(ords.json.orders?.[0]?.lines?.[0]),
+  )
   const csv = await call('GET', '/admin/export.csv', { token: TOKEN, raw: true })
   ok(
     'CSV export is real csv with the order inside',
@@ -262,7 +281,7 @@ try {
   console.log(e)
 } finally {
   srv.kill('SIGKILL')
-  for (const f of files) if (existsSync(f)) rmSync(f)
+  rmSync(DATA, { recursive: true, force: true }) // the temp dir is ours; server/ was never touched
   console.log(`\n${pass} passed, ${fails.length} failed`)
   if (fails.length) console.log('failed:\n - ' + fails.join('\n - '))
   if (log) console.log('\n--- server log ---\n' + log.trim())

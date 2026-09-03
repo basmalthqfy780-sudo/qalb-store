@@ -72,6 +72,11 @@ npm run dev
   فيصبح طلبه مستحيلًا عند الدفع بـ`unknown template`. المنتجات المخصّصة تُحذف فعلًا.
 - `/admin` نفسها `noindex,follow` وممنوعة في `robots.txt`.
 
+ملفات الحالة — `orders.jsonl` و`admins.json` و`products.json` و`.admin-secret` — تُكتب في
+مجلد `server/`، أو في `QALB_DATA_DIR` إن ضبطته (مجلد مخزون قابل للكتابة على السحابة).
+`npm run test:api` يشغّل الخادم على مجلد مؤقت عبر هذا المتغير نفسه، فلا يمسّ بيانات
+تطويرك عند تشغيل الفحوص.
+
 > في وضع `local` (بلا خادم) تعمل اللوحة من `src/api/adminLocal.js` فوق
 > `localStorage`: قفل على الجهاز لتجربة سريعة — لا تعده أمنًا. لهذا تبقى
 > `VITE_QALB_API=rest` هي المسار الصحيح لكل استخدام حقيقي.

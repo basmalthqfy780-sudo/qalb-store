@@ -22,7 +22,7 @@
  */
 import { createServer } from 'node:http'
 import { appendFile, readFile } from 'node:fs/promises'
-import { existsSync } from 'node:fs'
+import { existsSync, mkdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import { templates } from '../src/data/templates.js'
@@ -36,7 +36,12 @@ loadDotEnv(ROOT) // PORT / SUPABASE_* من .env إن وُجد — node لا يق
 const PORT = Number(process.env.PORT || 8787)
 const VAT = VAT_RATE
 const HERE = path.dirname(fileURLToPath(import.meta.url))
-const FILE = path.join(HERE, 'orders.jsonl')
+// Where writable state lives (orders + the admin overlay/user files). Kept separate
+// from the code directory so a host can point it at a writable volume — and so the
+// integration suite can run against a throwaway directory instead of real data.
+const DATA = process.env.QALB_DATA_DIR ? path.resolve(ROOT, process.env.QALB_DATA_DIR) : HERE
+if (DATA !== HERE) mkdirSync(DATA, { recursive: true })
+const FILE = path.join(DATA, 'orders.jsonl')
 
 const SB = process.env.SUPABASE_URL
 const SB_KEY = process.env.SUPABASE_SERVICE_KEY
@@ -57,7 +62,7 @@ const rand = (n) => Array.from({ length: n }, () => Math.random().toString(36).s
 const rid = () => `QALB-${rand(1)}-${Date.now().toString(36).slice(-4).toUpperCase()}`
 
 const admin = createAdminApi({
-  dir: HERE,
+  dir: DATA,
   vat: VAT,
   env: process.env,
   orders: load,
@@ -109,7 +114,10 @@ function recompute(body) {
   const vat = Math.round((net - net / (1 + VAT)) * 100) / 100
   const drift = Math.abs(net - Number(body.total))
   if (drift > 0.5) throw new Error(`total mismatch (${drift.toFixed(2)} SAR)`)
-  return { lines, subtotal, discount, vat, total: net, coupon: pct ? `${body.coupon || ''} ${pct}%` : body.coupon || null }
+  // السعر الذي حوسب فعلًا يُختم على السطر: لو تغيّر سعر القالب بعد الطلب،
+  // يجب أن يبقى إيراد الماضي كما دُفع، لا كما يُسعَّر اليوم
+  const stamped = lines.map((l) => ({ id: l.id, slug: l.slug || null, qty: l.qty || 1, price: unit(l.id) }))
+  return { lines: stamped, subtotal, discount, vat, total: net, coupon: pct ? `${body.coupon || ''} ${pct}%` : body.coupon || null }
 }
 
 /**

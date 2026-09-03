@@ -98,7 +98,7 @@ export function createAdminApi({ dir, vat = 0.15, env = process.env, orders = as
       lastLogin: null,
     }
     writeJson(ADMINS, [owner])
-    console.log(`admin: أُنشئ حساب المالك ${owner.email} من ADMIN_PASSWORD — احذف server/admins.json لإعادة التهيئة`)
+    console.log(`admin: أُنشئ حساب المالك ${owner.email} من ADMIN_PASSWORD — احذف ${ADMINS} لإعادة التهيئة`)
     return [owner]
   }
 
