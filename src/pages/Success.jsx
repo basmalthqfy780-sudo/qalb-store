@@ -151,7 +151,7 @@ export default function Success() {
       const files = packageFiles(tpl, order)
       return [
         ``,
-        `[${tpl.id}] ${tpl.name.en} — ${tpl.type}`,
+        `[${tpl.id}] ${tpl.name?.en || tpl.id} — ${tpl.type}`,
         `  delivery: ${tpl.download || 'not attached yet — ask us and we will send it'}`,
         `  ${files.length} files:`,
         ...files.map((f) => `    · ${f.path}`),
@@ -287,7 +287,7 @@ export default function Success() {
                     <li key={tpl.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-bg/60 px-4 py-3">
                       <span className="flex min-w-0 flex-col gap-1">
                         <span className="text-[13px] font-bold">
-                          {lang === 'ar' ? tpl.name.ar : tpl.name.en} <span className="num text-muted">×{qty}</span>
+                          {lang === 'ar' ? tpl.name?.ar : tpl.name?.en} <span className="num text-muted">×{qty}</span>
                         </span>
                         <span className="num text-[11.5px] text-dim">{t('success.pkgFiles', { n: dec(n.count), kb: dec(n.kb) })}</span>
                       </span>

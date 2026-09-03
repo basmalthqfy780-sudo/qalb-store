@@ -94,6 +94,18 @@ export function useI18n() {
     [lang],
   )
 
+  /** LA({ar:[],en:[]}) → قائمة دائمًا؛ حقل مفقود في منتج مُعدَّل لا يُسقط الصفحة عند .map() */
+  const LA = useCallback(
+    (field) => {
+      let v = field
+      if (v && typeof v === 'object' && !Array.isArray(v)) v = v[lang] ?? v.en ?? []
+      if (typeof v === 'string') v = v ? [v] : []
+      if (!Array.isArray(v)) return []
+      return v.filter((x) => x != null && x !== '')
+    },
+    [lang],
+  )
+
   /** L({ar:'',en:''}) → the string for the active language */
   const L = useCallback(
     (field) => {
@@ -104,7 +116,7 @@ export function useI18n() {
     [lang],
   )
 
-  return { ...ctx, t, L }
+  return { ...ctx, t, L, LA }
 }
 
 /* ---------------- formatting ---------------- */

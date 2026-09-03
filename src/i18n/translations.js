@@ -376,6 +376,9 @@ export const dict = {
       back: 'العودة للقوالب',
       detail: 'تفاصيل تقنية',
       hint: 'إن تكرّر الخطأ أرسل هذه التفاصيل إلى بريد الدعم في أسفل الصفحة',
+      reload: 'إعادة تحميل الصفحة بالكامل',
+      stale:
+        'هذا التبويب يحمل نسخة قديمة من ملفات الموقع (أُعيد تشغيل الخادم أو نُشرت نسخة جديدة)، فتعارضت الوحدات مع بعضها. أعد التحميل وستعود الصفحة كما هي.',
     },
     track: {
       kicker: 'طلباتي',
@@ -834,6 +837,9 @@ export const dict = {
       back: 'Back to templates',
       detail: 'Technical details',
       hint: 'If it keeps happening, send these details to the support address in the footer',
+      reload: 'Reload the whole page',
+      stale:
+        'This tab is holding an older copy of the site files (the server restarted or a new build was published), so the modules no longer match. Reload and the page comes back as it was.',
     },
     track: {
       kicker: 'My orders',

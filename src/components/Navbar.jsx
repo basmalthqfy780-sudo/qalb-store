@@ -186,9 +186,9 @@ export default function Navbar() {
                           <ArtTile tpl={f} size={40} />
                           <span className="min-w-0 flex-1">
                             <span className="block truncate text-[12.5px] font-bold group-hover:text-brand">
-                              {lang === 'ar' ? f.name.ar : f.name.en}
+                              {lang === 'ar' ? f.name?.ar : f.name?.en}
                             </span>
-                            <span className="block truncate text-[10.5px] text-dim">{lang === 'ar' ? f.tagline.ar : f.tagline.en}</span>
+                            <span className="block truncate text-[10.5px] text-dim">{lang === 'ar' ? f.tagline?.ar : f.tagline?.en}</span>
                           </span>
                         </Link>
                       ))}

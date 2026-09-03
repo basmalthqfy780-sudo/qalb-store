@@ -70,12 +70,12 @@ export default function Catalog() {
         const cv = demoFor(x)
         const site = siteFor(x)
         const hay = [
-          x.name.ar,
-          x.name.en,
-          x.tagline.ar,
-          x.tagline.en,
-          x.desc.ar,
-          x.desc.en,
+          x.name?.ar,
+          x.name?.en,
+          x.tagline?.ar,
+          x.tagline?.en,
+          x.desc?.ar,
+          x.desc?.en,
           ...(x.stack || []),
           ...[].concat(x.sections?.ar || [], x.sections?.en || [], x.highlights?.ar || [], x.highlights?.en || []),
           ...(site

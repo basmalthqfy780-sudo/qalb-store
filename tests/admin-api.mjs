@@ -403,6 +403,46 @@ try {
       existsSync(join(DATA, 'downloads.jsonl')),
     readdirSync(DATA).join(','),
   )
+  /* --- كل قالب في الكتالوج مربوط بتسليمه من نفسه: لا أحد يكتب 15 رابطًا باليد --- */
+  {
+    const ids = Object.keys(live)
+    const sum = Math.round(ids.reduce((a, id) => a + live[id], 0) * 100) / 100
+    const whole = await call('POST', '/orders', {
+      body: {
+        email: 'all-catalog@qalb.store',
+        name: 'نورة',
+        total: sum,
+        subtotal: sum,
+        lines: ids.map((id) => ({ id, qty: 1 })),
+      },
+      header: false,
+    })
+    let grants = 0
+    let zips = 0
+    let seller = 0
+    for (const id of ids) {
+      const g = await dlGet(`/download/${id}?order=${whole.json?.id}&key=${whole.json?.key}`)
+      if (g.status !== 302 || !g.loc) continue
+      grants++
+      // رابط يضيفه البائع من عنده يُمرَّر كما هو؛ الباقي حزمة تُولَّد وتُقاس
+      if (/^https?:\/\//i.test(g.loc)) seller++
+      else {
+        const d = await dlGet(g.loc)
+        if (d.status === 200 && d.type === 'application/zip' && d.buf.length > 900 && d.buf.subarray(0, 2).toString() === 'PK') zips++
+      }
+    }
+    ok(
+      'every catalogue product grants its own protected download',
+      whole.status === 201 && grants === ids.length && ids.length >= 15,
+      `order=${whole.status} grants=${grants}/${ids.length}`,
+    )
+    ok(
+      'each protected path is real zip bytes, and only the hand-added URL is passed through',
+      zips + seller === ids.length && seller === 1,
+      `zips=${zips} seller=${seller} of ${ids.length}`,
+    )
+  }
+
   const dlLedger = readFileSync(join(DATA, 'downloads.jsonl'), 'utf8')
     .trim()
     .split('\n')

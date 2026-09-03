@@ -1,5 +1,6 @@
 import { Component } from 'react'
 import { useI18n } from '../i18n'
+import { claimStaleReload, clearStaleReload, isStaleLoadError, reloadDocument } from '../lib/load-error'
 import { Btn, Icon } from './ui'
 
 /**
@@ -8,7 +9,7 @@ import { Btn, Icon } from './ui'
  * This keeps the shell (nav, footer, toasts, theme, language) alive, shows a
  * recoverable state, and hands the message to the console via reportError.
  */
-function Fallback({ message, onRetry }) {
+function Fallback({ message, onRetry, stale }) {
   const { t } = useI18n()
   return (
     <div role="alert" className="page-x mx-auto max-w-[820px] py-20">
@@ -17,12 +18,19 @@ function Fallback({ message, onRetry }) {
           <Icon n="pulse" className="size-7" />
         </span>
         <h2 className="mt-6 font-display text-2xl font-extrabold sm:text-3xl">{t('err.title')}</h2>
-        <p className="mx-auto mt-3 max-w-md text-[14px] leading-relaxed text-dim">{t('err.sub')}</p>
+        <p className="mx-auto mt-3 max-w-md text-[14px] leading-relaxed text-dim">{stale ? t('err.stale') : t('err.sub')}</p>
         <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
-          <Btn onClick={onRetry} size="md">
-            <Icon n="refresh" className="size-4" />
-            {t('err.retry')}
-          </Btn>
+          {stale ? (
+            <Btn onClick={reloadDocument} size="md">
+              <Icon n="refresh" className="size-4" />
+              {t('err.reload')}
+            </Btn>
+          ) : (
+            <Btn onClick={onRetry} size="md">
+              <Icon n="refresh" className="size-4" />
+              {t('err.retry')}
+            </Btn>
+          )}
           <Btn to="/templates" variant="outline" size="md">
             {t('err.back')}
           </Btn>
@@ -48,7 +56,19 @@ export default class ErrorBoundary extends Component {
     return { failed: true, error }
   }
 
+  /* A route that rendered fine re-arms the one-shot reload, so a deploy that
+     lands five minutes later can still self-heal in this same tab. */
+  componentDidMount() {
+    if (!this.state.failed) clearStaleReload()
+  }
+
   componentDidCatch(error) {
+    const message = String(error?.message || '')
+    // stale chunks: one automatic full reload before bothering the visitor
+    if (isStaleLoadError(message) && claimStaleReload()) {
+      reloadDocument()
+      return
+    }
     // keep it visible to devtools (Error panel / network log) without a second
     // console.error, which React already prints for a render-phase throw
     if (typeof globalThis.reportError === 'function') globalThis.reportError(error)
@@ -57,6 +77,6 @@ export default class ErrorBoundary extends Component {
   render() {
     if (!this.state.failed) return this.props.children
     const message = String(this.state.error?.message || '').slice(0, 400)
-    return <Fallback message={message} onRetry={this.props.onRetry} />
+    return <Fallback message={message} stale={isStaleLoadError(message)} onRetry={this.props.onRetry} />
   }
 }

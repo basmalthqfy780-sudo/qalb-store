@@ -10,6 +10,7 @@ import { dict } from '../src/i18n/translations.js'
 import { templates } from '../src/data/templates.js'
 import { isProtectedDownload, kindOf, packageFiles, packageZip } from '../src/data/deliverable.js'
 import { zipNames } from '../src/data/zip.js'
+import { claimStaleReload, clearStaleReload, isStaleLoadError } from '../src/lib/load-error.js'
 
 const out = 'tests/build/app.js'
 mkdirSync('tests/build', { recursive: true })
@@ -1316,6 +1317,30 @@ for (const c of cases) {
   await g.wait()
   ok('the hidden row stays visible to the admin, with a way back', /نوفا/.test(g.txt()) && /إظهار/.test(g.txt()))
   ok('the buyable price table drops it', /14\D*\/\D*15/.test(g.txt()), (g.txt().match(/الأسعار[^\n]{0,40}/) || [''])[0])
+  /* --- كل منتج مربوط بتسليمه من تلقاء نفسه: لا شيء يُكتب باليد في اللوحة --- */
+  {
+    const rows = [...g.doc.querySelectorAll('[data-admin] tbody tr')]
+    const badged = rows.filter((r) => /تسليم موقّع لكل طلب على حدة/.test(r.textContent || ''))
+    const paths = badged.map(
+      (r) => ((r.querySelector('[title*="/download/"]') || {}).getAttribute?.('title') || '').match(/\/download\/[a-z0-9-]+/)?.[0] || '',
+    )
+    ok('every product row carries its own signed delivery badge', badged.length === 15 && rows.length === 15, `${badged.length}/${rows.length}`)
+    ok('the badge names that product, not a shared link', new Set(paths).size === 15 && paths.every(Boolean), paths.slice(0, 3).join(','))
+    ok(
+      'the table no longer says "لا رابط بعد" for any catalogue product',
+      !/لا رابط بعد/.test((g.doc.querySelector('[data-admin]') || {}).textContent || ''),
+    )
+    click(g, /^تعديل$/)
+    await g.wait()
+    ok(
+      'the editor explains the protected path instead of asking for a URL',
+      /مسار محمي بالشكل \/download\/<معرف-القالب>/.test(g.txt()),
+      (g.txt().match(/.{0,60}مسار محمي.{0,60}/) || ['no hint'])[0],
+    )
+    click(g, /^إلغاء$/)
+    await g.wait()
+  }
+
   fill(g, 'ad-q', 'aether')
   await g.wait()
   ok(
@@ -1583,6 +1608,80 @@ for (const c of cases) {
   }
 }
 
+/* ---------------- hardening · partial rows, list guards, stale chunks ---------------- */
+{
+  const checks = []
+  const ok = (name, cond, extra = '') => checks.push([cond ? name : `${name} — ${extra}`, !!cond])
+  const readSrc = (f) => readFileSync(f, 'utf8')
+
+  /* a product made in the panel holds five fields — every list it lacks must still render */
+  const seed = { 'qalb.products.v1': JSON.stringify({ ghost: { custom: true, type: 'portfolio', price: 120, nameAr: 'شبح', nameEn: 'Ghost' } }) }
+  const cat = await render('http://localhost/templates', seed)
+  ok('a hand-made product shows up in the catalogue', /شبح/.test(cat.txt()))
+  ok('the catalogue does not hit the error boundary', !/حدث خطأ غير متوقع/.test(cat.txt()), cat.txt().replace(/\s+/g, ' ').slice(0, 70))
+  cat.dom.window.close()
+
+  const pp = await render('http://localhost/template/ghost', seed)
+  const ptxt = pp.txt().replace(/\s+/g, ' ')
+  ok('its product page renders on the Arabic side', /شبح/.test(ptxt) && !/حدث خطأ غير متوقع/.test(ptxt), ptxt.slice(0, 70))
+  ok('with the price the panel stored', /120/.test(ptxt), (ptxt.match(/\d+/) || [''])[0])
+  ok('and its sections tab still opens', /الأقسام/.test(ptxt))
+  ok('no console error escaped while rendering it', pp.errs.length === 0, pp.errs.slice(0, 2).join(' | '))
+  pp.dom.window.close()
+
+  const ppEn = await render('http://localhost/template/ghost', { ...seed, 'qalb.lang': 'en' })
+  const etxt = ppEn.txt().replace(/\s+/g, ' ')
+  ok('the same row renders in English', /Ghost/.test(etxt) && !/Something broke/.test(etxt), etxt.slice(0, 70))
+  ppEn.dom.window.close()
+
+  /* source guards: the crash class the browser reported cannot come back quietly */
+  const jsx = readdirSync('src', { recursive: true })
+    .filter((f) => /\.(jsx?)$/.test(f))
+    .map((f) => `src/${f}`)
+  const mapped = jsx.filter((f) => /L\([^)\n]*\)\s*\.\s*(map|filter|slice|reduce|forEach|length|join)\(/.test(readSrc(f)))
+  ok('nothing maps a language field without a list guard', mapped.length === 0, mapped.join(','))
+  ok('the product page reads its lists through LA', /LA\(tpl\.sections\)\.map\(/.test(readSrc('src/pages/Product.jsx')))
+  ok(
+    'and its highlights/best-for lists too',
+    /\[\.\.\.LA\(tpl\.highlights\)/.test(readSrc('src/pages/Product.jsx')) && /items=\{LA\(tpl\.bestFor\)\}/.test(readSrc('src/pages/Product.jsx')),
+  )
+  ok('cards fall back on an unknown type', /typeLabel\[tpl\.type\] \|\| typeLabel\.portfolio/.test(readSrc('src/components/TemplateCard.jsx')))
+  ok('the admin table refuses to print a protected path as a link', /isProtectedDownload\(r\.download\)/.test(readSrc('src/pages/Admin.jsx')))
+
+  /* stale module graph — what an open tab actually sees after a restart or a deploy */
+  ok(
+    'a missing export is recognised as a stale bundle',
+    isStaleLoadError("The requested module '/src/api/index.js' does not provide an export named 'deliveryAllHref'"),
+  )
+  ok('a dead lazy chunk too', isStaleLoadError('Failed to fetch dynamically imported module: http://localhost:5173/src/pages/Catalog.jsx'))
+  ok('and the Safari wording', isStaleLoadError('Importing a module script failed'))
+  ok('a real render error is not mistaken for one', !isStaleLoadError("Cannot read properties of undefined (reading 'map')"))
+  const jar = new Map()
+  globalThis.sessionStorage = {
+    getItem: (k) => (jar.has(k) ? jar.get(k) : null),
+    setItem: (k, v) => jar.set(k, String(v)),
+    removeItem: (k) => jar.delete(k),
+  }
+  ok('the boundary reloads once, automatically', claimStaleReload() === true && claimStaleReload() === false)
+  ok('and a route that renders fine re-arms it', (clearStaleReload(), claimStaleReload() === true))
+  ok('with no storage it never reloads on its own', ((globalThis.sessionStorage = undefined), claimStaleReload() === false))
+  const eb = readSrc('src/components/ErrorBoundary.jsx')
+  ok('the fallback offers a full reload, not a doomed retry', /stale \?/.test(eb) && /onClick=\{reloadDocument\}/.test(eb))
+  ok(
+    'the stale copy exists in both languages',
+    /err\.stale/.test(eb) && typeof dict.ar.err.stale === 'string' && typeof dict.en.err.stale === 'string',
+  )
+
+  const bad2 = checks.filter(([, pass]) => !pass)
+  if (bad2.length) {
+    failed++
+    console.log('✗ hardening · partial rows · stale chunks')
+    bad2.forEach(([n]) => console.log('   failed: ' + n))
+  } else {
+    console.log(`✓ hardening · partial rows · stale chunks  (${checks.length} assertions)`)
+  }
+}
+
 /* ---------------- delivery · real packages, signed links, no dead buttons ---------------- */
 {
   const checks = []
@@ -1751,5 +1850,5 @@ for (const c of cases) {
   }
 }
 
-console.log(failed ? `\n${failed} check group(s) failed` : `\nall ${cases.length + 10} check groups passed`)
+console.log(failed ? `\n${failed} check group(s) failed` : `\nall ${cases.length + 11} check groups passed`)
 process.exit(failed ? 1 : 0)

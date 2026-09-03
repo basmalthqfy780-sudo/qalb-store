@@ -26,7 +26,7 @@ import { useStore } from '../store/StoreContext'
 export default function Product() {
   const { slug } = useParams()
   const tpl = bySlug(slug)
-  const { t, L, lang } = useI18n()
+  const { t, L, LA, lang } = useI18n()
   const pkg = useMemo(() => (tpl ? packageIndex(tpl) : null), [tpl]) // حزمة التسليم الحقيقية، من نفس مولّد الملفات
   const { add, inCart, toast, toggleWish, wish, pushRecent } = useStore()
   const nav = useNavigate()
@@ -315,9 +315,9 @@ export default function Product() {
                 <List
                   icon="check"
                   title={t('product.whatYouGet')}
-                  items={[...L(tpl.highlights), `${t('product.stack')}: ${(tpl.stack || []).join(' · ')}`, t('product.updates')]}
+                  items={[...LA(tpl.highlights), `${t('product.stack')}: ${(tpl.stack || []).join(' · ')}`, t('product.updates')]}
                 />
-                <List icon="spark" title={t('product.bestFor')} items={L(tpl.bestFor)} />
+                <List icon="spark" title={t('product.bestFor')} items={LA(tpl.bestFor)} />
                 <p className="md:col-span-2 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[12px] text-dim" title={t('product.filesNote')}>
                   <Icon n="file" className="size-3.5 shrink-0" />
                   <span className="font-bold">{pkg ? t('product.files', { n: num(pkg.count) }) : ''}</span>
@@ -347,7 +347,7 @@ export default function Product() {
 
             {tab === 'sections' && (
               <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {L(tpl.sections).map((x, i) => (
+                {LA(tpl.sections).map((x, i) => (
                   <div key={i} className="flex items-center gap-3 rounded-xl border border-line bg-panel px-4 py-3 transition hover:border-brand/30">
                     <span className="num grid size-7 shrink-0 place-items-center rounded-lg border border-line bg-bg text-[12px] font-bold text-brand">
                       {i + 1}
@@ -488,7 +488,7 @@ export default function Product() {
               <ul className="mt-6 space-y-2.5">
                 {[
                   [tpl.type === 'cv' ? 'file' : 'layers', `${t('product.formats')}: ${(tpl.stack || []).join(' · ')}`],
-                  ['grid', `${t('product.sections')}: ${L(tpl.sections).length}`],
+                  ['grid', `${t('product.sections')}: ${LA(tpl.sections).length}`],
                   ...(tpl.pages ? [['layout', `${t('product.pages')}: ${tpl.pages} A4`]] : []),
                   ['shield', `${t('product.license')}: ${t('product.personal')}`],
                   ['refresh', t('product.updates')],

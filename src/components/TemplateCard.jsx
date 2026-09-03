@@ -69,7 +69,7 @@ export default function TemplateCard({ tpl, onQuick, className = '' }) {
         <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
           <span className="inline-flex items-center gap-1 rounded-md border border-line bg-bg/60 px-1.5 py-0.5 text-[10.5px] font-bold text-dim">
             <Icon n={tpl.type === 'cv' ? 'file' : tpl.type === 'bundle' ? 'layers' : 'globe'} className="size-3 text-brand" />
-            {lang === 'ar' ? typeLabel[tpl.type].ar : typeLabel[tpl.type].en}
+            {lang === 'ar' ? (typeLabel[tpl.type] || typeLabel.portfolio).ar : (typeLabel[tpl.type] || typeLabel.portfolio).en}
           </span>
           {cat && (
             <span className="inline-flex items-center gap-1 rounded-md border border-line bg-bg/60 px-1.5 py-0.5 text-[10.5px] font-semibold text-dim">
