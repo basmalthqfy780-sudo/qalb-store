@@ -3,8 +3,9 @@
  * يضيف الخطوط محليًا بدل Google Fonts:
  *   node scripts/fonts.mjs
  * ينزل ملفات woff2 إلى public/fonts ويكتب src/fonts.css بـ @font-face.
- * لا يحتاج إعادة تشغيل بعد ذلك — الواجهة صارت مكتفية بذاتها (وأ快了 في
- * أول زيارة لأن الطلب لا يخرج لشبكة خارجية).
+ * رُخص الخطوط (SIL OFL 1.1) منسوخة حرفيًا بجانبها في public/fonts/OFL-*.txt.
+ * لا يحتاج إعادة تشغيل بعد ذلك: الواجهة مكتفية بذاتها، وأول زيارة أسرع
+ * لأن الطلب لا يخرج لشبكة خارجية.
  */
 import { writeFileSync, mkdirSync, existsSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'

@@ -16,7 +16,7 @@ npm install
 npm run dev        # http://localhost:5173
 npm run build      # إنتاج dist/
 npm run preview    # معاينة نسخة الإنتاج
-npm test           # ٢٥ مجموعة / ١٩٠ فحوصًا: تصيير ١٩ مسارًا (٧٠ توقعًا) + ٦ مجموعات تفاعلية (١٢٠ فحصًا) في jsdom
+npm test           # ٢٥ مجموعة / ١٩٤ فحوصًا: تصيير ١٩ مسارًا (٧٠ توقعًا) + ٦ مجموعات تفاعلية (١٢٤ فحصًا) في jsdom
 npm run lint       # eslint (بما فيها قواعد مترجِم react-hooks) — صفر مشكلة
 npm run format     # prettier؛ وnpm run format:check للتحقق فقط
 
@@ -71,6 +71,11 @@ npm run api        # خدمة الطلبات: node server/worker.js على :8787
 | نموذج «النشرة» كان يقول «تم الاشتراك» ولا يُرسل شيئًا                 | صار صادقًا: العنوان يُحفظ في `qalb.newsletter.v1` على الجهاز فقط، ويظهر زر `mailto:` مُعبّأ يصل الاستوديو فعلًا، مع سطر يشرح أنه لا توجد خدمة رسائل موصولة بعد (نفس معيار «الدفع مُحاكى»)                                                                                                                                                  |
 | `SITE_URL` كان مقروءًا في `scripts/seo.mjs` ولا أحد يعرف به           | موثَّق في `.env.example`، و`seo.mjs` و`server/worker.js` يقرآن `.env` الآن (node لا يقرأه وحدَه)، فـ `PORT` والمفاتيح والنطاق كلها من ملف واحد                                                                                                                                                                                             |
 | بريد الدعم منسوخ في ٤ ملفات (الرئيسية، صفحة القالب، الإيصال، التذييل) | مصدر واحد `src/data/contact.js` يقرأ `VITE_QALB_MAIL`، وفحص في `npm test` يرفض أي نسخة حرفية بعده                                                                                                                                                                                                                                          |
+| رمز Apple الخاص (U+F8FF) في شارات الدفع                               | صار `Apple Pay` نصًا، والشرائح الرسومية (`mc`, `apple`) أخذت `role="img" + aria-label + title` — الرمز الخاص كان سيظهر مربّعًا على أي نظام غير macOS، والشارحة بلا اسم تقرأها القارئ الآلي الآن                                                                                                                                            |
+
+| ٢٩ ملف woff2 مودَعة بلا نص ترخيص | `public/fonts/OFL-*.txt` الثلاثة منسوخة حرفيًا من مصادرها + `public/fonts/README.md` يوثّق العائلة والمصدر (OFL تُلزم بإبقاء النص مع الخط) |
+
+| محمّل `.env` مكرور في `seo.mjs` و`worker.js` | وحدة واحدة `scripts/dotenv.mjs` يستوردها الاثنان، مع فحص في `npm test` يرفض رجوع النسخة المكرورة |
 
 اصطادت القواعد الجديدة أخطاء حقيقية، وأُصلحت في مصدرها لا بالتسكين: `setState` داخل effect في شريط
 التنقل والكتالوج (صارت المزامنة أثناء الرندر، وحجم الصفحة مشتقًّا من مفتاح الفلاتر بلا جولة رسم زائدة)،
@@ -111,7 +116,8 @@ npm run api        # خدمة الطلبات: node server/worker.js على :8787
   `canonical`، و`robots: noindex,follow` على السلة/الدفع/الإيصال، و**JSON-LD**:
   `WebSite` + `Organization` + `SearchAction` في الرئيسية، `ItemList` في الكتالوج،
   و`Product` + `Offer` + `AggregateRating` في صفحة القالب.
-- الخطوط مستضافة محليًا (`public/fonts` + `src/fonts.css`) بلا طلبات خارجية؛ `npm run gen:fonts` يحدّثها.
+- الخطوط مستضافة محليًا (`public/fonts` + `src/fonts.css`) بلا طلبات خارجية؛ `npm run gen:fonts` يحدّثها،
+  ونصّ ترخيص SIL OFL 1.1 لكل عائلة منسوخ حرفيًا بجانبها (`public/fonts/OFL-*.txt` و`public/fonts/README.md`).
 - البناء يفصل الإطار: `react-vendor` (165 kB) وحده، فتبقى حزمة التطبيق ~151 kB في الكاش عند تعديل المحتوى، وحزم المسارات بين 1.5 و31 kB.
 
 ## هيكل المشروع

@@ -234,8 +234,12 @@ function Social({ k }) {
   )
 }
 
+/* أسماء العلامات كما تُكتب عالميًا: بلا رموز خاصة (Private Use Area) لا تظهر إلا على نظام واحد */
+const PAY_LABELS = { mada: 'mada', visa: 'VISA', mc: 'Mastercard', apple: 'Apple Pay', stc: 'stc pay' }
+
 function Pay({ k }) {
-  const label = { mada: 'mada', visa: 'VISA', mc: 'mc', apple: '', stc: 'stc pay' }[k]
+  const label = PAY_LABELS[k]
+  const iconOnly = k === 'mc' || k === 'apple'
   const art =
     k === 'mc' ? (
       <span className="flex items-center">
@@ -249,5 +253,10 @@ function Pay({ k }) {
     ) : (
       <span className="text-[10.5px] font-extrabold tracking-tight">{label}</span>
     )
-  return <span className="grid h-7 min-w-[42px] place-items-center rounded-md border border-line bg-panel px-2 text-ink/80">{art}</span>
+  const named = iconOnly ? { role: 'img', 'aria-label': label, title: label } : {}
+  return (
+    <span className="grid h-7 min-w-[42px] place-items-center rounded-md border border-line bg-panel px-2 text-ink/80" {...named}>
+      {art}
+    </span>
+  )
 }

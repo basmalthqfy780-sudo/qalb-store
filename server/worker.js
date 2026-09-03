@@ -18,20 +18,14 @@
  */
 import { createServer } from 'node:http'
 import { appendFile, readFile } from 'node:fs/promises'
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import { templates } from '../src/data/templates.js'
+import { loadDotEnv } from '../scripts/dotenv.mjs'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
-// node itself never loads .env — read it here so PORT / SUPABASE_* work from the file
-const DOTENV = path.join(ROOT, '.env')
-if (existsSync(DOTENV)) {
-  for (const line of readFileSync(DOTENV, 'utf8').split('\n')) {
-    const m = line.match(/^\s*(?:export\s+)?([A-Z0-9_]+)\s*=\s*(.*)$/)
-    if (m && process.env[m[1]] === undefined) process.env[m[1]] = m[2].trim().replace(/^["']|["']$/g, '')
-  }
-}
+loadDotEnv(ROOT) // PORT / SUPABASE_* من .env إن وُجد — node لا يقرأه وحده
 
 const PORT = Number(process.env.PORT || 8787)
 const VAT = 0.15

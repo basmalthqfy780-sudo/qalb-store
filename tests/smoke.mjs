@@ -1129,6 +1129,36 @@ for (const c of cases) {
     if (readFileSync(p, 'utf8').includes('qalb@qalb.store')) dup.push(p)
   }
   ok('the support address lives in one module, not in copied literals', dup.length === 0, dup.join(','))
+  const stray = []
+  for (const dir of ['src', 'scripts', 'server', 'tests']) {
+    for (const f of readdirSync(dir, { recursive: true })) {
+      if (!/\.(jsx?|mjs|css)$/.test(f)) continue
+      const p = dir + '/' + f
+      const txt = readFileSync(p, 'utf8')
+      for (const ch of txt) {
+        const o = ch.codePointAt(0)
+        if (o >= 0xe000 && o <= 0xf8ff) {
+          stray.push(`${p} U+${o.toString(16).toUpperCase()}`)
+          break
+        }
+      }
+      if (/[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uac00-\ud7af]/.test(txt)) stray.push(p + ' CJK')
+    }
+  }
+  ok('no private-use or CJK glyph leaked into the sources', stray.length === 0, stray.join(','))
+  const noLic = ['IBM-Plex-Sans-Arabic', 'Tajawal', 'Inter'].filter((f) => !existsSync(`public/fonts/OFL-${f}.txt`))
+  ok('every self-hosted font family ships its OFL text', noLic.length === 0, 'missing: ' + noLic.join(','))
+  ok(
+    'each OFL text is the real licence, not a stub',
+    ['IBM-Plex-Sans-Arabic', 'Tajawal', 'Inter'].every((f) =>
+      readFileSync(`public/fonts/OFL-${f}.txt`, 'utf8').includes('SIL OPEN FONT LICENSE Version 1.1'),
+    ),
+  )
+  ok(
+    'both node entry points share one .env loader',
+    /from '\.\/dotenv\.mjs'/.test(readFileSync('scripts/seo.mjs', 'utf8')) &&
+      /from '\.\.\/scripts\/dotenv\.mjs'/.test(readFileSync('server/worker.js', 'utf8')),
+  )
   const graph = JSON.parse(g.doc.getElementById('qalb-jsonld')?.textContent || '{}')
   const org = (graph['@graph'] || []).find((x) => x['@type'] === 'Organization')
   ok(

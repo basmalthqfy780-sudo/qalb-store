@@ -6,6 +6,7 @@
  * يعمل تلقائيًا قبل `npm run build` (انظر package.json → prebuild).
  */
 import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'node:fs'
+import { loadDotEnv } from './dotenv.mjs'
 import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
@@ -13,17 +14,7 @@ import path from 'node:path'
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const PUB = path.join(ROOT, 'public')
 
-/** هذا السكربت يعمل بـ node مباشرة (لا Vite)، فلا يُقرأ .env تلقائيًا — نقرأه هنا. */
-function loadDotEnv() {
-  const file = path.join(ROOT, '.env')
-  if (!existsSync(file)) return
-  for (const line of readFileSync(file, 'utf8').split('\n')) {
-    const m = line.match(/^\s*(?:export\s+)?([A-Z0-9_]+)\s*=\s*(.*)$/)
-    if (!m || process.env[m[1]] !== undefined) continue
-    process.env[m[1]] = m[2].trim().replace(/^["']|["']$/g, '')
-  }
-}
-loadDotEnv()
+loadDotEnv(ROOT) // النطاق والمفاتيح من .env إن وُجد (node لا يقرأه وحده)
 
 const SITE = (process.env.SITE_URL || 'https://qalb.store').replace(/\/+$/, '')
 const { templates, PALETTE } = await import(path.join(ROOT, 'src/data/templates.js'))
