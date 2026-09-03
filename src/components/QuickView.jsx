@@ -110,7 +110,7 @@ export default function QuickView({ tpl, onClose, initial = {} }) {
                     type="button"
                     key={v}
                     onClick={() => setKind(v)}
-                    className={`rounded-md px-2.5 py-1 text-[11.5px] font-bold transition ${kind === v ? 'bg-ink text-bg light:bg-brand light:text-white' : 'text-dim hover:text-ink'}`}
+                    className={`rounded-md px-2.5 py-1 text-[11.5px] font-bold transition ${kind === v ? 'bg-ink text-bg light:bg-brand light:text-brandink' : 'text-dim hover:text-ink'}`}
                   >
                     {lb}
                   </button>

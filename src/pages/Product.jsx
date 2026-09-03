@@ -126,7 +126,7 @@ export default function Product() {
                       key={v}
                       onClick={() => setKind(v)}
                       className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-bold transition ${
-                        kind === v ? 'bg-ink text-bg light:bg-brand light:text-white' : 'text-dim hover:text-ink'
+                        kind === v ? 'bg-ink text-bg light:bg-brand light:text-brandink' : 'text-dim hover:text-ink'
                       }`}
                     >
                       <Icon n={ic} className="size-3.5" />
@@ -301,7 +301,7 @@ export default function Product() {
                   type="button"
                   key={v}
                   onClick={() => setTab(v)}
-                  className={`shrink-0 rounded-lg px-4 py-2 text-[13.5px] font-bold transition ${tab === v ? 'bg-ink text-bg light:bg-brand light:text-white' : 'text-dim hover:text-ink'}`}
+                  className={`shrink-0 rounded-lg px-4 py-2 text-[13.5px] font-bold transition ${tab === v ? 'bg-ink text-bg light:bg-brand light:text-brandink' : 'text-dim hover:text-ink'}`}
                 >
                   {label}
                 </button>

@@ -470,7 +470,7 @@ function Products({ rows, overrides, prices, reload }) {
               type="button"
               onClick={() => setFilter(f)}
               aria-pressed={filter === f}
-              className={`h-10 rounded-xl px-3 text-[12.5px] font-bold transition ${filter === f ? 'bg-ink text-bg light:bg-brand light:text-white' : 'border border-line bg-panel/50 text-dim hover:text-ink'}`}
+              className={`h-10 rounded-xl px-3 text-[12.5px] font-bold transition ${filter === f ? 'bg-ink text-bg light:bg-brand light:text-brandink' : 'border border-line bg-panel/50 text-dim hover:text-ink'}`}
             >
               {t(`admin.filter_${f}`)}
               {f !== 'all' && <span className="num ms-1.5 opacity-70">{num(f === 'hidden' ? hiddenCount : editedCount)}</span>}

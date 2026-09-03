@@ -858,7 +858,7 @@ function CtaBand() {
   return (
     <section className="page-x mx-auto max-w-[1400px] py-20" id="contact">
       <Reveal>
-        <div className="relative overflow-hidden rounded-[28px] border border-line bg-ink px-7 py-14 text-bg shadow-lift sm:px-12 light:bg-brand light:text-white">
+        <div className="relative overflow-hidden rounded-[28px] border border-line bg-ink px-7 py-14 text-bg shadow-lift sm:px-12 light:bg-brand light:text-brandink">
           <div className="pointer-events-none absolute inset-0 grid-lines opacity-[0.14]" />
           <div className="pointer-events-none absolute -end-24 -top-24 size-64 rounded-full bg-brand/25 blur-3xl" />
           <div className="pointer-events-none absolute -bottom-28 start-10 size-72 rounded-full bg-gold/20 blur-3xl" />

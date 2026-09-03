@@ -10,7 +10,7 @@ export function Logo({ compact = false }) {
   const { t } = useI18n()
   return (
     <Link to="/" aria-label={t('brand.name')} className="group inline-flex items-center gap-2.5">
-      <span className="relative grid size-9 place-items-center rounded-[11px] bg-ink text-bg transition-transform duration-300 group-hover:-rotate-6 light:bg-brand light:text-white">
+      <span className="relative grid size-9 place-items-center rounded-[11px] bg-ink text-bg transition-transform duration-300 group-hover:-rotate-6 light:bg-brand light:text-brandink">
         <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
           <path d="M7 4.5h6.2a4.3 4.3 0 0 1 .8 8.5L17 19.5h-3l-2.4-5.4" />
           <path d="M7 4.5v15" />
@@ -108,7 +108,7 @@ export default function Navbar() {
   return (
     <>
       {/* announcement */}
-      <div className="relative overflow-hidden bg-ink text-bg light:bg-brand light:text-white">
+      <div className="relative overflow-hidden bg-ink text-bg light:bg-brand light:text-brandink">
         <div className="page-x mx-auto flex max-w-[1400px] items-center justify-center gap-3 py-2 text-center text-[12.5px] font-medium">
           <Icon n="bolt" className="size-3.5 shrink-0 text-gold" fill sw={0} />
           <span className="truncate">{t('announce.text')}</span>

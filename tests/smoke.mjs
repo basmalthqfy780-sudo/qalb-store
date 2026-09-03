@@ -1469,5 +1469,111 @@ for (const c of cases) {
   }
 }
 
-console.log(failed ? `\n${failed} check group(s) failed` : `\nall ${cases.length + 8} check groups passed`)
+/* ---------------- css: a hand-written reset must never outrank a utility ---------------- */
+{
+  const checks = []
+  const bad = []
+  const ok = (name, cond, extra = '') => {
+    checks.push(name)
+    if (!cond) bad.push(name + (extra ? ` (${extra})` : ''))
+  }
+
+  // cascade layers win before specificity: an *unlayered* `button { color: inherit }`
+  // beat `text-bg`, and `* { border-color }` beat every `border-brand/40`. That is how
+  // «أضف إلى السلة» and «اشتراك» went white-on-white. So: no element reset outside a layer.
+  const css = readFileSync('src/index.css', 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
+  const top = []
+  {
+    let depth = 0
+    let buf = ''
+    let sel = null
+    for (const ch of css) {
+      if (ch === '{') {
+        // the selector is the last line before the brace — anything above it is
+        // @import lines or comments, which are stripped but leave newlines behind
+        if (depth === 0) sel = buf.trim().split('\n').pop().trim()
+        depth++
+        buf = ''
+        continue
+      }
+      if (ch === '}') {
+        depth--
+        if (depth === 0 && sel != null) {
+          top.push([sel, buf])
+          sel = null
+        }
+        buf = ''
+        continue
+      }
+      buf += ch
+    }
+  }
+  const ownsPaint =
+    /(?:^|;)\s*(?:color|background|background-color|border-color|border-width|font|font-family|font-weight|font-size|line-height|outline)\s*:/
+  const offenders = top.filter(([sel, body]) => !sel.startsWith('@') && !/[.#[]/.test(sel) && ownsPaint.test(body))
+  ok('the sheet declares @layer base for its resets', /@layer base\s*\{/.test(css))
+  ok('no bare element rule sits outside a layer painting colour or type', offenders.length === 0, offenders.map(([x]) => x).join(','))
+  ok(
+    '.num stays a deliberate unlayered override for figures',
+    top.some(([sel]) => sel === '.num'),
+  )
+  ok('the tokens are still unlayered so .light can flip the theme', top.some(([sel]) => sel === ':root') && top.some(([sel]) => sel === '.light'))
+
+  // …and while the tokens are open: every text colour must be readable on the surface it is
+  // actually painted on. A label only exists if it contrasts — that is the whole lesson of
+  // the white-on-white pill.
+  const tokens = (sel) => {
+    const i = css.indexOf(`${sel} {`)
+    const body = css.slice(i, css.indexOf('}', i))
+    return Object.fromEntries([...body.matchAll(/--c-([a-z0-9-]+):\s*(#[0-9a-f]{3,8})/gi)].map((m) => [m[1], m[2]]))
+  }
+  const chan = (h) => {
+    const hex = h.slice(1)
+    const full = hex.length === 3 ? [...hex].map((c) => c + c).join('') : hex.slice(0, 6)
+    return [0, 2, 4].map((i) => {
+      const v = parseInt(full.slice(i, i + 2), 16) / 255
+      return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4
+    })
+  }
+  const contrast = (a, b) => {
+    const [x, y] = [a, b]
+      .map((h) => {
+        const [r, g, bl] = chan(h)
+        return 0.2126 * r + 0.7152 * g + 0.0722 * bl
+      })
+      .sort((m, n) => n - m)
+    return Number(((x + 0.05) / (y + 0.05)).toFixed(2))
+  }
+  const base = tokens(':root')
+  for (const [theme, over] of [
+    ['dark', {}],
+    ['light', tokens('.light')],
+  ]) {
+    const on = { ...base, ...over } // .light restates only what it changes
+    const need = [
+      ['bg', 'text'],
+      ['bg', 'dim'],
+      ['panel', 'text'],
+      ['panel', 'dim'],
+      ['brand', 'brandink'],
+      ['brand2', 'brandink'],
+    ]
+    const weak = need.filter(([bg, fg]) => contrast(on[fg], on[bg]) < 4.5)
+    ok(
+      `${theme}: body, muted and pill labels clear WCAG AA on their own surface`,
+      weak.length === 0,
+      weak.map(([b, f]) => `${b}/${f}=${contrast(on[f], on[b])}`).join(','),
+    )
+  }
+
+  if (bad.length) {
+    failed++
+    console.log('✗ css · cascade layers')
+    bad.forEach((n) => console.log('   failed: ' + n))
+  } else {
+    console.log(`✓ css · cascade layers  (${checks.length} assertions)`)
+  }
+}
+
+console.log(failed ? `\n${failed} check group(s) failed` : `\nall ${cases.length + 9} check groups passed`)
 process.exit(failed ? 1 : 0)

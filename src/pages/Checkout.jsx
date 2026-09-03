@@ -161,7 +161,7 @@ export default function Checkout() {
                 >
                   <span
                     className={`grid size-7 place-items-center rounded-full text-[12px] font-extrabold ${
-                      k < step ? 'bg-brand text-brandink' : k === step ? 'bg-ink text-bg light:bg-brand light:text-white' : 'bg-panel2 text-dim'
+                      k < step ? 'bg-brand text-brandink' : k === step ? 'bg-ink text-bg light:bg-brand light:text-brandink' : 'bg-panel2 text-dim'
                     }`}
                   >
                     {k < step ? <Icon n="check" className="size-3.5" sw={3} /> : k + 1}

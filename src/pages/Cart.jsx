@@ -243,7 +243,7 @@ export default function Cart() {
                 />
                 <button
                   type="submit"
-                  className="h-9 shrink-0 rounded-lg bg-ink px-3.5 text-[12.5px] font-bold text-bg transition hover:opacity-90 light:bg-brand light:text-white"
+                  className="h-9 shrink-0 rounded-lg bg-ink px-3.5 text-[12.5px] font-bold text-bg transition hover:opacity-90 light:bg-brand light:text-brandink"
                 >
                   {t('cart.apply')}
                 </button>

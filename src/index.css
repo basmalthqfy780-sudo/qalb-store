@@ -33,8 +33,10 @@
   --c-text: #14181f;
   --c-dim: #5b6474;
   --c-brand: #0e9f6e;
-  --c-brand2: #0b8a5e;
-  --c-brandink: #ffffff;
+  /* the light theme's green is mid-tone: white labels on it sat at 3.4:1. Ink is
+     darker than the page and reaches 5.6:1 on brand / 5.1:1 on the hover step below. */
+  --c-brand2: #0d9768;
+  --c-brandink: #04140d;
   --c-gold: #b4871f;
   --shadow-soft: 0 1px 2px rgb(16 24 40 / 0.05), 0 12px 28px -14px rgb(16 24 40 / 0.18);
   --shadow-lift: 0 2px 6px rgb(16 24 40 / 0.06), 0 26px 56px -22px rgb(16 24 40 / 0.22);
@@ -106,74 +108,83 @@
 }
 
 /* ---------- base ---------- */
-* {
-  border-color: var(--c-line);
-}
+/* These resets must live in @layer base. Unlayered rules beat *every* Tailwind
+   utility no matter the specificity (cascade layers win first), so `color: inherit`
+   here used to override `text-bg` / `text-brand` / `text-white` and paint button
+   labels — «أضف إلى السلة», «اشتراك» — in the card's own colour: invisible text on a
+   light pill. `* { border-color }` likewise flattened every `border-brand/40` and
+   `border-danger/30` in the app. Inside the base layer, utilities override them again.
+   `.num` below stays unlayered on purpose: it is a deliberate override for figures. */
+@layer base {
+  * {
+    border-color: var(--c-line);
+  }
 
-html {
-  scroll-behavior: smooth;
-}
-@media (prefers-reduced-motion: reduce) {
   html {
-    scroll-behavior: auto;
+    scroll-behavior: smooth;
   }
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    transition-duration: 0.01ms !important;
-    /* بلا هذا السطر تبقى الحركات اللانهائية تدور — بسرعة هائلة بدل بطيئة */
-    animation-iteration-count: 1 !important;
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+      /* بلا هذا السطر تبقى الحركات اللانهائية تدور — بسرعة هائلة بدل بطيئة */
+      animation-iteration-count: 1 !important;
+    }
   }
-}
 
-body {
-  margin: 0;
-  background: var(--c-bg);
-  color: var(--c-text);
-  font-family: var(--font-sans);
-  -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
-  /* clip (not hidden) — overflow-x:hidden on <body> would break position:sticky children */
-  overflow-x: clip;
-}
+  body {
+    margin: 0;
+    background: var(--c-bg);
+    color: var(--c-text);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    /* clip (not hidden) — overflow-x:hidden on <body> would break position:sticky children */
+    overflow-x: clip;
+  }
 
-h1,
-h2,
-h3,
-h4 {
-  font-family: var(--font-display);
-  font-weight: 800;
-  letter-spacing: -0.01em;
-}
-[dir='ltr'] h1,
-[dir='ltr'] h2,
-[dir='ltr'] h3,
-[dir='ltr'] h4 {
-  font-family: var(--font-latin);
-  letter-spacing: -0.025em;
-}
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    font-weight: 800;
+    letter-spacing: -0.01em;
+  }
+  [dir='ltr'] h1,
+  [dir='ltr'] h2,
+  [dir='ltr'] h3,
+  [dir='ltr'] h4 {
+    font-family: var(--font-latin);
+    letter-spacing: -0.025em;
+  }
 
-::selection {
-  background: color-mix(in srgb, var(--c-brand) 30%, transparent);
-}
+  ::selection {
+    background: color-mix(in srgb, var(--c-brand) 30%, transparent);
+  }
 
-:focus-visible {
-  outline: 2px solid var(--c-brand);
-  outline-offset: 2px;
-  border-radius: 6px;
-}
+  :focus-visible {
+    outline: 2px solid var(--c-brand);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
 
-input,
-select,
-textarea,
-button {
-  font: inherit;
-  color: inherit;
-}
-input::placeholder,
-textarea::placeholder {
-  color: color-mix(in srgb, var(--c-dim) 75%, transparent);
+  input,
+  select,
+  textarea,
+  button {
+    font: inherit;
+    color: inherit;
+  }
+  input::placeholder,
+  textarea::placeholder {
+    color: color-mix(in srgb, var(--c-dim) 75%, transparent);
+  }
 }
 
 /* number + currency stay LTR-clean inside RTL text */

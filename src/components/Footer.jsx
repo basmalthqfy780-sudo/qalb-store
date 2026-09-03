@@ -188,7 +188,7 @@ function Newsletter() {
             />
             <button
               type="submit"
-              className="h-10 shrink-0 rounded-xl bg-ink px-3.5 text-[13px] font-bold text-bg transition hover:opacity-90 light:bg-brand light:text-white"
+              className="h-10 shrink-0 rounded-xl bg-ink px-3.5 text-[13px] font-bold text-bg transition hover:opacity-90 light:bg-brand light:text-brandink"
             >
               {t('footer.subscribe')}
             </button>

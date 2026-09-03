@@ -115,7 +115,7 @@ export default function TemplateCard({ tpl, onQuick, className = '' }) {
             <button
               type="button"
               onClick={doAdd}
-              className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-ink px-3 text-[12.5px] font-bold text-bg transition hover:bg-brand light:bg-brand light:text-white"
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-ink px-3 text-[12.5px] font-bold text-bg transition hover:bg-brand light:bg-brand light:text-brandink"
             >
               <Icon n="cart" className="size-3.5" />
               {t('product.addCart')}
