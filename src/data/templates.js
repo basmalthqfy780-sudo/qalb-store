@@ -537,6 +537,7 @@ export const templates = [
   {
     id: 'aether',
     slug: 'aether-portfolio',
+    download: '/download/aether',
     type: 'portfolio',
     site: 'aether',
     demo: null,
@@ -584,6 +585,7 @@ export const templates = [
   {
     id: 'atelier',
     slug: 'atelier-photography',
+    download: '/download/atelier',
     type: 'portfolio',
     site: 'atelier',
     name: { ar: 'أتيلييه', en: 'Atelier' },
@@ -621,6 +623,7 @@ export const templates = [
   {
     id: 'nexus',
     slug: 'nexus-engineer',
+    download: '/download/nexus',
     type: 'portfolio',
     site: 'nexus',
     name: { ar: 'نِكسَس', en: 'Nexus' },
@@ -660,6 +663,7 @@ export const templates = [
   {
     id: 'folio',
     slug: 'folio-minimal',
+    download: '/download/folio',
     type: 'portfolio',
     site: 'folio',
     name: { ar: 'فوليو', en: 'Folio' },
@@ -696,6 +700,7 @@ export const templates = [
   {
     id: 'reel',
     slug: 'reel-motion',
+    download: '/download/reel',
     type: 'portfolio',
     site: 'reel',
     name: { ar: 'ريل', en: 'Reel' },
@@ -729,6 +734,7 @@ export const templates = [
   {
     id: 'quill',
     slug: 'quill-writer',
+    download: '/download/quill',
     type: 'portfolio',
     site: 'quill',
     name: { ar: 'كوِل', en: 'Quill' },
@@ -766,6 +772,7 @@ export const templates = [
   {
     id: 'vertex',
     slug: 'vertex-3d',
+    download: '/download/vertex',
     type: 'portfolio',
     site: 'vertex',
     name: { ar: 'فِرتِكس', en: 'Vertex' },
@@ -800,6 +807,7 @@ export const templates = [
   {
     id: 'studio',
     slug: 'studio-team',
+    download: '/download/studio',
     type: 'portfolio',
     site: 'studio',
     name: { ar: 'ستوديو', en: 'Studio' },
@@ -833,6 +841,7 @@ export const templates = [
   {
     id: 'mirrorbundle',
     slug: 'mirror-pro-bundle',
+    download: '/download/mirrorbundle',
     type: 'bundle',
     site: 'mirrorbundle',
     demo: 'mirror',
@@ -873,6 +882,7 @@ export const templates = [
   {
     id: 'devbundle',
     slug: 'devpack-bundle',
+    download: '/download/devbundle',
     type: 'bundle',
     site: 'devbundle',
     demo: 'atlas',
@@ -912,6 +922,7 @@ export const templates = [
   {
     id: 'gradbundle',
     slug: 'firststep-bundle',
+    download: '/download/gradbundle',
     type: 'bundle',
     site: 'gradbundle',
     demo: 'echo',
@@ -948,6 +959,7 @@ export const templates = [
   {
     id: 'nova',
     slug: 'nova-cv',
+    download: '/download/nova',
     type: 'cv',
     site: null,
     demo: 'nova',
@@ -987,6 +999,7 @@ export const templates = [
   {
     id: 'atlas',
     slug: 'atlas-cv',
+    download: '/download/atlas',
     type: 'cv',
     site: null,
     demo: 'atlas',
@@ -1022,6 +1035,7 @@ export const templates = [
   {
     id: 'apexcv',
     slug: 'apex-cv',
+    download: '/download/apexcv',
     type: 'cv',
     site: null,
     demo: 'apex',
@@ -1056,6 +1070,7 @@ export const templates = [
   {
     id: 'echocv',
     slug: 'echo-cv',
+    download: '/download/echocv',
     type: 'cv',
     site: null,
     demo: 'echo',

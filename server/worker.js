@@ -10,6 +10,8 @@
  *   GET  /orders?email=…    → إيصالات المشتري
  *   GET  /licences/:key     → { valid, order, seats, domains }
  *   GET  /catalog          → استثناءات الكتالوج التي تكتبها لوحة الإدارة
+ *   GET  /download/:id?order=…&key=…  → رابط تسليم محمي لكل مشتري (server/deliver.js)
+ *   GET  /dl/<token>       → الحزمة نفسها: qalb-<id>-<order>.zip، مرة واحدة وصالحة 10 دقائق
  *   /admin/*               → لوحة الإدارة (انظر server/admin.js وserver/README.md)
  *
  * التخزين: إن ضبطتَ SUPABASE_URL + SUPABASE_SERVICE_KEY يُرسَل الطلب إلى
@@ -28,6 +30,7 @@ import path from 'node:path'
 import { templates } from '../src/data/templates.js'
 import { loadDotEnv } from '../scripts/dotenv.mjs'
 import { createAdminApi } from './admin.js'
+import { createDeliverApi } from './deliver.js'
 import { VAT as VAT_RATE } from '../src/data/tax.js'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -127,12 +130,33 @@ function recompute(body) {
  */
 const PRICES = () => admin.prices()
 
+/**
+ * طبقة التسليم: تبني حزمة القالب من src/data/deliverable.js لحظة الطلب وتوقّع رابطًا
+ * أحادي الاستخدام. لا تُخزَّن أي حزمة في public/، فذاك ملف قابل للمشاركة بلا طلب ولا رخصة.
+ */
+const deliver = createDeliverApi({
+  dir: DATA,
+  env: process.env,
+  orders: load,
+  prices: PRICES,
+  overrides: () => admin.overrides(),
+  tpls: templates,
+})
+
 const server = createServer(async (req, res) => {
   const u = new URL(req.url, 'http://x')
   if (req.method === 'OPTIONS') return send(res, 204, {})
-  if (u.pathname === '/health') return send(res, 200, { ok: true, store: remote ? 'supabase' : 'jsonl', vat: VAT, admin: admin.enabled() })
+  if (u.pathname === '/health')
+    return send(res, 200, {
+      ok: true,
+      store: remote ? 'supabase' : 'jsonl',
+      vat: VAT,
+      admin: admin.enabled(),
+      deliver: { ttl: deliver.ttl(), perIp: deliver.perIp() },
+    })
 
   if (await admin.handle(req, res, u)) return
+  if (await deliver.handle(req, res, u)) return // التسليم المحمي — انظر server/deliver.js
 
   try {
     if (req.method === 'POST' && u.pathname === '/orders') {

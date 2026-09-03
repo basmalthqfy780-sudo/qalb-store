@@ -7,6 +7,9 @@ import { build } from 'esbuild'
 import { readFileSync, mkdirSync, readdirSync, existsSync } from 'node:fs'
 import { JSDOM, VirtualConsole } from 'jsdom'
 import { dict } from '../src/i18n/translations.js'
+import { templates } from '../src/data/templates.js'
+import { isProtectedDownload, kindOf, packageFiles, packageZip } from '../src/data/deliverable.js'
+import { zipNames } from '../src/data/zip.js'
 
 const out = 'tests/build/app.js'
 mkdirSync('tests/build', { recursive: true })
@@ -83,7 +86,12 @@ const cases = [
   { name: 'product (cv)', url: 'http://localhost/template/atlas-cv', expect: ['عمود واحد', 'شريط جانبي', 'توافق ATS', 'صفحات'] },
   { name: 'cart with items', url: 'http://localhost/cart', cart: seededCart, expect: ['سلة المشتريات', 'الإجمالي', 'كود الخصم', 'نوفا'] },
   { name: 'checkout', url: 'http://localhost/checkout', cart: seededCart, expect: ['إتمام الشراء', 'البيانات', 'البريد الإلكتروني', 'ملخص الطلب'] },
-  { name: 'success', url: 'http://localhost/order', order: true, expect: ['تم الدفع بنجاح', 'مفتاح الترخيص', 'تحميل حزمة البدء', 'qalb@qalb.store'] },
+  {
+    name: 'success',
+    url: 'http://localhost/order',
+    order: true,
+    expect: ['تم الدفع بنجاح', 'مفتاح الترخيص', 'تحميل كل الحزم', 'تحميل الحزمة', 'LICENSE.txt باسمك', 'سطر تتبّع', 'qalb@qalb.store'],
+  },
   { name: 'wishlist', url: 'http://localhost/wishlist', wish: '["nova","aether"]', expect: ['المفضلة', 'أيثر'] },
   { name: '404', url: 'http://localhost/nope', expect: ['404', 'الصفحة غير موجودة'] },
   { name: 'admin (first run)', url: 'http://localhost/admin', expect: ['أنشئ حساب الإدارة الأول', 'على هذا الجهاز فقط', 'إنشاء الحساب والدخول'] },
@@ -1575,5 +1583,173 @@ for (const c of cases) {
   }
 }
 
-console.log(failed ? `\n${failed} check group(s) failed` : `\nall ${cases.length + 9} check groups passed`)
+/* ---------------- delivery · real packages, signed links, no dead buttons ---------------- */
+{
+  const checks = []
+  const ok = (name, cond, extra = '') => checks.push([cond ? name : `${name} — ${extra}`, !!cond])
+  const ord = { id: 'QALB-SMOKE-1', key: 'SMOK-EKEY-1234-ABCD', name: 'سارة العتيبي', email: 'sara@q.dev', date: '2026-09-03' }
+  const want = {
+    site: ['index.html', 'styles.css', 'content/profile.json'],
+    cv: ['resume.html', 'resume.md', 'scripts/check-ats.mjs'],
+    bundle: ['index.html', 'resume.html', 'cover-letter.md'],
+  }
+  let complete = true,
+    licensed = true,
+    traced = true,
+    promised = true,
+    roundtrip = true,
+    paths = true,
+    missing = []
+  for (const t of templates) {
+    if (!isProtectedDownload(t.download) || t.download !== `/download/${t.id}`) {
+      paths = false
+      missing.push(t.id + ':download=' + t.download)
+    }
+    const files = packageFiles(t, ord)
+    const names = files.map((f) => f.path)
+    if (names.length < 10) {
+      complete = false
+      missing.push(t.id + ':' + names.length + ' files')
+    }
+    if (new Set(names).size !== names.length) {
+      complete = false
+      missing.push(t.id + ': duplicate path')
+    }
+    for (const f of want[kindOf(t)]) if (!names.includes(f)) promised = false
+    const lic = files.find((f) => f.path === 'LICENSE.txt')
+    if (!lic || !lic.body.includes(ord.id) || !lic.body.includes(ord.key) || !lic.body.includes(ord.email)) licensed = false
+    // كل ملف نصي (عدا JSON الذي لا يقبل تعليقات) يحمل سطر التتبّع برقم الطلب
+    for (const f of files) {
+      if (/\.json$/.test(f.path) || f.path === 'LICENSE.txt') continue
+      if (!f.body.includes(ord.id)) {
+        traced = false
+        missing.push(t.id + '/' + f.path)
+        break
+      }
+    }
+    if (JSON.stringify(zipNames(packageZip(t, ord))) !== JSON.stringify(names)) roundtrip = false
+  }
+  ok('every product declares a protected /download/<id> path', paths, missing.slice(0, 3).join(','))
+  ok('all 15 products build a real package (≥10 files, no duplicate path)', complete, missing.slice(0, 3).join(','))
+  ok('each package holds what the product page promises', promised, missing.slice(0, 3).join(','))
+  ok('LICENSE.txt names the buyer, order and key', licensed)
+  ok('every text file carries the per-order watermark', traced, missing.slice(0, 2).join(','))
+  ok('the zip archive round-trips with the exact file list', roundtrip)
+
+  const seed = JSON.stringify({
+    ...ord,
+    total: 338,
+    count: 2,
+    method: 'card',
+    lines: [
+      { id: 'aether', qty: 1 },
+      { id: 'nova', qty: 1, price: 89 },
+    ],
+  })
+
+  // local mode: the receipt builds the package itself — a button that really produces bytes
+  {
+    const g = await render(
+      'http://localhost/order',
+      { 'qalb.lastOrder': seed },
+      {
+        boot: (win) => {
+          win.__blobs = []
+          win.__clicks = []
+          win.Blob = class {
+            constructor(parts, opts) {
+              win.__blobs.push({ parts: parts || [], type: opts && opts.type })
+              this.size = (parts || []).reduce((n, x) => n + (x.length || 0), 0)
+            }
+          }
+          win.URL.createObjectURL = () => 'blob:stub'
+          win.URL.revokeObjectURL = () => {}
+          win.HTMLAnchorElement.prototype.click = function () {
+            win.__clicks.push(this.download || this.href)
+          }
+        },
+      },
+    )
+    const t = g.txt()
+    const bad = g.errs.filter((e) => !/not implemented/i.test(e))
+    ok('success page renders the delivery block in local mode', /تحميل الحزمة/.test(t) && !bad.length, bad[0] || '')
+    ok('no “link missing” note for a product that ships a package', !/لم يُرفق رابط تنزيل/.test(t))
+    ok('local mode exposes no raw /download/ link (nothing unenforceable)', g.doc.querySelectorAll('a[href^="/download"]').length === 0)
+    const rowBtn = g.btn(/تحميل الحزمة/)
+    if (rowBtn) rowBtn.click()
+    await g.wait()
+    const click = g.win.__clicks.slice(-1)[0] || ''
+    const blob = g.win.__blobs.slice(-1)[0]
+    const bytes = blob && blob.parts[0]
+    ok('the row button downloads a named zip for that order', /^qalb-aether-qalb-smoke-1\.zip$/.test(click), String(click))
+    ok(
+      'the bytes really are a zip archive (PK header + size)',
+      !!bytes && bytes[0] === 0x50 && bytes[1] === 0x4b && bytes.length > 8000,
+      bytes ? bytes.length : 'no blob',
+    )
+    ok(
+      'the package holds the licence and the site files',
+      !!bytes && zipNames(bytes).includes('LICENSE.txt') && zipNames(bytes).includes('index.html'),
+    )
+    const manifestBtn = g.btn(/قائمة الملفات/)
+    if (manifestBtn) manifestBtn.click()
+    await g.wait()
+    const manifest = g.win.__blobs.slice(-1)[0]
+    const text = manifest ? String(manifest.parts[0]) : ''
+    ok(
+      'the manifest lists the delivered files and the protected path',
+      /· index\.html/.test(text) && /delivery: \/download\/aether/.test(text),
+      text.slice(0, 90),
+    )
+    const guide = g.btn(/دليل التشغيل/)
+    if (guide) guide.click()
+    await g.wait()
+    const gd = g.win.__blobs.slice(-1)[0]
+    ok(
+      'the quick-start guide is the README that ships inside the package',
+      !!gd && /## ما في الحزمة/.test(String(gd.parts[0])),
+      String(gd && gd.parts[0]).slice(0, 60),
+    )
+    g.win.close()
+  }
+
+  // rest mode: the receipt hands out signed server links, never a bare file path
+  {
+    const g = await render(
+      'http://localhost/order',
+      { 'qalb.lastOrder': seed },
+      {
+        boot: (win) => {
+          win.__QALB_ENV = { VITE_QALB_API: 'rest', VITE_QALB_API_BASE: 'http://api.test:8787' }
+        },
+      },
+    )
+    const links = [...g.doc.querySelectorAll('a[href]')].map((a) => a.getAttribute('href'))
+    const one = links.find((h) => /\/download\/aether\?/.test(h)) || ''
+    const all = links.find((h) => /\/download-all\?/.test(h)) || ''
+    ok(
+      'rest mode links each product to its signed endpoint',
+      one === 'http://api.test:8787/download/aether?order=QALB-SMOKE-1&key=SMOK-EKEY-1234-ABCD',
+      one,
+    )
+    ok(
+      'multi-product orders get one combined download link',
+      all === 'http://api.test:8787/download-all?order=QALB-SMOKE-1&key=SMOK-EKEY-1234-ABCD',
+      all,
+    )
+    ok('the receipt explains the link is signed and single-use', /مرة واحدة/.test(g.txt()))
+    g.win.close()
+  }
+
+  const badGroup = checks.filter(([, pass]) => !pass)
+  if (badGroup.length) {
+    failed++
+    console.log('✗ delivery · packages · signed links')
+    badGroup.forEach(([n]) => console.log('   failed: ' + n))
+  } else {
+    console.log(`✓ delivery · packages · signed links  (${checks.length} assertions)`)
+  }
+}
+
+console.log(failed ? `\n${failed} check group(s) failed` : `\nall ${cases.length + 10} check groups passed`)
 process.exit(failed ? 1 : 0)

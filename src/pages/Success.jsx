@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
-import { fetchOrder } from '../api'
+import { fetchOrder, deliveryHref, deliveryAllHref, apiMode } from '../api'
 import { useI18n, dec } from '../i18n'
 import { byId, templates } from '../data/templates'
+import { bundleZip, isProtectedDownload, kindOf, packageFiles, packageIndex, packageZip, packageName, readmeText } from '../data/deliverable'
 import { SUPPORT_MAIL } from '../data/contact'
 import { Btn, Icon, Money, Pill } from '../components/ui'
 import { useSeo } from '../components/Seo'
@@ -15,6 +16,8 @@ export default function Success() {
   const wanted = sp.get('id')
   const [remote, setRemote] = useState(undefined)
   const [copyState, setCopyState] = useState('') // '' | 'ok' | 'fail' — declared before any early return
+  const [busy, setBusy] = useState('') // معرّف القالب قيد التجهيز، أو '*' لكل الطلب
+  const [failed, setFailed] = useState('')
 
   // /order?id=QALB-… resolves through the transport, so a receipt link sent by
   // e-mail still opens on a device with no local history
@@ -87,69 +90,98 @@ export default function Success() {
     setTimeout(() => URL.revokeObjectURL(url), 1500)
   }
 
-  /** What this order actually contains. Links come from the store, never invented here. */
-  const rows = (order.lines || []).map((l) => ({ tpl: byId(l.id), qty: l.qty })).filter((r) => r.tpl)
+  /** ما في هذا الطلب فعلًا: تُقرأ الحزمة من نفس مولّد التسليم، فلا وعود بلا ملفات */
+  const rows = (order.lines || [])
+    .map((l) => {
+      const tpl = byId(l.id)
+      if (!tpl) return null
+      const link = deliveryHref(tpl, order)
+      const local = !link && isProtectedDownload(tpl.download)
+      return { tpl, qty: l.qty || 1, link, local }
+    })
+    .filter(Boolean)
+  const zipped = rows.filter((r) => r.local) // ما يُبنى داخل المتصفح في وضع التجربة المحلي
+  const hasCv = rows.some(({ tpl }) => kindOf(tpl) !== 'site')
+  const allHref = rows.length > 1 ? deliveryAllHref(order) : null
 
-  /** A manifest generated from the real order lines — not a copy of the guide. */
-  const downloadFiles = () => {
-    const lines = rows.flatMap(({ tpl, qty }) => {
-      const files = (tpl.stack && tpl.stack.length ? tpl.stack : ['README']).map(
-        (tech) =>
-          `  · ${tpl.id}/${String(tech)
-            .toLowerCase()
-            .replace(/[^a-z0-9]+/g, '-')}/`,
+  const saveZip = (filename, bytes) => {
+    const url = URL.createObjectURL(new Blob([bytes], { type: 'application/zip' }))
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    setTimeout(() => URL.revokeObjectURL(url), 1500)
+  }
+
+  /** في وضع محلي بلا خادم: الحزمة تُبنى داخل المتصفح من بيانات الطلب نفسها */
+  const grabPackage = async (tpl) => {
+    setBusy(tpl.id)
+    setFailed('')
+    try {
+      saveZip(packageName(tpl, order), packageZip(tpl, order))
+    } catch {
+      setFailed(tpl.id)
+    }
+    setBusy('')
+  }
+  const grabAll = async () => {
+    setBusy('*')
+    setFailed('')
+    try {
+      saveZip(
+        `qalb-${String(order.id)
+          .toLowerCase()
+          .replace(/[^a-z0-9-]/g, '')}-all.zip`,
+        bundleZip(
+          rows.map((r) => r.tpl),
+          order,
+        ),
       )
+    } catch {
+      setFailed('*')
+    }
+    setBusy('')
+  }
+
+  /** قائمة ملفات حقيقية — لا مجلدات مُختَرَعة: نفس ما سيصلك بالضبط */
+  const downloadManifest = () => {
+    const blocks = rows.map(({ tpl }) => {
+      const files = packageFiles(tpl, order)
       return [
-        `\n[${tpl.id}] ${tpl.name.en} — ${tpl.type} x${qty}`,
-        tpl.download ? `  download: ${tpl.download}` : '  download: not attached yet — ask us for it',
-        ...files,
-      ]
+        ``,
+        `[${tpl.id}] ${tpl.name.en} — ${tpl.type}`,
+        `  delivery: ${tpl.download || 'not attached yet — ask us and we will send it'}`,
+        `  ${files.length} files:`,
+        ...files.map((f) => `    · ${f.path}`),
+      ].join('\n')
     })
     const body = [
-      `Qalb — ${lang === 'ar' ? 'حزمة التسليم' : 'delivery manifest'}`,
+      `Qalb — ${lang === 'ar' ? 'قائمة ملفات التسليم' : 'delivery manifest'}`,
       `Order: ${order.id}`,
       `Date: ${order.date}`,
       `Licence key: ${order.key}`,
       `Licences: ${order.count}`,
-      ...lines,
+      ...blocks,
       '',
       `Support: ${SUPPORT_MAIL}`,
     ].join('\n')
     saveFile(`qalb-${order.id}-files.txt`, body, 'text/plain;charset=utf-8')
   }
 
+  /** الدليل = README نفسه الذي داخل الحزمة، فلا نسخة ثانية تتعارض مع الملف المُسلَّم */
   const downloadGuide = () => {
-    const body = [
-      `# ${lang === 'ar' ? 'دليل التشغيل السريع' : 'Quick-start guide'}`,
-      `Order ${order.id} · key ${order.key}`,
-      '',
-      '```bash',
-      'git clone <repo-from-your-email> my-profile && cd my-profile',
-      'npm install && cp .env.example .env',
-      'npm run dev',
-      '```',
-      '',
-      ...(lang === 'ar'
-        ? [
-            '1. عدّل content/profile.json: الاسم، الدور، الروابط، وحالة التوفر.',
-            '2. لكل عمل ملف content/work/*.mdx: العنوان والصور وماذا فعلت بالضبط.',
-            '3. السيرة تُبنى من نفس البيانات: npm run build:cv ثم افحصها بفاحص ATS.',
-            '4. الهوية في src/styles/tokens.css — لون وخط واحد يسريان على الموقع والسيرة.',
-            '5. النشر: npm run build && npx vercel deploy --prod',
-            '',
-            `الدعم: ${SUPPORT_MAIL}`,
-          ]
-        : [
-            '1. Edit content/profile.json: name, role, links, availability flag.',
-            '2. One MDX file per project: title, images, and what you actually did.',
-            '3. The CV builds from the same data: npm run build:cv, then run an ATS check.',
-            '4. The identity lives in src/styles/tokens.css - one colour and face drive both files.',
-            '5. Deploy: npm run build && npx vercel deploy --prod',
-            '',
-            `Support: ${SUPPORT_MAIL}`,
-          ]),
-    ].join('\n')
-    saveFile(`qalb-quickstart-${order.id}.md`, body, 'text/markdown;charset=utf-8')
+    const parts = rows.map(({ tpl }) => readmeText(tpl, order).trim()).filter(Boolean)
+    const body = parts.length
+      ? parts.join('\n\n---\n\n')
+      : [
+          `# ${lang === 'ar' ? 'دليل التشغيل السريع' : 'Quick-start guide'}`,
+          `Order ${order.id} · key ${order.key}`,
+          '',
+          `Support: ${SUPPORT_MAIL}`,
+        ].join('\n')
+    saveFile(`qalb-guide-${order.id}.md`, body + '\n', 'text/markdown;charset=utf-8')
   }
 
   return (
@@ -212,45 +244,91 @@ export default function Success() {
               </span>
             </button>
           </div>
+          {/* التسليم: كل زر هنا يقف وراءه ملف حقيقي — رابط موقّع من الخادم، أو توليد داخل متصفحك في وضع التجربة */}
           <div className="grid gap-3 border-t border-line px-6 py-5 sm:grid-cols-2">
-            <Btn size="lg" onClick={downloadFiles}>
-              <Icon n="download" className="size-4" />
-              {t('success.dl')}
-            </Btn>
+            {rows.length > 0 &&
+              (allHref ? (
+                <Btn size="lg" href={allHref}>
+                  <Icon n="download" className="size-4" />
+                  {t('success.dlAll', { n: dec(rows.length) })}
+                </Btn>
+              ) : (
+                <Btn size="lg" onClick={grabAll} disabled={busy === '*'}>
+                  <Icon n="download" className="size-4" />
+                  <span role="status" aria-live="polite">
+                    {busy === '*' ? t('success.preparing') : t('success.dlAll', { n: dec(rows.length) })}
+                  </span>
+                </Btn>
+              ))}
             <Btn size="lg" variant="outline" onClick={downloadGuide}>
               <Icon n="file" className="size-4" />
               {t('success.guide')}
             </Btn>
           </div>
           <div className="border-t border-line px-6 py-5">
-            <p className="text-[12px] font-bold text-muted">{t('success.files')}</p>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-[12px] font-bold text-muted">{t('success.files')}</p>
+              <button
+                type="button"
+                onClick={downloadManifest}
+                className="inline-flex items-center gap-1.5 text-[12px] font-bold text-dim transition-colors hover:text-brand"
+              >
+                <Icon n="file" className="size-3.5" />
+                {t('success.manifest')}
+              </button>
+            </div>
             {rows.length === 0 ? (
               <p className="mt-2 text-[12.5px] leading-relaxed text-muted">{t('success.noLines')}</p>
             ) : (
               <ul className="mt-3 flex flex-col gap-2">
-                {rows.map(({ tpl, qty }) => (
-                  <li key={tpl.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-bg/60 px-4 py-3">
-                    <span className="text-[13px] font-bold">
-                      {lang === 'ar' ? tpl.name.ar : tpl.name.en} <span className="num text-muted">×{qty}</span>
-                    </span>
-                    {tpl.download ? (
-                      <a
-                        href={tpl.download}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 text-[12.5px] font-bold text-brand hover:underline"
-                      >
-                        <Icon n="download" className="size-4" />
-                        {t('success.file')}
-                      </a>
-                    ) : (
-                      <span className="text-[12px] text-muted">{t('success.noFile')}</span>
-                    )}
-                  </li>
-                ))}
+                {rows.map(({ tpl, qty, link, local }) => {
+                  const n = packageIndex(tpl)
+                  return (
+                    <li key={tpl.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-bg/60 px-4 py-3">
+                      <span className="flex min-w-0 flex-col gap-1">
+                        <span className="text-[13px] font-bold">
+                          {lang === 'ar' ? tpl.name.ar : tpl.name.en} <span className="num text-muted">×{qty}</span>
+                        </span>
+                        <span className="num text-[11.5px] text-dim">{t('success.pkgFiles', { n: dec(n.count), kb: dec(n.kb) })}</span>
+                      </span>
+                      {link ? (
+                        <a
+                          href={link}
+                          className="inline-flex items-center gap-2 text-[12.5px] font-bold text-brand hover:underline"
+                          title={t('success.signedNote')}
+                        >
+                          <Icon n="download" className="size-4" />
+                          {t('success.dlFile')}
+                        </a>
+                      ) : local ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => grabPackage(tpl)}
+                            disabled={busy === tpl.id}
+                            className="inline-flex items-center gap-2 rounded-lg border border-brand/40 bg-brand/12 px-3 py-1.5 text-[12.5px] font-bold text-brand transition hover:bg-brand/20 disabled:opacity-60"
+                          >
+                            <Icon n="download" className="size-4" />
+                            <span role="status" aria-live="polite">
+                              {busy === tpl.id ? t('success.preparing') : t('success.dlFile')}
+                            </span>
+                          </button>
+                          {failed === tpl.id && <span className="text-[12px] font-bold text-danger">{t('success.pkgFailed')}</span>}
+                        </>
+                      ) : (
+                        <span className="text-[12px] text-muted">{t('success.noFile')}</span>
+                      )}
+                    </li>
+                  )
+                })}
               </ul>
             )}
+            <p className="mt-3 text-[12px] leading-relaxed text-dim">{t('success.licenceNote')}</p>
+            {(apiMode === 'rest' || zipped.length > 0) && (
+              <p className="mt-1.5 text-[12px] leading-relaxed text-dim">{apiMode === 'rest' ? t('success.signedNote') : t('success.localNote')}</p>
+            )}
           </div>
+
           <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-line bg-bg/40 px-6 py-4 text-[12.5px]">
             {[
               { to: `/licence?key=${encodeURIComponent(order.key)}`, label: t('licence.title'), icon: 'shield' },
@@ -268,7 +346,7 @@ export default function Success() {
         <div className="mt-10 rounded-3xl border border-line bg-panel/60 p-6">
           <h2 className="font-display text-[18px] font-extrabold">{t('success.next')}</h2>
           <ol className="mt-5 space-y-4">
-            {['n1', 'n2', 'n3', 'n4'].map((k, i) => (
+            {['n1', 'n2', hasCv && 'n3', 'n4'].filter(Boolean).map((k, i) => (
               <li key={k} className="flex gap-4">
                 <span className="num grid size-8 shrink-0 place-items-center rounded-full border border-line bg-bg text-[13px] font-extrabold text-brand">
                   {i + 1}
@@ -292,7 +370,9 @@ export default function Success() {
               >
                 <p className="truncate font-display text-[15px] font-extrabold group-hover:text-brand">{L(x.name)}</p>
                 <p className="mt-1 line-clamp-2 text-[12px] leading-relaxed text-dim">{L(x.tagline)}</p>
-                <p className="num mt-3 text-[11.5px] font-bold text-brand">ATS {x.ats}</p>
+                <p className="num mt-3 text-[11.5px] font-bold text-brand">
+                  {x.ats ? `ATS ${x.ats}` : x.perf ? `Lighthouse ${x.perf}` : t(`nav.${x.type}`)}
+                </p>
               </Link>
             ))}
           </div>

@@ -15,6 +15,7 @@ import {
   templates,
   testimonials,
 } from '../data/templates'
+import { packageIndex } from '../data/deliverable'
 import Preview, { showSite } from '../components/Preview'
 import TemplateCard from '../components/TemplateCard'
 import QuickView from '../components/QuickView'
@@ -26,6 +27,7 @@ export default function Product() {
   const { slug } = useParams()
   const tpl = bySlug(slug)
   const { t, L, lang } = useI18n()
+  const pkg = useMemo(() => (tpl ? packageIndex(tpl) : null), [tpl]) // حزمة التسليم الحقيقية، من نفس مولّد الملفات
   const { add, inCart, toast, toggleWish, wish, pushRecent } = useStore()
   const nav = useNavigate()
 
@@ -316,6 +318,19 @@ export default function Product() {
                   items={[...L(tpl.highlights), `${t('product.stack')}: ${(tpl.stack || []).join(' · ')}`, t('product.updates')]}
                 />
                 <List icon="spark" title={t('product.bestFor')} items={L(tpl.bestFor)} />
+                <p className="md:col-span-2 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[12px] text-dim" title={t('product.filesNote')}>
+                  <Icon n="file" className="size-3.5 shrink-0" />
+                  <span className="font-bold">{pkg ? t('product.files', { n: num(pkg.count) }) : ''}</span>
+                  <span className="flex flex-wrap gap-1">
+                    {['index.html', 'styles.css', 'content/profile.json', 'resume.html', 'scripts/check-ats.mjs', 'LICENSE.txt']
+                      .filter((f) => pkg && pkg.paths.includes(f))
+                      .map((f) => (
+                        <code key={f} dir="ltr" className="rounded-md border border-line bg-bg px-1.5 py-0.5 text-[11px]">
+                          {f}
+                        </code>
+                      ))}
+                  </span>
+                </p>
                 <div className="md:col-span-2">
                   <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.14em] text-dim">{t('product.details')}</p>
                   <p className="text-[15px] leading-[1.9] text-ink/85">{L(tpl.desc)}</p>

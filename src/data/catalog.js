@@ -8,6 +8,7 @@
  * فلا يختلف السعر المعروض عن السعر الذي يُحاسَب به المشتري.
  */
 import { templates } from './templates.js'
+import { protectedPathOk } from './deliverable.js'
 
 /** نسخة نقية من الكتالوج المصدري، تُقارَن إليها التعديلات عند كل تطبيق */
 const PRISTINE = templates.map((t) => ({ ...t }))
@@ -51,7 +52,7 @@ export function sanitize(patch = {}, { isNew = false } = {}) {
   if ('download' in src) {
     const u = str(src.download, 300)
     if (!u) out.download = null
-    else if (URL_RE.test(u)) out.download = u
+    else if (URL_RE.test(u) || protectedPathOk(u)) out.download = u
     else errors.download = 'url'
   }
   if ('published' in src) out.published = src.published !== false && src.published !== 'false'

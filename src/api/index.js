@@ -53,6 +53,35 @@ const stamp = (draft) => ({
   date: draft.date || new Date().toISOString().slice(0, 10),
 })
 
+/**
+ * رابط تسليم القالب لهذا الطلب. القيم الممكنة لحقل `download`:
+ *   • رابط http(s) يضيفه البائع من لوحة الإدارة → يعمل كما هو.
+ *   • مسار محمي `/download/<id>` → يُبنى له رابط موقّع قصير العمر من الخادم.
+ * وفي الوضع المحلي لا يوجد خادم أصلًا، فتُبنى الحزمة في المتصفح (ترجع null هنا
+ * وتتكفّل صفحة الإيصال بالتوليد المحلي)، فلا يُعرض قطّ رابط لا يعمل.
+ */
+export function deliveryHref(tpl, order) {
+  const v = typeof tpl?.download === 'string' ? tpl.download.trim() : ''
+  if (!v) return null
+  if (/^https?:\/\//i.test(v)) return v
+  if (!/^\/download\/[a-z0-9-]+$/.test(v) || apiMode !== 'rest') return null
+  const q = new URLSearchParams()
+  if (order?.id) q.set('order', String(order.id))
+  if (order?.key) q.set('key', String(order.key))
+  const qs = q.toString()
+  return `${BASE}${v}${qs ? `?${qs}` : ''}`
+}
+
+/** رابط كل حزم الطلب دفعة واحدة — يعيد null لو لم يكن التسليم من خادم */
+export function deliveryAllHref(order) {
+  if (apiMode !== 'rest') return null
+  const q = new URLSearchParams()
+  if (order?.id) q.set('order', String(order.id))
+  if (order?.key) q.set('key', String(order.key))
+  const qs = q.toString()
+  return `${BASE}/download-all${qs ? `?${qs}` : ''}`
+}
+
 async function rest(path, init) {
   const res = await fetch(BASE + path, {
     ...init,

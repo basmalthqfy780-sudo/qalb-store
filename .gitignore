@@ -10,6 +10,11 @@ server/orders.jsonl
 server/admins.json
 server/products.json
 server/.admin-secret
+server/downloads.jsonl
+server/.download-secret
+# حزم التسليم المولّدة للاستضافة اليدوية — ليست جزءًا من المستودع
+dist-deliverables/
+
 .cache
 .DS_Store
 *.local

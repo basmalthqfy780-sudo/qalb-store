@@ -4,6 +4,7 @@ import { useI18n, num, dec } from '../i18n'
 import { admin as api, apiMode } from '../api'
 import { categories, templates } from '../data/templates'
 import { adminRows } from '../data/catalog'
+import { isProtectedDownload } from '../data/deliverable'
 import '../i18n/admin-strings' // نصوص اللوحة تُحمّل معها فقط، فلا وزنها على صفحات المتجر
 import { useStore } from '../store/StoreContext'
 import { Btn, Icon, Money, Pill, Skeleton } from '../components/ui'
@@ -289,7 +290,7 @@ function ProductEditor({ row, isNew, onClose, onSaved }) {
     setErrs({})
     const patch = { price: draft.price, published: draft.published, featured: draft.featured }
     if (draft.oldPrice) patch.oldPrice = draft.oldPrice
-    if (isNew || draft.download) patch.download = draft.download
+    if (isNew || draft.download !== (row.download || '')) patch.download = draft.download // والتصفير يُرسل كي يُحذف الرابط
     for (const k of ['nameAr', 'nameEn', 'taglineAr', 'taglineEn', 'cat']) if (draft[k]) patch[k] = draft[k]
     const r = isNew
       ? await api.createProduct({ ...patch, id: draft.id, type: draft.type, clone: draft.clone || null })
@@ -536,7 +537,16 @@ function Products({ rows, overrides, prices, reload }) {
                   </td>
                   <td className="num px-3 py-3 text-center text-[12.5px]">{r.sales ? num(r.sales) : '—'}</td>
                   <td className="px-3 py-3 text-center">
-                    {r.download ? (
+                    {isProtectedDownload(r.download) ? (
+                      // لا رابط يُفتح من اللوحة: التسليم يبدأ من إيصال المشتري برقم طلبه ومفتاحه
+                      <span
+                        className="inline-flex items-center gap-1.5 text-[12px] font-bold text-brand"
+                        title={`${t('admin.protectedDl')} · ${r.download}`}
+                      >
+                        <Icon n="shield" className="size-3.5 shrink-0" />
+                        {t('admin.protectedDl')}
+                      </span>
+                    ) : r.download ? (
                       <a
                         href={r.download}
                         target="_blank"
