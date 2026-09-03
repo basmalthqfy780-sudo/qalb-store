@@ -785,6 +785,35 @@ for (const c of cases) {
   ])
   const env = { VITE_QALB_API: 'rest', VITE_QALB_API_BASE: 'http://api.test' }
 
+  /* an unreachable API must not blank the storefront: rest mode falls back to the shipped catalogue */
+  const deadBoot = (win) => {
+    win.__QALB_ENV = env
+    win.fetch = () => Promise.reject(new win.TypeError('api is down'))
+  }
+  {
+    const g = await render('http://localhost/', {}, { boot: deadBoot })
+    const txt = g.txt()
+    ok(
+      'the home page still renders with the API unreachable',
+      /الأكثر رواجًا هذا الأسبوع/.test(txt) && /449/.test(txt),
+      txt.replace(/\s+/g, ' ').slice(0, 50),
+    )
+    ok('a failed /catalog does not trip the error screen', !/حدث خطأ غير متوقع/.test(txt))
+    ok('the shell is mounted around the content', !!g.doc.querySelector('nav') && !!g.doc.querySelector('footer'))
+    ok(
+      'the route content sits inside #main',
+      (g.doc.getElementById('main')?.childElementCount || 0) > 0,
+      String(g.doc.getElementById('main')?.childElementCount),
+    )
+    g.dom.window.close()
+
+    const t = await render('http://localhost/templates', { 'qalb.cart.v1': seeded }, { boot: deadBoot })
+    ok('the catalogue keeps its shipped prices when the server is gone', /أيثر/.test(t.txt()) && /249/.test(t.txt()))
+    const noise = t.errs.filter((e) => !/not implemented/i.test(e))
+    ok('an offline boot throws nothing into the console', noise.length === 0, noise.join(' | ').slice(0, 140))
+    t.dom.window.close()
+  }
+
   {
     const g = await render(
       'http://localhost/checkout',

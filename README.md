@@ -16,7 +16,7 @@ npm install
 npm run dev        # http://localhost:5173
 npm run build      # إنتاج dist/
 npm run preview    # معاينة نسخة الإنتاج
-npm test           # ٢٨ مجموعات / ٢٣٨ فحوصًا: تصيير ٢٠ مسارًا (٧٣ توقعًا) + ٨ مجموعات تفاعلية (١٦٥ فحصًا) في jsdom، ثم ٤٤ فحصًا لخادم اللوحة عبر npm run test:api
+npm test           # ٢٨ مجموعات / ٢٤٤ فحوصًا: تصيير ٢٠ مسارًا (٧٣ توقعًا) + ٨ مجموعات تفاعلية (١٧١ فحصًا) في jsdom، ثم ٤٤ فحصًا لخادم اللوحة عبر npm run test:api
 npm run lint       # eslint (بما فيها قواعد مترجِم react-hooks) — صفر مشكلة
 npm run format     # prettier؛ وnpm run format:check للتحقق فقط
 
