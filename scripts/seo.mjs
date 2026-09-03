@@ -36,6 +36,7 @@ const urls = [
   { loc: '/wishlist', pri: '0.3', freq: 'weekly' },
   { loc: '/track', pri: '0.5', freq: 'monthly' },
   { loc: '/licence', pri: '0.5', freq: 'monthly' },
+  { loc: '/legal', pri: '0.3', freq: 'yearly' },
   ...templates.map((t) => ({ loc: `/template/${t.slug}`, pri: t.featured ? '0.9' : '0.8', freq: 'weekly' })),
 ]
 const xml = [

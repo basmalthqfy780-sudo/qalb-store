@@ -1095,11 +1095,27 @@ for (const c of cases) {
   /* generated assets on disk */
   {
     const map = readFileSync('public/sitemap.xml', 'utf8')
-    ok('the sitemap covers the utility pages', map.includes('/track') && map.includes('/licence'))
-    ok('the sitemap still lists every product', (map.match(/<loc>/g) || []).length === 20, String((map.match(/<loc>/g) || []).length))
+    // المشتقّ من جدول المسارات لا العدد المكتوب باليد: صفحة تُنسى في الـsitemap كانت
+    // ستُمرَّر على أنها «مغطّاة» لأن الفحص يعدّ ٢٠ فقط.
+    const staticRoutes = [...readFileSync('src/App.jsx', 'utf8').matchAll(/path="(\/[a-z-]*)"/g)]
+      .map((m) => m[1])
+      .filter((p) => p === '/' || !p.endsWith('/'))
+    const privateRoutes = ['/checkout', '/cart', '/order', '/admin']
+    const publicRoutes = staticRoutes.filter((p) => !privateRoutes.includes(p))
+    const notInMap = publicRoutes.filter((p) => !map.includes(`${p}</loc>`))
+    ok(
+      'every public route in the router is in the sitemap',
+      publicRoutes.length >= 6 && notInMap.length === 0,
+      `missing=${notInMap.join(',') || '—'} of ${publicRoutes.length}`,
+    )
+    ok(
+      'the sitemap length is what the generator should write: pages + 15 products',
+      (map.match(/<loc>/g) || []).length === publicRoutes.length + 15,
+      `${(map.match(/<loc>/g) || []).length} vs ${publicRoutes.length + 15}`,
+    )
     ok(
       'robots.txt keeps the transactional routes out',
-      ['checkout', 'order', 'cart'].every((x) => readFileSync('public/robots.txt', 'utf8').includes(`Disallow: /${x}`)),
+      privateRoutes.every((x) => readFileSync('public/robots.txt', 'utf8').includes(`Disallow: ${x}`)),
     )
     const cards = readdirSync('public/og').filter((f) => f.endsWith('.png'))
     ok('every product has a card file', cards.length >= 15, `${cards.length} files`)
@@ -1703,6 +1719,39 @@ for (const c of cases) {
       weak.length === 0,
       weak.map(([b, f]) => `${b}/${f}=${contrast(on[f], on[b])}`).join(','),
     )
+  }
+
+  /*
+   * «طباعة الصفحة» وعدٌّ مثل غيره. الورقة يجب أن تخرج بيضاء بلا شريط ولا أزرار،
+   * والقاعدة يجب أن تصمد أمام minify — لذا يُقرأ المصدر والملف المبني معًا.
+   */
+  const cssSrc = readFileSync('src/index.css', 'utf8')
+  const printAt = cssSrc.indexOf('@media print')
+  const depthAt = (i) => [...cssSrc.slice(0, i)].reduce((d, c) => d + (c === '{' ? 1 : c === '}' ? -1 : 0), 0)
+  ok('a print stylesheet stands behind the print button', printAt > -1)
+  ok(
+    'it flips the tokens, so every utility follows without an !important war',
+    printAt > -1 && /:root[\s\S]{0,120}?--c-bg:\s*#ffffff/.test(cssSrc.slice(printAt)),
+  )
+  ok(
+    'print drops the chrome: nav, header, footer, buttons, fields, decoration',
+    ['nav', 'header', 'footer', 'button', 'input', 'textarea', '.grad-mesh'].every((x) =>
+      new RegExp(`${x},?[\\s\\S]{0,600}?display: none !important`).test(cssSrc.slice(printAt)),
+    ),
+  )
+  ok('the print block sits at the top level, outside every @layer', printAt > -1 && depthAt(printAt) === 0)
+  const built = existsSync('dist/assets') ? readdirSync('dist/assets').filter((f) => f.endsWith('.css')) : []
+  if (built.length) {
+    const min = built
+      .map((f) => readFileSync(`dist/assets/${f}`, 'utf8'))
+      .join('')
+      .replace(/\s+/g, '')
+    ok(
+      'the built stylesheet still carries the print rules after minify',
+      /@mediaprint\{/.test(min) && min.includes('nav,header,footer,button,input,textarea,.grad-mesh,.pointer-events-none{display:none!important}'),
+      built.join(','),
+    )
+    ok('and the paper margins survive too', min.includes('@page{margin:18mm16mm}'))
   }
 
   if (bad.length) {

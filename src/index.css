@@ -278,3 +278,73 @@
     0 1px 1px rgb(0 0 0 / 0.06),
     0 24px 50px -24px rgb(0 0 0 / 0.5);
 }
+
+/* ---------- print ----------
+ * زرّ «طباعة الصفحة» في /legal وعدٌ مثل غيره: لا يجوز أن يُخرج ورقة بشريط داكن
+ * وتذييلٍ وأزرار. الحلّ عند الرموز لا عند التنسيقات: بتّات `--c-*` تُقلب إلى ورق
+ * أبيض فتتبعها كل الأدوات (bg-panel/line/dim) بلا حرب !important. القاعدة خارج
+ * @layer عمدًا — وكذا `@page` — لأن وظيفتها أن تغلب الـutilities وقت الطباعة فقط.
+ */
+@media print {
+  :root,
+  .light {
+    --c-bg: #ffffff;
+    --c-bg2: #ffffff;
+    --c-panel: #ffffff;
+    --c-panel2: #f6f7f8;
+    --c-line: #c8ccd3;
+    --c-text: #000000;
+    --c-dim: #3d4450;
+    --c-brand: #0a7a53;
+    --c-brand2: #0a7a53;
+    --c-brandink: #ffffff;
+    --c-gold: #7a5a10;
+    --c-danger: #a1121f;
+    --shadow-soft: none;
+    --shadow-lift: none;
+  }
+
+  @page {
+    margin: 18mm 16mm;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  /* ما لا معنى له على الورق: الشريط، التذييل، الأزرار، الحقول، الطبقات الزخرفية */
+  nav,
+  header,
+  footer,
+  button,
+  input,
+  textarea,
+  .grad-mesh,
+  .pointer-events-none {
+    display: none !important;
+  }
+
+  .page-x {
+    max-width: none !important;
+    padding-inline: 0 !important;
+  }
+
+  main {
+    padding: 0 !important;
+  }
+
+  section,
+  h1,
+  h2 {
+    break-inside: avoid;
+  }
+
+  /* المسارات المذكورة في النص تُطبع بجانبها، فمن يمسك ورقة /legal يجب أن يرى /track */
+  a[href^='/']::after {
+    content: ' (' attr(href) ')';
+    font-size: 9pt;
+    color: #5a6170;
+  }
+}
