@@ -216,6 +216,7 @@ async function render(url, seed = {}, { lang = 'ar', boot } = {}) {
 }
 
 let failed = 0
+let routeChecks = 0
 
 for (const c of cases) {
   const errs = []
@@ -283,6 +284,7 @@ for (const c of cases) {
   const nodes = root ? root.querySelectorAll('*').length : 0
   const missing = c.expect.filter((x) => !text.includes(x))
   const reactErrors = errs.filter((e) => !/Warning: |not implemented/i.test(e))
+  routeChecks += c.expect.length + 1 // كل توقّع + فحص «لا أخطاء React»
 
   if (missing.length || reactErrors.length) {
     failed++
@@ -1665,6 +1667,35 @@ for (const c of cases) {
   ok('the boundary reloads once, automatically', claimStaleReload() === true && claimStaleReload() === false)
   ok('and a route that renders fine re-arms it', (clearStaleReload(), claimStaleReload() === true))
   ok('with no storage it never reloads on its own', ((globalThis.sessionStorage = undefined), claimStaleReload() === false))
+  /* what the visitor actually reads on that screen — never a key name */
+  {
+    const claim = (win) => win.sessionStorage.setItem('qalb.stale-reload', '1') // already reloaded once: show the fallback
+    const probe = await render('http://localhost/', { 'qalb.test.boundary': 'stale', 'qalb.stale-reload': '1' }, { boot: claim })
+    const ptxt = ((probe.doc.getElementById('boundary-probe') || {}).textContent || '').replace(/\s+/g, ' ')
+    ok(
+      'the stale-module screen shows real copy',
+      /إعادة تحميل الصفحة بالكامل/.test(ptxt) && /نسخة قديمة من ملفات الموقع/.test(ptxt),
+      ptxt.slice(0, 90),
+    )
+    ok('and never a translation key', !/err\.(stale|reload)/.test(ptxt), ptxt.slice(0, 60))
+    ok('the doomed “try again” is not offered there', !/إعادة المحاولة/.test(ptxt))
+    probe.dom.window.close()
+
+    const probeEn = await render('http://localhost/', { ...{ 'qalb.test.boundary': 'stale' }, 'qalb.lang': 'en' }, { boot: claim })
+    const etxt = ((probeEn.doc.getElementById('boundary-probe') || {}).textContent || '').replace(/\s+/g, ' ')
+    ok('the same screen reads properly in english', /Reload the whole page/.test(etxt) && !/err\./.test(etxt), etxt.slice(0, 80))
+    probeEn.dom.window.close()
+
+    const plain = await render('http://localhost/', { 'qalb.test.boundary': 'plain' })
+    const ptxt2 = ((plain.doc.getElementById('boundary-probe') || {}).textContent || '').replace(/\s+/g, ' ')
+    ok(
+      'a genuine render error keeps the retry button and the normal copy',
+      /حدث خطأ غير متوقع/.test(ptxt2) && /إعادة المحاولة/.test(ptxt2) && !/إعادة تحميل الصفحة بالكامل/.test(ptxt2),
+      ptxt2.slice(0, 80),
+    )
+    plain.dom.window.close()
+  }
+
   const eb = readSrc('src/components/ErrorBoundary.jsx')
   ok('the fallback offers a full reload, not a doomed retry', /stale \?/.test(eb) && /onClick=\{reloadDocument\}/.test(eb))
   ok(
@@ -1850,5 +1881,9 @@ for (const c of cases) {
   }
 }
 
-console.log(failed ? `\n${failed} check group(s) failed` : `\nall ${cases.length + 11} check groups passed`)
+console.log(
+  failed
+    ? `\n${failed} check group(s) failed`
+    : `\nall ${cases.length + 11} check groups passed · ${cases.length} routes / ${routeChecks} expectations`,
+)
 process.exit(failed ? 1 : 0)
