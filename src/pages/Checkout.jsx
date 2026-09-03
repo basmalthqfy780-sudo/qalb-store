@@ -347,10 +347,27 @@ export default function Checkout() {
                 <span className="mt-0.5 grid size-[18px] shrink-0 place-items-center rounded-[6px] border border-line bg-bg text-transparent transition peer-checked:border-brand peer-checked:bg-brand peer-checked:text-brandink">
                   <Icon n="check" className="size-3" sw={3} />
                 </span>
-                <span className={`text-[13px] leading-relaxed ${err.agree ? 'text-danger' : 'text-dim'}`}>
-                  {t('checkout.agree')} · {t('footer.refund')}
-                </span>
+                <span className={`text-[13px] leading-relaxed ${err.agree ? 'text-danger' : 'text-dim'}`}>{t('checkout.agree')}</span>
               </label>
+              {/* الروابط خارج <label>: داخلها كان النقر على «الشروط» يقلّب مربع الموافقة */}
+              <p className="mt-1.5 flex flex-wrap items-center gap-x-2 text-[11.5px] leading-relaxed text-dim">
+                {[
+                  ['legal#terms', 'footer.terms'],
+                  ['legal#refund', 'footer.refund'],
+                  ['legal#privacy', 'footer.privacy'],
+                ].map(([hash, key], i) => (
+                  <span key={hash} className="inline-flex items-center gap-2">
+                    {i ? (
+                      <span aria-hidden className="text-line">
+                        ·
+                      </span>
+                    ) : null}
+                    <a href={`/${hash}`} target="_blank" rel="noopener noreferrer" className="font-semibold text-brand hover:underline">
+                      {t(key)}
+                    </a>
+                  </span>
+                ))}
+              </p>
             </Section>
           )}
 

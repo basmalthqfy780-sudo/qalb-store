@@ -8,7 +8,7 @@ import { readFileSync, mkdirSync, readdirSync, existsSync } from 'node:fs'
 import { JSDOM, VirtualConsole } from 'jsdom'
 import { dict } from '../src/i18n/translations.js'
 import { byId, templates } from '../src/data/templates.js'
-import { isProtectedDownload, kindOf, packageFiles, packageZip, sanitizePersonal } from '../src/data/deliverable.js'
+import { PERSONAL_LIMITS, isProtectedDownload, kindOf, packageFiles, packageZip, sanitizePersonal } from '../src/data/deliverable.js'
 import { zipNames, zipRead } from '../src/data/zip.js'
 import { claimStaleReload, clearStaleReload, isStaleLoadError } from '../src/lib/load-error.js'
 
@@ -92,6 +92,32 @@ const cases = [
     url: 'http://localhost/order',
     order: true,
     expect: ['تم الدفع بنجاح', 'مفتاح الترخيص', 'تحميل كل الحزم', 'تحميل الحزمة', 'LICENSE.txt باسمك', 'سطر تتبّع', 'qalb@qalb.store'],
+  },
+  {
+    name: 'legal',
+    url: 'http://localhost/legal',
+    expect: [
+      'الشروط والخصوصية والاسترجاع',
+      'لا يوجد مُرسِل موصول بهذا المتجر',
+      'لا متتبّعات ولا إحصاءات',
+      '١٤ يومًا',
+      'لا زرّ «استرجاع» في المتجر',
+      'MIT',
+      'طباعة الصفحة',
+    ],
+  },
+  {
+    name: 'legal / english',
+    url: 'http://localhost/legal',
+    lang: 'en',
+    expect: [
+      'Terms, privacy and refunds',
+      'no mailer wired to this store',
+      'No trackers, no analytics',
+      'Within 14 days of purchase',
+      'there is no "refund" button',
+      'single-use',
+    ],
   },
   { name: 'wishlist', url: 'http://localhost/wishlist', wish: '["nova","aether"]', expect: ['المفضلة', 'أيثر'] },
   { name: '404', url: 'http://localhost/nope', expect: ['404', 'الصفحة غير موجودة'] },
@@ -394,6 +420,18 @@ for (const c of cases) {
   ;(btn('متابعة') || {}).click?.()
   await wait()
   checks.push(['step 3 shows review + pay', /تأكيد الطلب والدفع/.test(txt()) && /sarah@example.com/.test(txt())])
+
+  // 3b. what the buyer must tick before paying actually leads to readable text
+  const legalLinks = [...document.querySelectorAll('#main a[href^="/legal#"]')]
+  checks.push([
+    'the agreement row links out to the terms, the refund policy and the privacy text',
+    legalLinks.length === 3 && legalLinks.every((a) => a.target === '_blank' && /noopener/.test(a.rel || '')),
+    `links=${legalLinks.length}`,
+  ])
+  checks.push([
+    'they sit outside the <label>, so reading them does not tick the agreement box',
+    legalLinks.length === 3 && legalLinks.every((a) => !a.closest('label')),
+  ])
 
   // 4. pay → success page, cart emptied
   ;(btn('تأكيد الطلب والدفع') || {}).click?.()
@@ -1513,6 +1551,36 @@ for (const c of cases) {
     const bare = promises.filter(([, s]) => !new RegExp(mail[lang], 'i').test(s)).map(([k]) => k)
     ok(`no ${lang} line promises an e-mail or an invoice that nothing backs`, bare.length === 0, bare.slice(0, 4).join(','))
   }
+  /*
+   * A link that ends in #somewhere is a promise: the element has to exist on the
+   * page it lands on. Footer once pointed four legal links at a copyright strip.
+   */
+  const appSrc = readFileSync('src/App.jsx', 'utf8')
+  const routeFile = (p) => {
+    const r = appSrc.match(new RegExp(`path="${p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}" element=\\{<(\\w+)`))
+    if (!r) return null
+    const i = appSrc.match(new RegExp(`const ${r[1]} = lazy\\(\\(\\) => import\\('([^']+)'\\)\\)`))
+    if (!i) return null
+    const rel = i[1].replace(/^\.\//, '')
+    const page = /\.(js|jsx)$/.test(rel) ? `src/${rel}` : `src/${rel}.jsx`
+    return existsSync(page) ? page : null
+  }
+  const chrome = ['src/components/Footer.jsx', 'src/components/Navbar.jsx', 'src/App.jsx'].map((f) => readFileSync(f, 'utf8')).join('\n')
+  const anchorMiss = []
+  for (const f of files) {
+    for (const m of readFileSync(f, 'utf8').matchAll(/to[:=]\s*["']([^"'#]*#[a-zA-Z0-9_-]+)["']/g)) {
+      const [p, hash] = m[1].split('#')
+      const target = routeFile(p)
+      if (!target) {
+        anchorMiss.push(`${m[1]} من ${f}: لا مسار`)
+        continue
+      }
+      const body = readFileSync(target, 'utf8') + (p === '/' ? chrome : '')
+      if (!new RegExp(`(?:id=["']|id:\\s*')${hash}["']`).test(body)) anchorMiss.push(`${m[1]} من ${f}: لا عنصر`)
+    }
+  }
+  ok('every link ending in # lands on an id that really exists', anchorMiss.length === 0, anchorMiss.slice(0, 4).join(' | '))
+
   ok(
     'the receipt and the billing note say what really happens',
     dict.ar.checkout.billingNote.startsWith('لا يُرسل شيء بالبريد') &&
@@ -1871,7 +1939,39 @@ for (const c of cases) {
     'qalb.personalize.v1': JSON.stringify({ on: true, name: 'نورة الحربي' }),
   })
   ok('and survives a reload', (again.doc.getElementById('pe-name') || {}).value === 'نورة الحربي')
+  ok(
+    'the card links to the privacy section that explains it',
+    !!again.doc.querySelector('#personalize a[href="/legal#privacy"]') && /كيف تُحفظ هذه البيانات/.test(again.txt()),
+  )
+  ok(
+    'each field stops you at the length that would be cut, not after it',
+    again.doc.getElementById('pe-name').getAttribute('maxLength') === String(PERSONAL_LIMITS.name) &&
+      again.doc.getElementById('pe-bio').getAttribute('maxLength') === String(PERSONAL_LIMITS.bio),
+    `name=${again.doc.getElementById('pe-name').getAttribute('maxLength')} bio=${again.doc.getElementById('pe-bio').getAttribute('maxLength')}`,
+  )
+  const clearBtn = [...again.doc.querySelectorAll('#personalize button')].find((b) => /امسح بياناتي/.test(b.textContent || ''))
+  ok('a real button backs the promise to delete my data', !!clearBtn)
+  if (clearBtn) clearBtn.click()
+  await again.wait()
+  ok(
+    'pressing it empties the fields, the preview and the stored copy',
+    !again.doc.getElementById('pe-name') &&
+      !/ما سيُطبع في الحزمة/.test(again.txt()) &&
+      JSON.parse(again.win.localStorage.getItem('qalb.personalize.v1') || '{}').name === '' &&
+      /فُرِّغت الحقول/.test(again.txt()),
+    again.win.localStorage.getItem('qalb.personalize.v1'),
+  )
   again.dom.window.close()
+
+  const clearEn = await render('http://localhost/template/aether-portfolio', {
+    'qalb.lang': 'en',
+    'qalb.personalize.v1': JSON.stringify({ on: true, name: 'Noura' }),
+  })
+  ok(
+    'and the control is in english too, not only in the dictionary',
+    /Clear my details from this browser/.test(clearEn.txt()) && /How this data is stored/.test(clearEn.txt()),
+  )
+  clearEn.dom.window.close()
 
   /* the whole purchase: typed → order → receipt → bytes */
   const g = await render(

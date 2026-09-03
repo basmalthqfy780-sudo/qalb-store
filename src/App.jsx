@@ -18,6 +18,7 @@ const Success = lazy(() => import('./pages/Success'))
 const Wishlist = lazy(() => import('./pages/Wishlist'))
 const Track = lazy(() => import('./pages/Track'))
 const Licence = lazy(() => import('./pages/Licence'))
+const Legal = lazy(() => import('./pages/Legal'))
 const NotFound = lazy(() => import('./pages/NotFound'))
 const Admin = lazy(() => import('./pages/Admin'))
 
@@ -91,6 +92,7 @@ export default function App() {
               <Route path="/wishlist" element={<Wishlist />} />
               <Route path="/track" element={<Track />} />
               <Route path="/licence" element={<Licence />} />
+              <Route path="/legal" element={<Legal />} />
               <Route path="/admin" element={<Admin />} />
               <Route path="*" element={<NotFound />} />
             </Routes>

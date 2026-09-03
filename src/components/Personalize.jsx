@@ -1,7 +1,9 @@
+import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useI18n } from '../i18n'
 import { useStore } from '../store/StoreContext'
-import { sanitizePersonal } from '../data/deliverable'
-import { Icon } from './ui'
+import { PERSONAL_LIMITS, sanitizePersonal } from '../data/deliverable'
+import { Btn, Icon } from './ui'
 
 /**
  * حقول التخصيص الاختياري. تُكتب مرة واحدة فتُطبع في ملفات الحزمة لحظة التوليد.
@@ -34,8 +36,15 @@ const PH = {
 
 export default function Personalize({ compact = false, className = '' }) {
   const { t, lang } = useI18n()
-  const { personal, setPersonal } = useStore()
+  const { personal, setPersonal, resetPersonal } = useStore()
+  const [cleared, setCleared] = useState(false)
   const on = !!personal.on
+  // يبقى الحقل محفوظًا بعد إلغاء التحديد: فالمسح إذن فعلٌ مستقل له زرّه
+  const dirty = PERSONAL_FIELDS.some((f) => String(personal[f.k] || '').length > 0) || on
+  const type = (k, v) => {
+    if (cleared) setCleared(false)
+    setPersonal({ [k]: v })
+  }
   // ما سيُحقن فعلًا بعد التنقية — نفس الدالة التي يستعملها الخادم قبل الكتابة
   const going = on ? sanitizePersonal(personal) : null
   const shown = going ? Object.entries(going).filter(([k]) => k !== 'on') : []
@@ -80,10 +89,10 @@ export default function Personalize({ compact = false, className = '' }) {
                     id={`pe-${fd.k}`}
                     name={fd.k}
                     rows={compact ? 2 : 3}
-                    maxLength={700}
+                    maxLength={PERSONAL_LIMITS[fd.k]}
                     value={personal[fd.k] || ''}
                     placeholder={PH[fd.k][lang]}
-                    onChange={(e) => setPersonal({ [fd.k]: e.target.value })}
+                    onChange={(e) => type(fd.k, e.target.value)}
                     className="w-full rounded-xl border border-line bg-panel px-3 py-2 text-[13.5px] leading-relaxed outline-none transition focus:border-brand/60"
                   />
                 ) : (
@@ -94,10 +103,10 @@ export default function Personalize({ compact = false, className = '' }) {
                     inputMode={fd.mode}
                     dir={fd.dir}
                     autoComplete={fd.autoComplete}
-                    maxLength={fd.k === 'bio' ? 700 : 160}
+                    maxLength={PERSONAL_LIMITS[fd.k]}
                     value={personal[fd.k] || ''}
                     placeholder={PH[fd.k][lang]}
-                    onChange={(e) => setPersonal({ [fd.k]: e.target.value })}
+                    onChange={(e) => type(fd.k, e.target.value)}
                     className="h-10 w-full rounded-xl border border-line bg-panel px-3 text-[13.5px] outline-none transition focus:border-brand/60"
                   />
                 )}
@@ -116,6 +125,32 @@ export default function Personalize({ compact = false, className = '' }) {
           </div>
           {!compact ? <p className="mt-2 text-[11px] leading-relaxed text-dim">{t('personal.autofill')}</p> : null}
         </>
+      ) : null}
+
+      {dirty ? (
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3">
+          <Link to="/legal#privacy" className="text-[11.5px] font-semibold text-brand hover:underline">
+            {t('personal.privacy')}
+          </Link>
+          <Btn
+            variant="outline"
+            size="sm"
+            className="!h-8 !px-2.5 !text-[11.5px]"
+            onClick={() => {
+              resetPersonal()
+              setCleared(true)
+            }}
+          >
+            <Icon n="close" className="size-3.5" sw={2.6} />
+            {t('personal.clear')}
+          </Btn>
+        </div>
+      ) : null}
+      {cleared ? (
+        <p role="status" className="mt-2 flex items-start gap-1.5 text-[11px] leading-relaxed text-dim">
+          <Icon n="check" className="mt-px size-3.5 shrink-0 text-brand" sw={2.8} />
+          <span>{t('personal.cleared')}</span>
+        </p>
       ) : null}
     </div>
   )

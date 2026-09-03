@@ -42,10 +42,11 @@ export default function Footer() {
     {
       head: t('footer.legal'),
       links: [
-        { to: '/#legal', label: t('footer.terms') },
-        { to: '/#legal', label: t('footer.privacy') },
-        { to: '/#legal', label: t('footer.refund') },
-        { to: '/#legal', label: t('footer.license') },
+        // كل رابط إلى قسمه في /legal — كانت الأربعة تنزل على شريط الحقوق وحده
+        { to: '/legal#terms', label: t('footer.terms') },
+        { to: '/legal#privacy', label: t('footer.privacy') },
+        { to: '/legal#refund', label: t('footer.refund') },
+        { to: '/legal#licence', label: t('footer.license') },
         { to: '/licence', label: t('footer.licenseCheck') },
       ],
     },
