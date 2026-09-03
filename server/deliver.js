@@ -25,6 +25,7 @@
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
 import { existsSync, readFileSync, writeFileSync, chmodSync } from 'node:fs'
 import { appendFile } from 'node:fs/promises'
+import { PRIVATE } from './seal.js'
 import path from 'node:path'
 import { bundleFiles, packageName, packageZip } from '../src/data/deliverable.js'
 import { zipStore } from '../src/data/zip.js'
@@ -81,7 +82,7 @@ export function createDeliverApi({ dir, env = process.env, orders = async () => 
   }
   const log = (rec) => {
     const line = JSON.stringify({ at: new Date().toISOString(), ...rec }) + '\n'
-    appendFile(LEDGER, line, 'utf8').catch(() => {
+    appendFile(LEDGER, line, { encoding: 'utf8', mode: PRIVATE }).catch(() => {
       /* السجل اختياري: لا يفشل التنزيل لأن القرص ممتلئ */
     })
   }

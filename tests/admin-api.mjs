@@ -9,7 +9,7 @@
  * لكل طلب، مرة واحدة، بلا ملف ثابت في public/، وحزمة فيها LICENSE.txt باسم المشتري.
  */
 import { spawn } from 'node:child_process'
-import { existsSync, readdirSync, rmSync, readFileSync, mkdtempSync } from 'node:fs'
+import { existsSync, readdirSync, rmSync, readFileSync, mkdtempSync, writeFileSync, appendFileSync, chmodSync, statSync } from 'node:fs'
 import { zipNames, zipRead } from '../src/data/zip.js'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -31,6 +31,21 @@ const ok = (n, c, got) => {
 
 // a fresh temp data dir: the suite writes and deletes only here, never in server/
 const DATA = mkdtempSync(join(tmpdir(), 'qalb-admin-api-'))
+
+// Then we dirty it the way a real host is dirty: the buyer ledgers already exist and
+// predate any 0600 rule, so every user on the box could read them. The server has to
+// repair that on boot, not merely get new files right.
+for (const [name, body] of [
+  ['orders.jsonl', ''],
+  ['downloads.jsonl', ''],
+  ['.admin-secret', 'a'.repeat(32) + '\n'],
+  ['.download-secret', 'b'.repeat(32) + '\n'],
+]) {
+  writeFileSync(join(DATA, name), body, { encoding: 'utf8', mode: 0o644 })
+  chmodSync(join(DATA, name), 0o644)
+}
+const modeOf = (f) => statSync(join(DATA, f)).mode & 0o777 // بتّات الوضع وحدها، بلا نوع الملف
+const shown = (list) => list.map((f) => `${f}=${modeOf(f).toString(8)}`).join(' ')
 
 const srv = spawn(process.execPath, ['server/worker.js'], {
   env: {
@@ -87,6 +102,13 @@ try {
   const h = await wait()
   ok('health reports admin enabled after bootstrap', h.admin === true, JSON.stringify(h))
   ok('bootstrap wrote admins.json into the data dir', existsSync(join(DATA, 'admins.json')))
+  ok('the admin file lands private: password hashes are not world-readable', modeOf('admins.json') === 0o600, modeOf('admins.json').toString(8))
+  const SEALED = ['orders.jsonl', 'downloads.jsonl', '.admin-secret', '.download-secret']
+  ok(
+    'boot re-seals every pre-existing buyer file to 0600',
+    SEALED.every((f) => modeOf(f) === 0o600),
+    shown(SEALED),
+  )
 
   /* --- auth --- */
   const bad = await call('POST', '/admin/login', { body: { password: 'wrong-password-xx' }, header: false })
@@ -140,6 +162,8 @@ try {
     header: false,
   })
   ok('the NEW price is what a buyer pays', fresh.status === 201 && fresh.json.total === 150, JSON.stringify(fresh.json?.total))
+  ok('appending an order does not loosen the ledger back to world-readable', modeOf('orders.jsonl') === 0o600, modeOf('orders.jsonl').toString(8))
+  ok('that private file really is the one holding buyer data', readFileSync(join(DATA, 'orders.jsonl'), 'utf8').includes('"email":"a@b.co"'))
   const cat = await call('GET', '/catalog', { header: false })
   ok(
     'public /catalog hands the override to the storefront',
@@ -548,6 +572,25 @@ try {
   for (let i = 0; i < 60; i++) await dlGet('/download/nova')
   const burst = await dlGet(`/download/nova?order=${o2.id}&key=${o2.key}`)
   ok('a flooding address gets throttled with 429 on the delivery routes too', burst.status === 429, burst.status)
+
+  /* --- سطر تالف واحد لا يُسقط لوحة الإدارة --- */
+  appendFileSync(join(DATA, 'orders.jsonl'), 'this line was cut off mid-writ', 'utf8')
+  const afterGarbage = await call('GET', '/admin/orders?limit=50', { token: TOKEN })
+  ok(
+    'an unreadable ledger line is skipped, and the good rows survive',
+    afterGarbage.status === 200 && afterGarbage.json.orders.some((o) => o.id === fresh.json.id),
+    JSON.stringify({ status: afterGarbage.status, n: afterGarbage.json.orders?.length }),
+  )
+  ok(
+    'the server names the broken line in its log rather than failing quietly',
+    /unreadable orders\.jsonl line \d+ skipped/.test(log),
+    log
+      .split('\n')
+      .filter((l) => /unreadable/.test(l))
+      .join('|')
+      .slice(0, 90),
+  )
+  ok('the ledger keeps 0600 after a raw append too', modeOf('orders.jsonl') === 0o600, modeOf('orders.jsonl').toString(8))
 
   /* --- throttling --- */
   for (let i = 0; i < 6; i++) await call('POST', '/admin/login', { body: { password: 'nope-nope-nope-1' }, header: false })

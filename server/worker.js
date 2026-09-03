@@ -17,7 +17,9 @@
  * التخزين: إن ضبطتَ SUPABASE_URL + SUPABASE_SERVICE_KEY يُرسَل الطلب إلى
  * PostgREST، وإلا يُكتب في server/orders.jsonl (كافٍ للتجربة ولساعة الصحو).
  * بيانات الإدارة (المستخدمون + تعديلات المنتجات + السرّ) ملفات JSON بجانبه
- * كلها في .gitignore: admins.json · products.json · .admin-secret · orders.jsonl.
+ * كلها في .gitignore: admins.json · products.json · .admin-secret · orders.jsonl،
+ * وكلها تُختم 0600 على القرص عند الإقلاع (`server/seal.js`) — لأن دفتر الطلبات صار
+ * يحمل اسم المشتري وجواله ونبذته، فلا يجوز أن يقرأه مستخدم آخر على نفس المضيف.
  *
  * ملاحظة أمان: لا تثق بالمجاميع القادمة من المتصفح — يُعاد حساب
  * subtotal/vat من بنود الطلب ويُرفض أي طلب لا يطابق (400).
@@ -31,6 +33,7 @@ import { templates } from '../src/data/templates.js'
 import { loadDotEnv } from '../scripts/dotenv.mjs'
 import { createAdminApi } from './admin.js'
 import { createDeliverApi } from './deliver.js'
+import { PRIVATE, sealDir } from './seal.js'
 import { VAT as VAT_RATE } from '../src/data/tax.js'
 import { sanitizePersonal } from '../src/data/deliverable.js'
 
@@ -44,8 +47,9 @@ const HERE = path.dirname(fileURLToPath(import.meta.url))
 // from the code directory so a host can point it at a writable volume — and so the
 // integration suite can run against a throwaway directory instead of real data.
 const DATA = process.env.QALB_DATA_DIR ? path.resolve(ROOT, process.env.QALB_DATA_DIR) : HERE
-if (DATA !== HERE) mkdirSync(DATA, { recursive: true })
+if (DATA !== HERE) mkdirSync(DATA, { recursive: true, mode: 0o700 }) // المجلد نفسه: لا قائمة طلبات لجار على المضيف
 const FILE = path.join(DATA, 'orders.jsonl')
+const SEALED = sealDir(DATA) // نُصلح ما أُنشئ قبل شرط 0600
 
 const SB = process.env.SUPABASE_URL
 const SB_KEY = process.env.SUPABASE_SERVICE_KEY
@@ -81,10 +85,20 @@ async function load() {
     return r.ok ? r.json() : []
   }
   if (!existsSync(FILE)) return []
-  return (await readFile(FILE, 'utf8'))
+  const rows = []
+  ;(await readFile(FILE, 'utf8'))
     .split('\n')
     .filter(Boolean)
-    .map((l) => JSON.parse(l))
+    .forEach((l, i) => {
+      try {
+        rows.push(JSON.parse(l))
+      } catch {
+        // سطر نصف-mكتوب (عملية قُتلت في أثناء الحفظ، أو تحرير يدوي) لا يسقط
+        // الدفتر كلّه: نتجاوزه ونقول أين، بدل 500 على كل شاشة الإدارة.
+        console.warn(`qalb api · unreadable ${path.basename(FILE)} line ${i + 1} skipped`)
+      }
+    })
+  return rows
 }
 
 async function save(order) {
@@ -97,7 +111,7 @@ async function save(order) {
     if (!r.ok) throw new Error(`upstream ${r.status}`)
     return (await r.json())[0] || order
   }
-  await appendFile(FILE, JSON.stringify(order) + '\n', 'utf8')
+  await appendFile(FILE, JSON.stringify(order) + '\n', { encoding: 'utf8', mode: PRIVATE })
   return order
 }
 
@@ -227,5 +241,7 @@ const server = createServer(async (req, res) => {
 
 server.listen(PORT, '0.0.0.0', () => {
   admin.enabled() // يهيّئ حساب المالك من ADMIN_PASSWORD قبل أول طلب، فلا تُخبر /health بغير الحقيقة
-  console.log(`qalb api · http://0.0.0.0:${PORT} · store=${remote ? 'supabase' : 'jsonl'} · admin=${admin.enabled() ? 'on' : 'off'}`)
+  console.log(
+    `qalb api · http://0.0.0.0:${PORT} · store=${remote ? 'supabase' : 'jsonl'} · admin=${admin.enabled() ? 'on' : 'off'} · re-sealed=${SEALED.length}`,
+  )
 })
