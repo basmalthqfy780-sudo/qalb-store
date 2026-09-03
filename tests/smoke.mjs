@@ -1,0 +1,1156 @@
+/**
+ * Runtime smoke test: bundles the real app and renders each route in jsdom,
+ * asserting visible copy — this executes the same component paths the browser runs.
+ *   node tests/smoke.mjs
+ */
+import { build } from 'esbuild'
+import { readFileSync, mkdirSync, readdirSync, existsSync } from 'node:fs'
+import { JSDOM, VirtualConsole } from 'jsdom'
+import { dict } from '../src/i18n/translations.js'
+
+const out = 'tests/build/app.js'
+mkdirSync('tests/build', { recursive: true })
+
+await build({
+  entryPoints: ['tests/entry.jsx'],
+  bundle: true,
+  format: 'iife',
+  outfile: out,
+  jsx: 'automatic',
+  loader: { '.css': 'empty' },
+  define: { 'process.env.NODE_ENV': '"development"' },
+  logLevel: 'error',
+})
+const code = readFileSync(out, 'utf8')
+
+const seededCart = JSON.stringify([
+  { id: 'nova', qty: 1 },
+  { id: 'atlas', qty: 2 },
+])
+
+const lookupOrders = JSON.stringify([
+  {
+    id: 'QALB-AAA-1111',
+    key: 'KEY-AAAA-1111',
+    date: '2026-08-11',
+    email: 'sara@q.dev',
+    name: 'سارة',
+    total: 448,
+    count: 2,
+    method: 'card',
+    methodLabel: 'بطاقة',
+    lines: [
+      { id: 'aether', slug: 'aether-portfolio', qty: 1 },
+      { id: 'atlas', slug: 'atlas-cv', qty: 1 },
+    ],
+  },
+  {
+    id: 'QALB-BBB-2222',
+    key: 'KEY-BBBB-2222',
+    date: '2026-07-02',
+    email: 'sara@q.dev',
+    name: 'سارة',
+    total: 89,
+    count: 1,
+    method: 'apple',
+    lines: [{ id: 'nova', slug: 'nova-ats', qty: 1 }],
+  },
+])
+
+const cases = [
+  {
+    name: 'home / arabic',
+    url: 'http://localhost/',
+    expect: ['قالب', 'الأكثر رواجًا هذا الأسبوع', 'هوية واحدة', 'ادفع مرة واحدة', '449', 'معرض أعمالك', 'SALE25', 'qalb@qalb.store'],
+  },
+  {
+    name: 'home / english',
+    url: 'http://localhost/',
+    lang: 'en',
+    expect: ['Qalb', 'Trending this week', 'One identity', 'Pay once', '449', 'Your portfolio', 'ATS'],
+  },
+  { name: 'catalog', url: 'http://localhost/templates', expect: ['كل القوالب', 'الفلاتر', 'أيثر', 'نِكسَس', 'نوع المنتج'] },
+  { name: 'catalog by field', url: 'http://localhost/templates?cat=graduate', expect: ['فِست ستيب'] },
+  { name: 'catalog by type', url: 'http://localhost/templates?type=cv', expect: ['نوفا', 'أطلس', 'إيكو'] },
+  { name: 'catalog search', url: 'http://localhost/templates?q=Kubernetes', expect: ['أطلس'] },
+  { name: 'catalog empty state', url: 'http://localhost/templates?q=zzzz', expect: ['لا توجد نتائج مطابقة'] },
+  {
+    name: 'product (site)',
+    url: 'http://localhost/template/aether-portfolio',
+    expect: ['معاينة حية', 'أضف إلى السلة', 'درجة الأداء', 'شبكة الأعمال', 'الترويسة'],
+  },
+  { name: 'product (bundle)', url: 'http://localhost/template/mirror-pro-bundle', expect: ['الموقع', 'السيرة', 'توافق ATS', 'حزمة موقع + سيرة'] },
+  { name: 'product (cv)', url: 'http://localhost/template/atlas-cv', expect: ['عمود واحد', 'شريط جانبي', 'توافق ATS', 'صفحات'] },
+  { name: 'cart with items', url: 'http://localhost/cart', cart: seededCart, expect: ['سلة المشتريات', 'الإجمالي', 'كود الخصم', 'نوفا'] },
+  { name: 'checkout', url: 'http://localhost/checkout', cart: seededCart, expect: ['إتمام الشراء', 'البيانات', 'البريد الإلكتروني', 'ملخص الطلب'] },
+  { name: 'success', url: 'http://localhost/order', order: true, expect: ['تم الدفع بنجاح', 'مفتاح الترخيص', 'تحميل حزمة البدء', 'qalb@qalb.store'] },
+  { name: 'wishlist', url: 'http://localhost/wishlist', wish: '["nova","aether"]', expect: ['المفضلة', 'أيثر'] },
+  { name: '404', url: 'http://localhost/nope', expect: ['404', 'الصفحة غير موجودة'] },
+  {
+    name: 'order lookup',
+    url: 'http://localhost/track',
+    seed: { 'qalb.orders.v1': lookupOrders },
+    expect: ['تتبّع طلباتك', 'البريد الإلكتروني', 'اعرض طلباتي', 'أدخل'],
+  },
+  {
+    name: 'licence check',
+    url: 'http://localhost/licence',
+    expect: ['التحقق من الترخيص', 'مفتاح الترخيص', 'تحقّق'],
+  },
+  {
+    name: 'order lookup / english',
+    url: 'http://localhost/track?email=sara@q.dev',
+    lang: 'en',
+    expect: ['Track your orders', 'Show my orders', 'My orders', 'no account needed'],
+  },
+  {
+    name: 'licence check / english',
+    url: 'http://localhost/licence?key=KEY-AAAA-1111',
+    lang: 'en',
+    seed: { 'qalb.orders.v1': lookupOrders },
+    expect: ['Verify a licence key', 'Licence key', 'Verify', 'order server when enabled'],
+  },
+]
+
+/**
+ * Routes are lazy + wrapped in <Suspense>, so a fixed number of ticks used to
+ * read the fallback shell instead of the page. Wait until the DOM stops
+ * growing instead — deterministic and still fast.
+ */
+async function settle(root, { quiet = 3, max = 4000 } = {}) {
+  let prev = -1
+  let still = 0
+  const t0 = Date.now()
+  while (Date.now() - t0 < max) {
+    await new Promise((r) => setTimeout(r, 8))
+    // a lazy route still showing its fallback looks "stable" — keep waiting
+    if (root && root.querySelector('[data-route-fallback]')) {
+      still = 0
+      continue
+    }
+    const n = root.querySelectorAll('*').length
+    if (n === prev && n > 0) {
+      if (++still >= quiet) break
+    } else {
+      still = 0
+      prev = n
+    }
+  }
+  return root ? root.querySelectorAll('*').length : 0
+}
+
+const stubs = (win) => {
+  win.ResizeObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  }
+  win.IntersectionObserver = class {
+    constructor(cb) {
+      this.cb = cb
+    }
+    observe(el) {
+      setTimeout(() => this.cb([{ isIntersecting: true, target: el }]), 0)
+    }
+    unobserve() {}
+    disconnect() {}
+  }
+  win.matchMedia = () => ({ matches: false, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} })
+  win.scrollTo = () => {}
+  win.HTMLElement.prototype.scrollIntoView = () => {}
+  win.getComputedStyle = win.getComputedStyle || (() => ({ getPropertyValue: () => '' }))
+  // jsdom's queueMicrotask reports a throwing callback through window.location —
+  // which is null once the test has closed the window, so a caught render error used
+  // to abort the whole run. Swallow late microtasks instead; behaviour is otherwise identical.
+  win.queueMicrotask = (cb) =>
+    Promise.resolve()
+      .then(cb)
+      .catch(() => {})
+}
+
+const mkHtml = (lang) =>
+  `<!doctype html><html lang="${lang}" dir="${lang === 'ar' ? 'rtl' : 'ltr'}"><head><meta charset="utf-8"></head><body><div id="root"></div></body></html>`
+
+/** boots the real bundle in jsdom: url + seeded storage + optional pre-boot hook */
+async function render(url, seed = {}, { lang = 'ar', boot } = {}) {
+  const errs = []
+  const vc = new VirtualConsole()
+  vc.on('jsdomError', (e) => errs.push('jsdom: ' + e.message))
+  vc.on('error', (...a) => errs.push('console.error: ' + a.map(String).join(' ')))
+  const dom = new JSDOM(mkHtml(lang), {
+    url,
+    runScripts: 'dangerously',
+    pretendToBeVisual: true,
+    virtualConsole: vc,
+    beforeParse(win) {
+      stubs(win)
+      for (const [k, v] of Object.entries(seed)) win.localStorage.setItem(k, v)
+      if (boot) boot(win)
+    },
+  })
+  const sc = dom.window.document.createElement('script')
+  sc.textContent = code
+  dom.window.document.body.appendChild(sc)
+  const root = dom.window.document.getElementById('root')
+  await settle(root)
+  return {
+    dom,
+    win: dom.window,
+    doc: dom.window.document,
+    root,
+    errs,
+    wait: () => settle(root, { quiet: 2 }),
+    txt: () => root.textContent || '',
+    btn: (re, sel = 'button') => [...dom.window.document.querySelectorAll(sel)].find((b) => re.test(b.textContent || '')),
+  }
+}
+
+let failed = 0
+
+for (const c of cases) {
+  const errs = []
+  const vc = new VirtualConsole()
+  vc.on('jsdomError', (e) => errs.push(`jsdom: ${e.message}`))
+  vc.on('error', (...a) => errs.push(`console.error: ${a.join(' ')}`))
+
+  const dom = new JSDOM(
+    `<!doctype html><html lang="${c.lang || 'ar'}" dir="${c.lang === 'en' ? 'ltr' : 'rtl'}"><head><meta charset="utf-8"></head><body><div id="root"></div></body></html>`,
+    {
+      url: c.url,
+      runScripts: 'dangerously',
+      pretendToBeVisual: true,
+      virtualConsole: vc,
+      beforeParse(win) {
+        win.ResizeObserver = class {
+          observe() {}
+          unobserve() {}
+          disconnect() {}
+        }
+        win.IntersectionObserver = class {
+          constructor(cb) {
+            this.cb = cb
+          }
+          observe(el) {
+            setTimeout(() => this.cb([{ isIntersecting: true, target: el }]), 0)
+          }
+          unobserve() {}
+          disconnect() {}
+        }
+        win.matchMedia = () => ({ matches: false, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} })
+        win.scrollTo = () => {}
+        win.HTMLElement.prototype.scrollIntoView = () => {}
+        win.getComputedStyle = win.getComputedStyle || (() => ({ getPropertyValue: () => '' }))
+        if (c.cart) win.localStorage.setItem('qalb.cart.v1', c.cart)
+        if (c.wish) win.localStorage.setItem('qalb.wish.v1', c.wish)
+        if (c.lang) win.localStorage.setItem('qalb.lang', c.lang)
+        if (c.seed) for (const [k, v] of Object.entries(c.seed)) win.localStorage.setItem(k, v)
+        if (c.order)
+          win.localStorage.setItem(
+            'qalb.lastOrder',
+            JSON.stringify({
+              id: 'QALB-TEST-1',
+              email: 's@mail.com',
+              name: 'Sarah',
+              total: 267,
+              count: 3,
+              method: 'card',
+              date: '2026-09-03',
+              key: 'AAAA-BBBB-CCCC-DDDD',
+              lines: [{ id: 'nova', slug: 'nova-ats', qty: 1 }],
+            }),
+          )
+      },
+    },
+  )
+
+  const s = dom.window.document.createElement('script')
+  s.textContent = code
+  dom.window.document.body.appendChild(s)
+  await settle(dom.window.document.getElementById('root'))
+
+  const root = dom.window.document.getElementById('root')
+  const text = (root && root.textContent) || ''
+  const nodes = root ? root.querySelectorAll('*').length : 0
+  const missing = c.expect.filter((x) => !text.includes(x))
+  const reactErrors = errs.filter((e) => !/Warning: |not implemented/i.test(e))
+
+  if (missing.length || reactErrors.length) {
+    failed++
+    console.log(`✗ ${c.name}`)
+    if (missing.length) console.log(`   missing: ${missing.join(' | ')}`)
+    if (reactErrors.length) console.log(`   errors: ${reactErrors.slice(0, 3).join('\n          ')}`)
+  } else {
+    console.log(`✓ ${c.name}  (${text.length} chars, ${nodes} nodes)`)
+  }
+  dom.window.close()
+}
+
+/* ---------------- checkout funnel (real interaction) ---------------- */
+{
+  const errs = []
+  const vc = new VirtualConsole()
+  vc.on('jsdomError', (e) => errs.push('jsdom: ' + e.message))
+  vc.on('error', (...a) => errs.push('console.error: ' + a.map(String).join(' ')))
+  const dom = new JSDOM(`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"></head><body><div id="root"></div></body></html>`, {
+    url: 'http://localhost/checkout',
+    runScripts: 'dangerously',
+    pretendToBeVisual: true,
+    virtualConsole: vc,
+    beforeParse(win) {
+      win.ResizeObserver = class {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      }
+      win.IntersectionObserver = class {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      }
+      win.matchMedia = () => ({ matches: false, addEventListener() {}, removeEventListener() {} })
+      win.scrollTo = () => {}
+      win.HTMLElement.prototype.scrollIntoView = () => {}
+      win.localStorage.setItem('qalb.cart.v1', seededCart)
+    },
+  })
+  const { window } = dom
+  const { document } = window
+  const s2 = document.createElement('script')
+  s2.textContent = code
+  document.body.appendChild(s2)
+  await settle(document.getElementById('root'))
+
+  const root = document.getElementById('root')
+  const txt = () => root.textContent || ''
+  const wait = () => settle(root, { quiet: 2 })
+  const btn = (label) => [...document.querySelectorAll('button')].find((b) => (b.textContent || '').includes(label))
+  const fill = (name, value) => {
+    const node = document.querySelector(`#co-${name}`)
+    if (!node) return false
+    const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set
+    setter.call(node, value)
+    node.dispatchEvent(new window.Event('input', { bubbles: true }))
+    return true
+  }
+
+  const checks = []
+  // 1. empty submit must surface validation errors
+  ;(btn('متابعة') || {}).click?.()
+  await wait()
+  checks.push(['validation blocks empty step', /أدخل بريد/.test(txt())])
+  checks.push([
+    'step is a real <form> whose submit button advances it',
+    !!document.querySelector('form #co-email') && /متابعة/.test(document.querySelector('form button[type="submit"]')?.textContent || ''),
+  ])
+  checks.push([
+    'inner buttons cannot submit the step form',
+    [...document.querySelectorAll('form button')]
+      .filter((b) => b.getAttribute('type') !== 'submit')
+      .every((b) => b.getAttribute('type') === 'button'),
+  ])
+  checks.push(['phone field uses the tel keyboard', document.getElementById('co-phone')?.getAttribute('inputmode') === 'tel'])
+
+  // 1b. errored inputs must be linked to their message
+  const emailEl = document.getElementById('co-email')
+  const errAriaOk =
+    !!emailEl &&
+    emailEl.getAttribute('aria-invalid') === 'true' &&
+    !!document.getElementById(emailEl.getAttribute('aria-describedby') || '')?.textContent?.trim()
+
+  // 2. valid details advance to payment
+  checks.push(['empty errors are announced to AT', errAriaOk === true, String(errAriaOk)])
+  fill('email', 'sarah@example.com')
+  fill('name', 'سارة العتيبي')
+  await wait()
+  ;(btn('متابعة') || {}).click?.()
+  await wait()
+  checks.push(['step 2 shows payment methods', /Apple Pay/.test(txt()) && /بطاقة ائتمانية/.test(txt())])
+
+  // 3. bad card is rejected, good card advances to review
+  checks.push([
+    'card fields use the right keyboards and autofill hints',
+    document.getElementById('co-card')?.getAttribute('inputmode') === 'numeric' &&
+      document.getElementById('co-card')?.getAttribute('autocomplete') === 'cc-number' &&
+      document.getElementById('co-exp')?.getAttribute('autocomplete') === 'cc-exp' &&
+      document.getElementById('co-exp')?.getAttribute('enterkeyhint') === 'done' &&
+      document.getElementById('co-cvv')?.getAttribute('autocomplete') === 'cc-csc',
+  ])
+  fill('card', '4111111111111111')
+  fill('exp', '1229')
+  fill('cvv', '123')
+  await wait()
+  ;(btn('متابعة') || {}).click?.()
+  await wait()
+  checks.push(['step 3 shows review + pay', /تأكيد الطلب والدفع/.test(txt()) && /sarah@example.com/.test(txt())])
+
+  // 4. pay → success page, cart emptied
+  ;(btn('تأكيد الطلب والدفع') || {}).click?.()
+  await new Promise((r) => setTimeout(r, 2400))
+  await wait()
+  const after = txt()
+  checks.push(['success screen rendered', /تم الدفع بنجاح/.test(after) && /مفتاح الترخيص/.test(after)])
+  checks.push(['cart cleared after order', window.localStorage.getItem('qalb.cart.v1') === '[]'])
+  checks.push(['no console errors during flow', errs.filter((e) => !/not implemented/i.test(e)).length === 0])
+
+  const bad = checks.filter(([, ok]) => !ok)
+  if (bad.length) {
+    failed++
+    console.log('✗ checkout funnel')
+    bad.forEach(([n]) => console.log('   failed: ' + n))
+    if (errs.length) console.log('   ' + errs.slice(0, 2).join('\n   ').slice(0, 400))
+  } else {
+    console.log(`✓ checkout funnel  (${checks.length} assertions, ${after.length} chars)`)
+  }
+  window.close()
+}
+
+/* ---------------- interactions: cart badge, language/RTL switch, wishlist, customizer ---------------- */
+{
+  const errs = []
+  const vc = new VirtualConsole()
+  vc.on('jsdomError', (e) => errs.push('jsdom: ' + e.message))
+  vc.on('error', (...a) => errs.push('console.error: ' + a.map(String).join(' ')))
+  const dom = new JSDOM(`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"></head><body><div id="root"></div></body></html>`, {
+    url: 'http://localhost/template/mirror-pro-bundle',
+    runScripts: 'dangerously',
+    pretendToBeVisual: true,
+    virtualConsole: vc,
+    beforeParse(win) {
+      win.ResizeObserver = class {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      }
+      win.IntersectionObserver = class {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      }
+      win.matchMedia = () => ({ matches: false, addEventListener() {}, removeEventListener() {} })
+      win.scrollTo = () => {}
+      win.HTMLElement.prototype.scrollIntoView = () => {}
+    },
+  })
+  const { window } = dom
+  const { document } = window
+  const sc = document.createElement('script')
+  sc.textContent = code
+  document.body.appendChild(sc)
+  await settle(document.getElementById('root'))
+
+  const root = document.getElementById('root')
+  const txt = () => root.textContent || ''
+  const wait = () => settle(root, { quiet: 2 })
+  const btnWith = (label, sel = 'button') => [...document.querySelectorAll(sel)].find((b) => (b.textContent || '').includes(label))
+  const checks = []
+
+  const cartLink = () => document.querySelector('a[href="/cart"]')
+  const labelBefore = cartLink().getAttribute('aria-label') || ''
+  ;(btnWith('أضف إلى السلة') || {}).click?.()
+  await wait()
+  const labelAfter = cartLink().getAttribute('aria-label') || ''
+  checks.push([
+    'add to cart updates header badge',
+    /— 0$/.test(labelBefore) && /— 1$/.test(labelAfter) && (window.localStorage.getItem('qalb.cart.v1') || '').includes('mirrorbundle'),
+  ])
+
+  ;(btnWith('حفظ للمفضلة') || {}).click?.()
+  await wait()
+  checks.push(['wishlist persisted', (window.localStorage.getItem('qalb.wish.v1') || '').includes('mirrorbundle')])
+
+  const langBtn = [...document.querySelectorAll('button')].find((b) => b.getAttribute('aria-label') === 'Switch language')
+  ;(langBtn || {}).click?.()
+  await wait()
+  checks.push(['language switch flips dir + copy', document.documentElement.dir === 'ltr' && /Add to cart/.test(txt())])
+
+  ;(btnWith('CV', 'button') || btnWith('السيرة', 'button') || {}).click?.()
+  await wait()
+  checks.push(['bundle switches to the CV view', /A4|صفحة|ATS/.test(txt()) && !!document.querySelector('[data-resume]')])
+
+  const bad = checks.filter(([, ok]) => !ok)
+  if (bad.length || errs.length) {
+    failed++
+    console.log('✗ interactions')
+    bad.forEach(([n, ok]) => !ok && console.log('   failed: ' + n))
+    if (errs.length) console.log('   ' + errs.slice(0, 2).join('\n   ').slice(0, 300))
+  } else {
+    console.log(`✓ interactions  (${checks.length} assertions)`)
+  }
+  window.close()
+}
+
+/* ---------------- previews · recently-viewed · cart math · mega ---------------- */
+{
+  const checks = []
+  const bad = []
+  const ok = (name, cond, extra = '') => {
+    checks.push(name)
+    if (!cond) bad.push(name + (extra ? ` (${extra})` : ''))
+  }
+
+  /* --- product page: preview direction follows language, view is remembered --- */
+  {
+    const g = await render('http://localhost/template/aether-portfolio', { 'qalb.recent.v1': JSON.stringify(['nexus', 'nova']) })
+    const pvDir = () => g.doc.querySelector('[data-preview-dir]')?.getAttribute('data-preview-dir')
+    ok('live preview renders rtl in arabic', pvDir() === 'rtl', `got ${pvDir()}`)
+
+    const titleAr = g.doc.title
+    const descAr = g.doc.head.querySelector('meta[name="description"]')?.getAttribute('content') || ''
+    ok(
+      'per-route title + description are set in arabic',
+      /أيثر/.test(titleAr) && titleAr.includes('قالب') && /معاينة حية/.test(descAr),
+      `${titleAr} :: ${descAr.slice(0, 44)}`,
+    )
+
+    const langBtn = [...g.doc.querySelectorAll('button')].find((b) => b.getAttribute('aria-label') === 'Switch language')
+    langBtn?.click()
+    await g.wait()
+    const pvDir2 = g.doc.querySelector('[data-preview-dir]')?.getAttribute('data-preview-dir')
+    ok(
+      'switching language flips the preview to ltr',
+      g.doc.documentElement.dir === 'ltr' && pvDir2 === 'ltr',
+      `dir=${g.doc.documentElement.dir} preview=${pvDir2}`,
+    )
+    ok('preview copy switches to english', /Aether|Open the live demo|Add to cart/.test(g.txt()))
+    ok('title follows the language switch', /Aether/.test(g.doc.title) && /Qalb/.test(g.doc.title), g.doc.title)
+
+    const recent = JSON.parse(g.win.localStorage.getItem('qalb.recent.v1') || '[]')
+    ok('product view stored in recently-viewed', recent[0] === 'aether' && recent[1] === 'nexus', recent.join(','))
+    ok('recent list capped and deduped', recent.length <= 6 && new Set(recent).size === recent.length, `${recent.length}`)
+
+    const addBtn = () => g.btn(/Add to cart|أضف إلى السلة/)
+    addBtn()?.click()
+    await g.wait()
+    const first = g.txt()
+    const badge1 = g.doc.querySelector('a[href="/cart"]')?.getAttribute('aria-label') || ''
+    addBtn()?.click()
+    await g.wait()
+    const second = g.txt()
+    const badge2 = g.doc.querySelector('a[href="/cart"]')?.getAttribute('aria-label') || ''
+    ok('first add says "added"', /Added to cart|أُضيف إلى السلة/.test(first))
+    ok('second add says "already in cart"', /In cart|في السلة/.test(second))
+    ok('badge counts units, not clicks', /1$/.test(badge1.trim()) && /2$/.test(badge2.trim()), `${badge1} -> ${badge2}`)
+
+    /* fullscreen live demo from the product page */
+    const demoBtn = g.btn(/Open the live demo|افتح العرض الحي/)
+    demoBtn?.click()
+    await g.wait()
+    const dlg = g.doc.querySelector('[role="dialog"]')
+    ok(
+      'try-it opens a modal carrying the live preview',
+      !!dlg && dlg.getAttribute('aria-modal') === 'true' && !!dlg.querySelector('[data-preview-dir]'),
+      dlg ? `aria-modal=${dlg.getAttribute('aria-modal')} preview=${!!dlg.querySelector('[data-preview-dir]')}` : 'no dialog',
+    )
+    if (dlg) {
+      const rootEl = g.doc.getElementById('root')
+      ok(
+        'app behind the dialog is inert + hidden from AT',
+        rootEl?.hasAttribute('inert') && rootEl?.getAttribute('aria-hidden') === 'true',
+        `${rootEl?.hasAttribute('inert')}/${rootEl?.getAttribute('aria-hidden')}`,
+      )
+      g.doc.dispatchEvent(new g.win.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+      await g.wait()
+      ok('escape closes the live demo', !g.doc.querySelector('[role="dialog"]'))
+      ok('inert is removed on close', !g.doc.getElementById('root')?.hasAttribute('inert'))
+      ok('scroll lock released', g.doc.body.style.overflow !== 'hidden', g.doc.body.style.overflow)
+    }
+    g.dom.window.close()
+  }
+
+  /* --- home: mega menu opens and closes on navigation --- */
+  {
+    const g = await render('http://localhost/')
+    const trigger = g.doc.querySelector('button[aria-controls="mega-panel"]')
+    trigger?.click()
+    await g.wait()
+    ok('categories mega opens', g.doc.querySelector('#mega-panel')?.getAttribute('data-mega') === 'open')
+    const link = [...g.doc.querySelectorAll('#mega-panel a')].find((a) => (a.getAttribute('href') || '').startsWith('/templates'))
+    link?.click()
+    await g.wait()
+    ok(
+      'mega closes after navigating',
+      g.doc.querySelector('#mega-panel')?.getAttribute('data-mega') === 'closed',
+      g.doc.querySelector('#mega-panel')?.getAttribute('data-mega'),
+    )
+    ok('navigation actually happened', g.win.location.pathname === '/templates', g.win.location.pathname)
+    g.dom.window.close()
+  }
+
+  /* --- catalog: recently-viewed rail only when there is history --- */
+  {
+    const empty = await render('http://localhost/templates')
+    ok('no recent rail for a first visit', !empty.doc.querySelector('[data-recent]'))
+    empty.dom.window.close()
+
+    const g = await render('http://localhost/templates', { 'qalb.recent.v1': JSON.stringify(['nova', 'atlas', 'aether']) })
+    const rail = g.doc.querySelector('[data-recent]')
+    ok('recent rail restored from storage', !!rail && rail.getAttribute('data-recent') === '3', rail ? rail.getAttribute('data-recent') : 'missing')
+    ok(
+      'recent rail links to the right templates',
+      [...g.doc.querySelectorAll('[data-recent-item]')].map((x) => x.getAttribute('data-recent-item')).join(',') ===
+        'nova-cv,atlas-cv,aether-portfolio',
+      [...g.doc.querySelectorAll('[data-recent-item]')].map((x) => x.getAttribute('data-recent-item')).join(','),
+    )
+    g.dom.window.close()
+  }
+
+  /* --- cart: coupon actually changes the money --- */
+  {
+    const { byId } = await import('../src/data/templates.js')
+    const lines = [
+      { id: 'nova', qty: 1 },
+      { id: 'atlas', qty: 2 },
+    ]
+    const subtotal = lines.reduce((s, l) => s + byId(l.id).price * l.qty, 0)
+    const g = await render('http://localhost/cart', { 'qalb.cart.v1': JSON.stringify(lines) })
+    const total = () => Number(g.doc.querySelector('[data-total]')?.getAttribute('data-total'))
+    ok('cart total before coupon', Math.abs(total() - subtotal) < 0.01, `${total()} vs ${subtotal}`)
+
+    const input = g.doc.getElementById('coupon-code')
+    ok('coupon field is labelled', !!input && !!g.doc.querySelector('label[for="coupon-code"]'))
+    const setter = Object.getOwnPropertyDescriptor(g.win.HTMLInputElement.prototype, 'value').set
+    setter.call(input, 'SALE25')
+    input.dispatchEvent(new g.win.Event('input', { bubbles: true }))
+    await g.wait()
+    g.btn(/Apply|تطبيق/)?.click()
+    await g.wait()
+
+    const expectTotal = subtotal * 0.75
+    const disc = Number(g.doc.querySelector('[data-discount]')?.getAttribute('data-discount'))
+    ok('SALE25 takes 25% off', Math.abs(total() - expectTotal) < 0.51, `${total()} vs ${expectTotal.toFixed(2)}`)
+    ok('discount row matches the cut', Math.abs(disc - subtotal * 0.25) < 0.51, `${disc} vs ${(subtotal * 0.25).toFixed(2)}`)
+    ok('vat extracted, not added', /15/.test(g.txt()) && Number(g.doc.querySelector('[data-total]')?.getAttribute('data-total')) > 0)
+    ok('coupon persisted to storage', (g.win.localStorage.getItem('qalb.coupon.v1') || '').includes('SALE25'))
+
+    /* bad code must not silently keep the old total */
+    const bad2 = g.doc.getElementById('coupon-code')
+    if (bad2) {
+      setter.call(bad2, 'NOPE')
+      bad2.dispatchEvent(new g.win.Event('input', { bubbles: true }))
+      g.btn(/Apply|تطبيق/)?.click()
+      await g.wait()
+      ok('bad coupon is rejected with a message', Math.abs(total() - subtotal) < 0.01 && /invalid|غير صالح|لا يوجد/.test(g.txt()), `total=${total()}`)
+    }
+    const noisy = g.errs.filter((e) => !/not implemented|Warning: react-i18next|useLayoutEffect does nothing on the server/i.test(e))
+    ok('no console errors in this group', noisy.length === 0, noisy.slice(0, 1).join(' '))
+    g.dom.window.close()
+  }
+
+  if (bad.length) {
+    failed++
+    console.log('✗ previews · recent · cart math')
+    bad.forEach((n) => console.log('   failed: ' + n))
+  } else {
+    console.log(`✓ previews · recent · cart math  (${checks.length} assertions)`)
+  }
+}
+
+/* ---------------- themes · structured data · transports ---------------- */
+{
+  const checks = []
+  const bad = []
+  const ok = (name, cond, extra = '') => {
+    checks.push(name)
+    if (!cond) bad.push(name + (extra ? ` (${extra})` : ''))
+  }
+
+  /* theme + a11y on the home page */
+  {
+    const g = await render('http://localhost/')
+    const themeBtn = [...g.doc.querySelectorAll('button')].find((b) => /dark|light|الوضع/i.test(b.getAttribute('aria-label') || ''))
+    ok('theme toggle exists', !!themeBtn, themeBtn?.getAttribute('aria-label'))
+    themeBtn?.click()
+    await g.wait()
+    const isLight = g.doc.documentElement.classList.contains('light')
+    const tc = g.doc.head.querySelector('meta[name="theme-color"]')?.getAttribute('content')
+    ok('toggle flips to light + persists', isLight && g.win.localStorage.getItem('qalb.theme') === 'light', `light=${isLight}`)
+    ok('theme-color follows the theme', tc === '#f6f7f9', String(tc))
+    themeBtn?.click()
+    await g.wait()
+    ok(
+      'back to dark + dark theme-color',
+      !g.doc.documentElement.classList.contains('light') &&
+        g.doc.head.querySelector('meta[name="theme-color"]')?.getAttribute('content') === '#0a0c11',
+    )
+
+    /* language survives a reload */
+    const langBtn = [...g.doc.querySelectorAll('button')].find((b) => b.getAttribute('aria-label') === 'Switch language')
+    langBtn?.click()
+    await g.wait()
+    ok('language persisted for the next load', g.win.localStorage.getItem('qalb.lang') === 'en', String(g.win.localStorage.getItem('qalb.lang')))
+    const reloaded = await render('http://localhost/', { 'qalb.lang': 'en' })
+    ok('reload starts in english (dir=ltr)', reloaded.doc.documentElement.dir === 'ltr' && /Add to cart|Browse|Templates/i.test(reloaded.txt()))
+    reloaded.dom.window.close()
+
+    /* aria-current marks the active route, not just a color */
+    const cat = await render('http://localhost/templates')
+    const marked = cat.doc.querySelector('nav [aria-current="page"]')
+    ok('nav marks the current route for AT', !!marked && marked.getAttribute('aria-controls') === 'mega-panel', marked?.tagName)
+    const home = await render('http://localhost/')
+    ok('home marks no route as current', !home.doc.querySelector('nav [aria-current="page"]'))
+    home.dom.window.close()
+    cat.dom.window.close()
+
+    ok('no console errors in home checks', g.errs.filter((e) => !/not implemented/i.test(e)).length === 0, g.errs.slice(0, 1).join(' '))
+    g.dom.window.close()
+  }
+
+  /* first visit follows the OS theme */
+  {
+    const g = await render(
+      'http://localhost/',
+      {},
+      {
+        boot: (win) => {
+          win.matchMedia = () => ({ matches: true, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} })
+        },
+      },
+    )
+    ok('prefers-color-scheme: light is respected on first visit', g.doc.documentElement.classList.contains('light'))
+    g.dom.window.close()
+  }
+
+  /* JSON-LD + robots + the CV zoom control */
+  {
+    const { bySlug } = await import('../src/data/templates.js')
+    const g = await render('http://localhost/template/aether-portfolio')
+    const ld = JSON.parse(g.doc.getElementById('qalb-jsonld')?.textContent || 'null')
+    const tpl = bySlug('aether-portfolio')
+    ok(
+      'product page emits Product schema',
+      ld &&
+        ld['@type'] === 'Product' &&
+        Number(ld.offers.price) === tpl.price &&
+        ld.offers.priceCurrency === 'SAR' &&
+        ld.aggregateRating.reviewCount === tpl.reviews,
+      ld ? `${ld['@type']} ${ld.offers?.price}` : 'missing',
+    )
+    ok(
+      'canonical + og:url point at the real route',
+      g.doc.head.querySelector('link[rel="canonical"]')?.getAttribute('href') === 'http://localhost/template/aether-portfolio',
+    )
+
+    ok('no sheet zoom on a site-only product', !g.doc.querySelector('[data-zoom]'))
+    g.dom.window.close()
+
+    const cv = await render('http://localhost/template/atlas-cv')
+    const z0 = cv.doc.querySelector('[data-zoom]')?.getAttribute('data-zoom')
+    cv.doc.querySelector('button[data-zoom-step="plus"]')?.click()
+    await cv.wait()
+    const z1 = cv.doc.querySelector('[data-zoom]')?.getAttribute('data-zoom')
+    ok('cv zoom increases the sheet scale', Number(z1) > Number(z0), `${z0} → ${z1}`)
+    ok(
+      'zoom buttons are labelled for AT in the current language',
+      /تكبير|تصغير|Zoom/.test(cv.doc.querySelector('button[data-zoom-step="plus"]')?.getAttribute('aria-label') || ''),
+    )
+    ok('resume sheet is rendered', !!cv.doc.querySelector('[data-resume]'))
+    cv.dom.window.close()
+
+    const cart = await render('http://localhost/cart', { 'qalb.cart.v1': JSON.stringify([{ id: 'nova', qty: 1 }]) })
+    ok('transactional routes ask not to be indexed', cart.doc.head.querySelector('meta[name="robots"]')?.getAttribute('content') === 'noindex,follow')
+    cart.dom.window.close()
+  }
+
+  /* transport: REST failure must not eat the cart, REST success must use the server receipt */
+  const drive = async (g) => {
+    const setter = Object.getOwnPropertyDescriptor(g.win.HTMLInputElement.prototype, 'value').set
+    const fill = (id, v) => {
+      const el = g.doc.getElementById(id)
+      if (!el) return
+      setter.call(el, v)
+      el.dispatchEvent(new g.win.Event('input', { bubbles: true }))
+    }
+    fill('co-email', 'sarah@example.com')
+    fill('co-name', 'Sarah Al-Otaibi')
+    await g.wait()
+    ;(g.btn(/Continue|متابعة/) || {}).click?.()
+    await g.wait()
+    fill('co-card', '4111111111111111')
+    fill('co-exp', '12/29')
+    fill('co-cvv', '123')
+    await g.wait()
+    ;(g.btn(/Continue|متابعة/) || {}).click?.()
+    await g.wait()
+    const agree = g.doc.querySelector('form input[type="checkbox"]:not(#invoice)') || g.doc.querySelector('form input[type="checkbox"]')
+    if (agree && !agree.checked) agree.click()
+    await g.wait()
+    ;(g.btn(/Place order|تأكيد الطلب والدفع/) || {}).click?.()
+    await new Promise((r) => setTimeout(r, 700))
+    await g.wait()
+  }
+  const seeded = JSON.stringify([
+    { id: 'nova', qty: 1 },
+    { id: 'atlas', qty: 2 },
+  ])
+  const env = { VITE_QALB_API: 'rest', VITE_QALB_API_BASE: 'http://api.test' }
+
+  {
+    const g = await render(
+      'http://localhost/checkout',
+      { 'qalb.cart.v1': seeded },
+      {
+        boot: (win) => {
+          win.__QALB_ENV = env
+          win.fetch = () => Promise.reject(new win.TypeError('network down'))
+        },
+      },
+    )
+    await drive(g)
+    const alert = g.doc.querySelector('[role="alert"]')?.textContent || ''
+    ok('a failed payment is reported, not swallowed', /تعذّر تنفيذ الدفع/.test(alert), alert.trim().slice(0, 40))
+    ok(
+      'a failed payment keeps the cart',
+      (g.win.localStorage.getItem('qalb.cart.v1') || '').includes('nova') && g.doc.body.textContent.includes('4111111111') === false,
+    )
+    ok('a failed payment offers a retry', /إعادة المحاولة/.test(alert))
+    g.dom.window.close()
+  }
+
+  {
+    const calls = []
+    const receipt = {
+      id: 'QALB-SRV-9',
+      key: 'SRV-K1',
+      date: '2026-09-03',
+      email: 'sarah@example.com',
+      name: 'Sarah Al-Otaibi',
+      total: 218,
+      count: 3,
+      method: 'card',
+      lines: [
+        { id: 'nova', slug: 'nova-cv', qty: 1 },
+        { id: 'atlas', slug: 'atlas-cv', qty: 2 },
+      ],
+    }
+    const g = await render(
+      'http://localhost/checkout',
+      { 'qalb.cart.v1': seeded },
+      {
+        boot: (win) => {
+          win.__QALB_ENV = env
+          win.fetch = (url, init) => {
+            calls.push({ url, body: init?.body ? JSON.parse(init.body) : null })
+            return Promise.resolve({ ok: true, status: 201, json: async () => receipt })
+          }
+        },
+      },
+    )
+    await drive(g)
+    ok(
+      'rest mode posts to <base>/orders',
+      calls.some((c) => c.url === 'http://api.test/orders'),
+      calls.map((c) => c.url).join(' '),
+    )
+    const post = calls.find((c) => c.body)
+    ok(
+      'the payload carries the server-side contract',
+      !!post &&
+        Array.isArray(post.body.lines) &&
+        typeof post.body.couponPct === 'number' &&
+        typeof post.body.total === 'number' &&
+        post.body.currency === 'SAR',
+      post ? Object.keys(post.body).slice(0, 8).join(',') : 'no body',
+    )
+    ok(
+      'the receipt comes from the server',
+      g.win.location.pathname === '/order' && /QALB-SRV-9/.test(g.txt()) && /SRV-K1/.test(g.txt()),
+      `${g.win.location.pathname}`,
+    )
+    ok('cart cleared only after the server accepted', g.win.localStorage.getItem('qalb.cart.v1') === '[]')
+    g.dom.window.close()
+  }
+
+  /* /order?id=… resolves a receipt through the transport (local store here) */
+  {
+    const orders = JSON.stringify([
+      {
+        id: 'QALB-LOCAL-7',
+        key: 'LOC-KEY',
+        date: '2026-09-01',
+        email: 's@q.dev',
+        name: 'سارة',
+        total: 149,
+        count: 1,
+        method: 'card',
+        lines: [{ id: 'folio', slug: 'folio-portfolio', qty: 1 }],
+      },
+    ])
+    const g = await render('http://localhost/order?id=QALB-LOCAL-7', { 'qalb.orders.v1': orders })
+    await g.wait()
+    ok('/order?id= finds a stored receipt', /QALB-LOCAL-7/.test(g.txt()) && /LOC-KEY/.test(g.txt()))
+    g.dom.window.close()
+
+    const miss = await render('http://localhost/order?id=QALB-NOPE')
+    ok('an unknown id falls back to the not-found state', /الصفحة غير موجودة|not found/i.test(miss.txt()), miss.txt().slice(0, 40))
+    miss.dom.window.close()
+  }
+
+  if (bad.length) {
+    failed++
+    console.log('✗ themes · structured data · transports')
+    bad.forEach((n) => console.log('   failed: ' + n))
+  } else {
+    console.log(`✓ themes · structured data · transports  (${checks.length} assertions)`)
+  }
+}
+
+/* ---------------- recovery screen · order lookup · licence · social cards ---------------- */
+{
+  const checks = []
+  const bad = []
+  const ok = (name, cond, extra = '') => {
+    checks.push(name)
+    if (!cond) bad.push(name + (extra ? ` (${extra})` : ''))
+  }
+  // jsdom only runs a form's submit when the submit button is activated — a
+  // dispatched submit event never reaches React's delegated listener
+  const submit = (g) => {
+    const f = g.doc.querySelector('#main form') // the navbar has a form too
+    const b = f && [...f.querySelectorAll('button')].find((x) => x.type === 'submit')
+    if (!b) throw new Error('no submit button in the form')
+    b.click()
+  }
+
+  /* a section that throws must not take the shell down with it */
+  {
+    const g = await render(
+      'http://localhost/templates',
+      {},
+      {
+        boot: (win) => {
+          win.IntersectionObserver = class {
+            constructor() {
+              throw new Error('observer exploded')
+            }
+          }
+        },
+      },
+    )
+    // lazy route suspends → its effect throws → the boundary catches: a few passes, so poll
+    let main = ''
+    for (let i = 0; i < 30 && !/حدث خطأ غير متوقع/.test(main); i++) {
+      await new Promise((r) => setTimeout(r, 60))
+      main = g.doc.getElementById('main')?.textContent || ''
+    }
+    ok('a crashing section shows the recovery screen', /حدث خطأ غير متوقع/.test(main), main.slice(0, 44))
+    ok('the crash does not blank the page shell', (g.doc.querySelector('nav')?.textContent || '').includes('القوالب'))
+    ok('the footer is still mounted', (g.doc.querySelector('footer')?.textContent || '').length > 40)
+    ok('a retry control is offered', !!g.doc.querySelector('#main button'))
+    ok('the real message is exposed for bug reports', /observer exploded/.test(g.doc.querySelector('#main details')?.textContent || ''))
+    await new Promise((r) => setTimeout(r, 150)) // React re-throws the caught error in dev; let it land before close
+    g.dom.window.close()
+  }
+
+  /* /track — receipts by e-mail */
+  {
+    const g = await render('http://localhost/track?email=sara@q.dev', { 'qalb.orders.v1': lookupOrders })
+    ok('the field is prefilled from ?email=', g.doc.getElementById('tk-email')?.value === 'sara@q.dev', g.doc.getElementById('tk-email')?.value)
+    ok('an idle lookup shows nothing yet', !/QALB-AAA-1111/.test(g.txt()))
+    submit(g)
+    await g.wait()
+    const txt = g.txt()
+    ok('the lookup lists every stored receipt', /QALB-AAA-1111/.test(txt) && /QALB-BBB-2222/.test(txt), txt.slice(0, 60))
+    ok('the count line is localised', /طلبًا لهذا البريد|order\(s\) for this email/.test(txt), (txt.match(/طلبًا لهذا البريد/) || [''])[0])
+    ok('each row links to its receipt', !!g.doc.querySelector('a[href*="/order?id=QALB-AAA-1111"]'))
+    ok('the payment method survives on the row', /بطاقة/.test(txt))
+    ok('the e-mail is remembered for the next visit', g.win.localStorage.getItem('qalb.trackEmail') === 'sara@q.dev')
+    g.dom.window.close()
+
+    const none = await render('http://localhost/track?email=nobody@q.dev')
+    submit(none)
+    await none.wait()
+    ok('an unknown e-mail gets an honest empty state', /لا طلبات محفوظة لهذا البريد/.test(none.txt()), none.txt().slice(0, 50))
+    none.dom.window.close()
+
+    const blank = await render('http://localhost/track')
+    submit(blank)
+    await blank.wait()
+    ok('a blank e-mail is rejected before any lookup', /أدخل بريدًا صحيحًا أولًا/.test(blank.txt()))
+    ok('a rejected lookup stores nothing', !blank.win.localStorage.getItem('qalb.trackEmail'))
+    blank.dom.window.close()
+  }
+
+  /* /licence — the client half of GET /licences/:key */
+  {
+    const g = await render('http://localhost/licence?key=key-aaaa-1111', { 'qalb.orders.v1': lookupOrders })
+    ok('the key field is prefilled from ?key=', g.doc.getElementById('lc-key')?.value === 'key-aaaa-1111', g.doc.getElementById('lc-key')?.value)
+    submit(g)
+    await g.wait()
+    const txt = g.txt()
+    ok('a known key verifies', /الترخيص صالح/.test(txt), txt.slice(0, 50))
+    ok('the verdict names the order it came from', /QALB-AAA-1111/.test(txt))
+    ok('seats and domains are reported', /المقاعد/.test(txt) && /النطاقات/.test(txt))
+    g.dom.window.close()
+
+    const miss = await render('http://localhost/licence?key=NO-SUCH-KEY')
+    submit(miss)
+    await miss.wait()
+    ok('an unknown key is refused, never faked', /لم يُعثر على هذا المفتاح/.test(miss.txt()), miss.txt().slice(0, 40))
+    ok('the refusal offers the e-mail lookup', !!miss.doc.querySelector('a[href="/track"]'))
+    miss.dom.window.close()
+
+    const short = await render('http://localhost/licence?key=abc')
+    submit(short)
+    await short.wait()
+    ok('a too-short key is not sent to the server', /لم يُعثر على هذا المفتاح/.test(short.txt()))
+    short.dom.window.close()
+  }
+
+  /* per-product social cards */
+  {
+    const g = await render('http://localhost/template/atlas-cv')
+    const og = g.doc.querySelector('meta[property="og:image"]')?.getAttribute('content') || ''
+    ok('each product carries its own social card', /\/og\/atlas-cv\.png$/.test(og), og)
+    const ld = JSON.parse(g.doc.getElementById('qalb-jsonld')?.textContent || '{}')
+    ok('the JSON-LD image follows the card', /\/og\/atlas-cv\.png$/.test(ld.image || ''), ld.image)
+    ok('the card declares its 1200×630 size', g.doc.querySelector('meta[property="og:image:width"]')?.getAttribute('content') === '1200')
+    ok('twitter:image matches og:image', g.doc.querySelector('meta[name="twitter:image"]')?.getAttribute('content') === og)
+    g.dom.window.close()
+
+    const home = await render('http://localhost/')
+    ok('a page without a card does not invent one', !home.doc.querySelector('meta[property="og:image"]'))
+    ok('the footer links to both new pages', /تتبّع طلبك/.test(home.txt()) && /التحقق من الترخيص/.test(home.txt()))
+    home.dom.window.close()
+  }
+
+  /* generated assets on disk */
+  {
+    const map = readFileSync('public/sitemap.xml', 'utf8')
+    ok('the sitemap covers the utility pages', map.includes('/track') && map.includes('/licence'))
+    ok('the sitemap still lists every product', (map.match(/<loc>/g) || []).length === 20, String((map.match(/<loc>/g) || []).length))
+    ok(
+      'robots.txt keeps the transactional routes out',
+      ['checkout', 'order', 'cart'].every((x) => readFileSync('public/robots.txt', 'utf8').includes(`Disallow: /${x}`)),
+    )
+    const cards = readdirSync('public/og').filter((f) => f.endsWith('.png'))
+    ok('every product has a card file', cards.length >= 15, `${cards.length} files`)
+    ok('the unused svg twin is gone', !existsSync('public/og-cover.svg'))
+  }
+
+  if (bad.length) {
+    failed++
+    console.log('✗ recovery · lookup · licence · social cards')
+    bad.forEach((n) => console.log('   failed: ' + n))
+  } else {
+    console.log(`✓ recovery · lookup · licence · social cards  (${checks.length} assertions)`)
+  }
+}
+/* ---------------- home: static trust row · floating-chip stacking ---------------- */
+{
+  const checks = []
+  const bad = []
+  const ok = (name, cond, extra = '') => {
+    checks.push(name)
+    if (!cond) bad.push(name + (extra ? ` (${extra})` : ''))
+  }
+
+  const g = await render('http://localhost/')
+  const trust = g.doc.querySelector('[data-trust]')
+  ok('the trust strip exists', !!trust)
+  ok(
+    'no marquee animation anywhere on the page',
+    g.doc.querySelectorAll('[class*="animate-marquee"]').length === 0,
+    String(g.doc.querySelectorAll('[class*="animate-marquee"]').length),
+  )
+  const cells = [...(trust?.querySelectorAll('li') || [])]
+  const names = cells.map((x) => (x.textContent || '').trim()).filter(Boolean)
+  ok(
+    'every platform is listed once (no doubled copy for a loop)',
+    names.length === 10 && new Set(names).size === 10,
+    `${names.length} cells / ${new Set(names).size} unique`,
+  )
+  ok('the strip is a real list, not animated spans', cells.length > 0 && cells[0].parentElement?.tagName === 'UL' && cells[0].tagName === 'LI')
+
+  /* the stylesheet, not just the DOM: a class could survive a partial cleanup */
+  const css = readFileSync('src/index.css', 'utf8')
+  const rm = css.match(/@media \(prefers-reduced-motion: reduce\) \{([\s\S]*?)\n\}/)
+  ok('the marquee utility and its keyframes are gone from the source', !/marquee/.test(css))
+  ok(
+    'reduced-motion stops looping instead of only speeding it up',
+    /animation-iteration-count:\s*1/.test(rm ? rm[1] : ''),
+    (rm?.[1] || '').trim().replace(/\s+/g, ' ').slice(0, 80),
+  )
+
+  // the fanned hero previews carry an explicit inline z-index (list length … 1);
+  // the floating chips must sit above them or they get painted behind the mock
+  const cardZ = [...g.doc.querySelectorAll('#main div[style*="z-index"]')].map((el) => parseInt(el.style.zIndex, 10)).filter((n) => !Number.isNaN(n))
+  const chips = [...g.doc.querySelectorAll('#main div')].filter((d) => /animate-float/.test(String(d.className)))
+  ok('both floating chips are mounted', chips.length === 2, String(chips.length))
+  const chipZ = chips.map((c) => Number(String(c.className).match(/z-\[(\d+)\]/)?.[1] || 0))
+  ok(
+    'the chips are raised above every preview card',
+    chipZ.length > 0 && chipZ.every((z) => z > Math.max(...cardZ)),
+    `chips=${chipZ.join(',')} cards=${Math.max(...cardZ)}`,
+  )
+  const badge = chips.find((c) => /درجة الأداء|درجة ATS/.test(c.textContent || ''))
+  ok('the raised chip is the score one, number included', !!badge && /\d/.test(badge.textContent || ''), (badge?.textContent || '').slice(0, 24))
+  ok(
+    'the badge still sits on the card edge, not beside the section',
+    /top-\[-14px\]/.test(String(badge?.className || '')),
+    String(badge?.className || '').slice(0, 40),
+  )
+
+  /* the newsletter must not promise what this store cannot do */
+  const nl = g.doc.querySelector('[data-newsletter]')
+  ok('the newsletter block is on the page', Boolean(nl))
+  ok(
+    'its e-mail field carries a real label',
+    Boolean(nl?.querySelector('label')?.htmlFor) && Boolean(nl?.querySelector('#' + nl.querySelector('label').htmlFor)),
+  )
+  const field = nl.querySelector('input[type=email]')
+  const writeMail = (v) => {
+    const set = Object.getOwnPropertyDescriptor(g.win.HTMLInputElement.prototype, 'value').set
+    set.call(field, v)
+    field.dispatchEvent(new g.win.Event('input', { bubbles: true }))
+  }
+  const sendMail = () => nl.querySelector('button[type=submit]').click()
+  writeMail('not-an-email')
+  sendMail()
+  await g.wait()
+  ok(
+    'a wrong address is refused instead of confirmed',
+    Boolean(nl.querySelector('[role=alert]')) && !nl.querySelector('[role=status]'),
+    (nl.textContent || '').slice(0, 26),
+  )
+  writeMail('sara@qalb.dev')
+  sendMail()
+  await g.wait()
+  const mailto = nl.querySelector('a[href^="mailto:"]')
+  ok(
+    'the confirmation pairs with a prefilled e-mail that really sends',
+    nl.textContent.includes(dict.ar.footer.newsletterNote) && String(mailto?.getAttribute('href') || '').includes('sara%40qalb.dev'),
+    (mailto?.getAttribute('href') || '').slice(0, 42),
+  )
+  const dup = []
+  for (const f of readdirSync('src', { recursive: true })) {
+    if (!/\.jsx?$/.test(f)) continue
+    const p = 'src/' + f
+    if (p.endsWith('data/contact.js')) continue
+    if (readFileSync(p, 'utf8').includes('qalb@qalb.store')) dup.push(p)
+  }
+  ok('the support address lives in one module, not in copied literals', dup.length === 0, dup.join(','))
+  const graph = JSON.parse(g.doc.getElementById('qalb-jsonld')?.textContent || '{}')
+  const org = (graph['@graph'] || []).find((x) => x['@type'] === 'Organization')
+  ok(
+    'the official e-mail is machine-readable in the Organization graph',
+    org?.contactPoint?.email === 'qalb@qalb.store',
+    org?.contactPoint?.email || 'missing',
+  )
+  ok(
+    'the address is kept on the device only, with no fake subscription claim',
+    JSON.parse(g.win.localStorage.getItem('qalb.newsletter.v1') || '[]')[0] === 'sara@qalb.dev' && !/تم الاشتراك|Subscribed/.test(nl.textContent),
+    JSON.parse(g.win.localStorage.getItem('qalb.newsletter.v1') || '[]').join(','),
+  )
+  g.dom.window.close()
+
+  if (bad.length) {
+    failed++
+    console.log('✗ home · trust row · chip stacking')
+    bad.forEach((n) => console.log('   failed: ' + n))
+  } else {
+    console.log(`✓ home · trust row · chip stacking  (${checks.length} assertions)`)
+  }
+}
+
+console.log(failed ? `\n${failed} check group(s) failed` : `\nall ${cases.length + 6} check groups passed`)
+process.exit(failed ? 1 : 0)

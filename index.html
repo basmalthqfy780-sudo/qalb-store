@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>قالب — قوالب معرض الأعمال الشخصي والسيرة الذاتية</title>
+    <meta
+      name="description"
+      content="متجر قالب: قوالب مواقع بورتفوليو شخصية مع سيرة ذاتية مطابقة بهوية واحدة — Astro/Next.js/HTML، سيرة متوافقة مع ATS، معاينة حية، ونشر على Vercel أو Netlify."
+    />
+    <meta name="theme-color" content="#0a0c11" />
+    <!-- الخطوط مُستضافة محليًا: src/fonts.css (يولّده scripts/fonts.mjs) -->
+    <meta property="og:title" content="قالب — قوالب معرض الأعمال الشخصي والسيرة الذاتية" />
+    <meta property="og:description" content="معاينة حيّة داخل المتصفح قبل الشراء، تعديل نصّي، ملف ATS، ونشر على Vercel أو Netlify." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Qalb · قالب" />
+    <meta property="og:image" content="https://qalb.store/og-cover.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:image" content="https://qalb.store/og-cover.png" />
+    <link rel="canonical" href="https://qalb.store/" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230b0d12'/%3E%3Cpath d='M9 9h9a5 5 0 0 1 0 10h-2l3 4h-3.5L12.8 19H12v4H9V9Zm3 3v4h3.5a2 2 0 0 0 0-4H12Z' fill='%2334d399'/%3E%3C/svg%3E"
+    />
+    <script>
+      try {
+        var l = localStorage.getItem('qalb.lang') || 'ar'
+        document.documentElement.lang = l
+        document.documentElement.dir = l === 'ar' ? 'rtl' : 'ltr'
+        var t = localStorage.getItem('qalb.theme')
+        if (t !== 'light' && t !== 'dark') {
+          t = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'
+        }
+        document.documentElement.dataset.theme = t
+        if (t === 'light') document.documentElement.classList.add('light')
+        var tc = document.querySelector('meta[name="theme-color"]')
+        if (tc) tc.setAttribute('content', t === 'light' ? '#f6f7f9' : '#0a0c11')
+      } catch (e) {}
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

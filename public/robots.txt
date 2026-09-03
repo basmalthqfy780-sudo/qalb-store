@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /checkout
+Disallow: /order
+Disallow: /cart
+
+Sitemap: https://qalb.store/sitemap.xml

@@ -1,0 +1,12 @@
+node_modules
+dist
+tests/build
+coverage
+uploads/
+.npm/
+.cache
+.DS_Store
+*.local
+.env
+.env.*
+!.env.example

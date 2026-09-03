@@ -1,0 +1,34 @@
+MIT License (storefront code only)
+
+Copyright (c) 2026 Qalb · قالب — Jeddah, Saudi Arabia
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files — meaning the storefront
+application in this repository: src/, scripts/, server/, tests/, index.html,
+vite.config.js and the files bundled with them — to deal in the Software
+without restriction, including without limitation the rights to use, copy,
+modify, merge, publish, distribute, sublicense, and/or sell copies of the
+Software, and to permit persons to whom the Software is furnished to do so,
+subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+WHAT THIS LICENSE DOES NOT COVER
+  • The commercial products sold through this storefront (portfolio / résumé
+    template designs, their source files, fonts and preview content) remain
+    governed by the per-purchase licence described in the "ترخيص الاستخدام /
+    Licence" section of the site (#legal) and on each receipt.
+  • The "قالب / Qalb" name, logo and wordmark are trademarks of the studio and
+    are not licensed here; do not ship a derived storefront under this brand.
+  • Third-party packages keep their own licences (see package.json).
+  • Demo copy, testimonials, brand names and prices in src/data/ are
+    illustrative sample content, not real offers.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
