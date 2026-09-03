@@ -141,7 +141,7 @@ export default function Checkout() {
           <Logo />
           <div className="hidden items-center gap-2 text-[12px] font-semibold text-dim sm:flex">
             <Icon n="lock" className="size-3.5 text-brand" />
-            SSL · {t('cart.secure')}
+            {t('cart.secure')}
           </div>
           <Link to="/cart" className="text-[12.5px] font-bold text-dim transition hover:text-ink">
             {t('cart.title')}

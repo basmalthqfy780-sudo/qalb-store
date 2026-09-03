@@ -1581,6 +1581,16 @@ for (const c of cases) {
   }
   ok('every link ending in # lands on an id that really exists', anchorMiss.length === 0, anchorMiss.slice(0, 4).join(' | '))
 
+  /*
+   * The same rule read the other way: no certificate, no encryption, no "secure
+   * payment" may be printed by a store that has no gateway and no audit. A mark like
+   * «PCI-DSS» sat next to the pay pills for exactly that reason.
+   */
+  const CERT = /(PCI-?\s?DSS|SOC ?2|ISO ?27001|شهادة أمان|متوافق مع معايير|دفع مشفّر|encrypted payment|secure payment)/gi
+  const certHits = []
+  for (const f of files) for (const m of readFileSync(f, 'utf8').matchAll(CERT)) certHits.push(`${f}: ${m[0]}`)
+  ok('no certification or encryption claim survives in the source', certHits.length === 0, certHits.slice(0, 3).join(' | '))
+
   ok(
     'the receipt and the billing note say what really happens',
     dict.ar.checkout.billingNote.startsWith('لا يُرسل شيء بالبريد') &&

@@ -105,9 +105,10 @@ export default function Footer() {
             {['mada', 'visa', 'mc', 'apple', 'stc'].map((p) => (
               <Pay key={p} k={p} />
             ))}
+            {/* شهادة PCI لم تُمنَح لمتجر بلا بوابة دفع — ما يُقال بدلها هو ما يحدث فعلًا */}
             <span className="ms-1 inline-flex items-center gap-1.5 rounded-lg border border-line bg-panel/60 px-2 py-1 text-[11px] font-semibold text-dim">
               <Icon n="shield" className="size-3.5 text-brand" />
-              PCI-DSS
+              {t('cart.secure')}
             </span>
           </div>
         </div>
