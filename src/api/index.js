@@ -221,6 +221,17 @@ export const admin = {
   deleteUser: (id) => adminCall(`/admin/users/${encodeURIComponent(id)}`, 'DELETE', 'deleteUser', id, [id]),
   resetPassword: ({ id, password }) =>
     adminCall(`/admin/users/${encodeURIComponent(id)}/password`, 'POST', 'resetPassword', { password }, [id, password]),
+  /* مقاعد المؤسسات: لا دفتر للمتجر محليًّا — بلا خادم تُعاد null فتقول اللوحة حدودها، ولا تخترع رمزًا */
+  orgs: () => (apiMode === 'rest' ? restAdmin('/admin/orgs', { method: 'GET' }) : Promise.resolve(null)),
+  mintOrg: (payload) => (apiMode === 'rest' ? restAdmin('/admin/orgs', { method: 'POST', body: payload }) : Promise.resolve(null)),
+  patchOrg: ({ code, patch }) =>
+    apiMode === 'rest' ? restAdmin(`/admin/orgs/${encodeURIComponent(code)}`, { method: 'PATCH', body: patch }) : Promise.resolve(null),
+  async orgsCsv() {
+    if (apiMode !== 'rest') return ''
+    const t = token()
+    const res = await fetch(`${BASE}/admin/orgs.csv`, { headers: t ? { authorization: `Bearer ${t}` } : {}, credentials: 'include' })
+    return res.ok ? res.text() : ''
+  },
   async csv() {
     if (apiMode !== 'rest') return (await localAdmin()).csv()
     const t = token()

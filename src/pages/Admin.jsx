@@ -5,6 +5,8 @@ import { admin as api, apiMode } from '../api'
 import { categories, templates } from '../data/templates'
 import { adminRows } from '../data/catalog'
 import { isProtectedDownload } from '../data/deliverable'
+import { B2B_TIERS, B2B_TERM_MONTHS } from '../data/b2b'
+import { SUPPORT_MAIL } from '../data/contact'
 import '../i18n/admin-strings' // نصوص اللوحة تُحمّل معها فقط، فلا وزنها على صفحات المتجر
 import { useStore } from '../store/StoreContext'
 import { Btn, Icon, Money, Pill, Skeleton } from '../components/ui'
@@ -15,6 +17,7 @@ const TABS = [
   { id: 'products', icon: 'layers' },
   { id: 'orders', icon: 'cart' },
   { id: 'users', icon: 'briefcase' },
+  { id: 'orgs', icon: 'cap' },
 ]
 
 const INPUT = 'h-10 w-full rounded-xl border border-line bg-bg px-3 text-[13.5px] outline-none transition focus:border-brand/60'
@@ -869,6 +872,312 @@ function Users({ user }) {
 
 /* ============================ overview ============================ */
 
+/* ============================ مقاعد المؤسسات ============================ */
+
+/**
+ * اللوحة لا تخترع دفتر مقاعد: في الوضع المحلي تُقال حدود الجهاز بدل جدولٍ وهمي،
+ * وفي وضع rest تُقرأ العقود من server/orgs.js — وهو لا يعيد أسماء الطلاب أصلًا.
+ */
+function Orgs() {
+  const { t, lang } = useI18n()
+  const { toast } = useStore()
+  const rest = apiMode === 'rest'
+  const [rows, setRows] = useState(null)
+  const [totals, setTotals] = useState(null)
+  const [issued, setIssued] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [errs, setErrs] = useState({})
+  const [form, setForm] = useState({ org: '', email: '', tier: B2B_TIERS[0].id, seats: '', months: String(B2B_TERM_MONTHS) })
+  const [edit, setEdit] = useState(null)
+  const [draft, setDraft] = useState(null)
+
+  const reload = useCallback(async () => {
+    const r = await api.orgs()
+    if (!r || r.ok === false) {
+      setRows([])
+      return toast(t('admin.orgsOffline'))
+    }
+    setRows(r.orgs || [])
+    setTotals(r.totals || null)
+  }, [toast, t])
+
+  useEffect(() => {
+    if (!rest) return
+    api.orgs().then((r) => {
+      if (!r || r.ok === false) {
+        setRows([])
+        return toast(t('admin.orgsOffline'))
+      }
+      setRows(r.orgs || [])
+      setTotals(r.totals || null)
+    })
+  }, [rest, t, toast])
+
+  const set = (k) => (v) => setForm((f) => ({ ...f, [k]: v }))
+
+  async function mint(e) {
+    e.preventDefault()
+    const bad = {}
+    if (form.org.trim().length < 2) bad.orgsName = t('admin.orgsErrName')
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(form.email.trim())) bad.orgsMail = t('admin.orgsErrMail')
+    setErrs(bad)
+    if (Object.keys(bad).length) return
+    setBusy(true)
+    const r = await api.mintOrg({
+      org: form.org,
+      email: form.email,
+      tier: form.tier,
+      seats: form.seats === '' ? undefined : Number(form.seats),
+      months: form.months === '' ? undefined : Number(form.months),
+    })
+    setBusy(false)
+    if (!r || r.ok === false) return toast(r?.message || t('admin.orgsOffline'))
+    setIssued(r.org?.code || '')
+    setForm({ org: '', email: '', tier: form.tier, seats: '', months: String(B2B_TERM_MONTHS) })
+    await reload()
+  }
+
+  async function patchRow(code, patch) {
+    const r = await api.patchOrg({ code, patch })
+    if (!r || r.ok === false) return toast(r?.message || t('admin.orgsOffline'))
+    setEdit(null)
+    await reload()
+  }
+
+  async function exportCsv() {
+    const text = await api.orgsCsv()
+    if (!text) return toast(t('admin.orgsOffline'))
+    const url = URL.createObjectURL(new Blob([text], { type: 'text/csv;charset=utf-8' }))
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `qalb-orgs-${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  if (!rest)
+    return (
+      <div data-orgs="local">
+        <Panel className="p-6 sm:p-7">
+          <span className="inline-flex size-11 items-center justify-center rounded-2xl bg-gold/14 text-gold">
+            <Icon n="clock" className="size-5" />
+          </span>
+          <h2 className="mt-4 font-display text-[19px] font-extrabold">{t('admin.orgsTitle')}</h2>
+          <p className="mt-2 max-w-[62ch] text-[13px] leading-relaxed text-dim">{t('admin.orgsLocal', { mail: SUPPORT_MAIL })}</p>
+          <Link to="/b2b" className="mt-4 inline-flex items-center gap-1.5 text-[12.5px] font-bold text-brand hover:underline">
+            <Icon n="arrow" className="size-3.5 rtl:-scale-x-100" />
+            {t('admin.orgsPage')}
+          </Link>
+        </Panel>
+      </div>
+    )
+
+  const list = rows || []
+
+  return (
+    <div className="space-y-5" data-orgs="rest">
+      <Panel className="p-5 sm:p-6">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="font-display text-[18px] font-extrabold">{t('admin.orgsTitle')}</h2>
+            <p className="mt-0.5 text-[12px] text-dim">{t('admin.orgsSub')}</p>
+          </div>
+          <div className="flex items-center gap-2">
+            {totals && (
+              <p className="num text-[12px] text-dim" dir="ltr">
+                {num(totals.used)} / {num(totals.seats)}
+              </p>
+            )}
+            <Btn size="sm" variant="outline" onClick={exportCsv}>
+              <Icon n="download" className="size-3.5" />
+              {t('admin.orgsExport')}
+            </Btn>
+          </div>
+        </div>
+
+        <form className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5" onSubmit={mint}>
+          <Field id="og-org" label={t('admin.orgsName')} error={errs.orgsName} className="lg:col-span-2">
+            <Text id="og-org" value={form.org} onChange={set('org')} placeholder="جامعة الملك عبدالعزيز" invalid={!!errs.orgsName} />
+          </Field>
+          <Field id="og-mail" label={t('admin.orgsMail')} error={errs.orgsMail}>
+            <Text
+              id="og-mail"
+              type="email"
+              dir="ltr"
+              value={form.email}
+              onChange={set('email')}
+              placeholder="careers@university.edu.sa"
+              invalid={!!errs.orgsMail}
+            />
+          </Field>
+          <Field id="og-tier" label={t('admin.orgsTier')}>
+            <select
+              id="og-tier"
+              className={`${INPUT} cursor-pointer`}
+              value={form.tier}
+              onChange={(e) => {
+                const tier = B2B_TIERS.find((x) => x.id === e.target.value) || B2B_TIERS[0]
+                setForm((f) => ({ ...f, tier: tier.id, seats: String(tier.seats) }))
+              }}
+            >
+              {B2B_TIERS.map((x) => (
+                <option key={x.id} value={x.id}>
+                  {(x.name[lang] || x.name.ar).trim()} · {num(x.seats)} · {num(x.price)}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field id="og-seats" label={t('admin.orgsSeats')}>
+              <Text id="og-seats" type="number" dir="ltr" value={form.seats} onChange={set('seats')} />
+            </Field>
+            <Field id="og-months" label={t('admin.orgsMonths')}>
+              <Text id="og-months" type="number" dir="ltr" value={form.months} onChange={set('months')} />
+            </Field>
+          </div>
+          <div className="sm:col-span-2 lg:col-span-5">
+            <Btn type="submit" size="sm" disabled={busy}>
+              <Icon n="plus" className="size-3.5" />
+              {t('admin.orgsMint')}
+            </Btn>
+            {issued && (
+              <p className="mt-3 flex flex-wrap items-center gap-2 rounded-2xl border border-brand/35 bg-brand/8 px-3.5 py-2.5 text-[12.5px]">
+                <Icon n="shield" className="size-4 text-brand" />
+                <span>{t('admin.orgsMinted')}</span>
+                <code className="num rounded-lg bg-bg px-2 py-1 text-[12.5px] font-bold" dir="ltr">
+                  {issued}
+                </code>
+                <span className="text-dim">{t('admin.orgsHandover')}</span>
+              </p>
+            )}
+          </div>
+        </form>
+      </Panel>
+
+      <Panel className="p-0 sm:p-0">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[760px] border-collapse text-right">
+            <caption className="sr-only">{t('admin.orgsTitle')}</caption>
+            <thead>
+              <tr className="bg-bg/50 text-[11px] font-bold uppercase tracking-[0.1em] text-dim">
+                <th scope="col" className="px-5 py-2.5 text-start">
+                  {t('admin.orgsCode')}
+                </th>
+                <th scope="col" className="px-3 py-2.5">
+                  {t('admin.colCustomer')}
+                </th>
+                <th scope="col" className="px-3 py-2.5">
+                  {t('admin.orgsTier')}
+                </th>
+                <th scope="col" className="px-3 py-2.5 text-center">
+                  {t('admin.orgsSeats')}
+                </th>
+                <th scope="col" className="px-3 py-2.5 text-center">
+                  {t('admin.orgsLeft')}
+                </th>
+                <th scope="col" className="px-3 py-2.5 text-center">
+                  {t('admin.orgsExpires')}
+                </th>
+                <th scope="col" className="px-5 py-2.5 text-center">
+                  {t('admin.colStatus')}
+                </th>
+                <th scope="col" className="px-5 py-2.5 text-end">
+                  {t('admin.colActions')}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {list.map((r) => (
+                <Fragment key={r.code}>
+                  <tr className="border-t border-line text-[12.5px]">
+                    <td className="num px-5 py-2.5 text-start font-semibold" dir="ltr">
+                      {r.code}
+                    </td>
+                    <td className="px-3 py-2.5">
+                      <span className="block font-bold">{r.org}</span>
+                      <span className="num block text-[11px] text-dim" dir="ltr">
+                        {r.email}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2.5 text-[12px]">{r.tier}</td>
+                    <td className="num px-3 py-2.5 text-center">
+                      {num(r.used)} / {num(r.seats)}
+                    </td>
+                    <td className="num px-3 py-2.5 text-center">{num(Math.max(0, r.seats - r.used))}</td>
+                    <td className="num px-3 py-2.5 text-center text-dim" dir="ltr">
+                      {r.expires}
+                    </td>
+                    <td className="px-5 py-2.5 text-center">
+                      <Pill tone={r.status === 'active' ? 'brand' : 'gold'}>
+                        {t(r.status === 'active' ? 'admin.orgsActive' : 'admin.orgsPaused')}
+                      </Pill>
+                    </td>
+                    <td className="px-5 py-2.5">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <Btn size="sm" variant="ghost" onClick={() => setEdit(edit === r.code ? null : r.code)}>
+                          {t('admin.edit')}
+                        </Btn>
+                        <Btn size="sm" variant="ghost" onClick={() => patchRow(r.code, { status: r.status === 'active' ? 'paused' : 'active' })}>
+                          {t(r.status === 'active' ? 'admin.orgsPause' : 'admin.orgsResume')}
+                        </Btn>
+                      </div>
+                    </td>
+                  </tr>
+                  {edit === r.code && (
+                    <tr className="border-t border-line bg-bg/40">
+                      <td colSpan={8} className="px-5 py-4">
+                        <div className="flex flex-wrap items-end gap-3">
+                          <Field id={`oe-seats-${r.code}`} label={t('admin.orgsSeats')} className="w-28">
+                            <Text
+                              id={`oe-seats-${r.code}`}
+                              type="number"
+                              dir="ltr"
+                              value={draft?.code === r.code ? draft.seats : String(r.seats)}
+                              onChange={(v) => setDraft({ code: r.code, seats: v, months: '' })}
+                            />
+                          </Field>
+                          <Field id={`oe-months-${r.code}`} label={t('admin.orgsMonths')} className="w-28">
+                            <Text
+                              id={`oe-months-${r.code}`}
+                              type="number"
+                              dir="ltr"
+                              value={draft?.code === r.code ? draft.months : ''}
+                              onChange={(v) => setDraft({ code: r.code, seats: draft?.seats ?? String(r.seats), months: v })}
+                            />
+                          </Field>
+                          <Btn
+                            size="sm"
+                            onClick={() => {
+                              const d = draft && draft.code === r.code ? draft : { seats: String(r.seats), months: '' }
+                              const patch = {}
+                              if (d.seats !== '' && Number(d.seats) !== r.seats) patch.seats = Number(d.seats)
+                              if (d.months !== '') patch.months = Number(d.months)
+                              if (!Object.keys(patch).length) {
+                                setEdit(null)
+                                return
+                              }
+                              patchRow(r.code, patch).then(() => toast(t('admin.orgsSaved')))
+                            }}
+                          >
+                            {t('admin.save')}
+                          </Btn>
+                          <span className="text-[11.5px] text-dim">{t('admin.orgsSeatHint')}</span>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
+              ))}
+            </tbody>
+          </table>
+          {!list.length && <p className="px-5 py-10 text-center text-[13px] text-dim">{t('admin.orgsNone')}</p>}
+        </div>
+        <p className="border-t border-line px-5 py-3 text-[11.5px] leading-relaxed text-dim">{t('admin.orgsPrivacy')}</p>
+      </Panel>
+    </div>
+  )
+}
+
 function Overview({ stats, rows, onGo }) {
   const { t, L } = useI18n()
   const s = stats
@@ -1097,6 +1406,7 @@ export default function Admin() {
         {tab === 'products' && <Products rows={data.rows} overrides={data.overrides} prices={data.prices} reload={afterEdit} />}
         {tab === 'orders' && <Orders orders={data.orders} />}
         {tab === 'users' && <Users user={user} />}
+        {tab === 'orgs' && <Orgs />}
       </div>
 
       <p className="mt-12 border-t border-line pt-6 text-[11.5px] leading-relaxed text-dim">

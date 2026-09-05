@@ -154,6 +154,40 @@ export const toolLd = ({ name, desc, path = '/ats', faq = [] }) => ({
   ],
 })
 
+/**
+ * باقات المؤسسات: كتالوج عروضٍ بأسعار العقد السنوي نفسها — الأرقام من B2B_TIERS،
+ * فلا يُعلن البحث سعرًا غير الذي تراه الصفحة، والأسئلة هي أسئلتها حرفيًا.
+ */
+export const orgLd = ({ tiers, faq = [], lang = 'ar', t }) => ({
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'OfferCatalog',
+      name: t('b2b.title'),
+      url: `${window.location.origin}/b2b`,
+      inLanguage: ['ar', 'en'],
+      applicationCategory: 'BusinessApplication',
+      offers: tiers.map((tier) => ({
+        '@type': 'Offer',
+        name: `${tier.name[lang] || tier.name.ar} · ${tier.seats}`,
+        price: Number(tier.price).toFixed(2),
+        priceCurrency: 'SAR',
+        category: 'Annual',
+        eligibleQuantity: tier.seats,
+        description: tier.for[lang] || tier.for.ar,
+      })),
+    },
+    ...(faq.length
+      ? [
+          {
+            '@type': 'FAQPage',
+            mainEntity: faq.map(([q, a]) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } })),
+          },
+        ]
+      : []),
+  ],
+})
+
 export const productLd = (tpl, lang, t) => ({
   '@context': 'https://schema.org',
   '@type': 'Product',

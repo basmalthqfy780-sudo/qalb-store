@@ -38,6 +38,7 @@ export default function Footer() {
         { to: '/#story', label: t('footer.about') },
         { to: '/#testimonials', label: t('footer.stories') },
         { to: '/#contact', label: t('footer.contact') },
+        { to: '/b2b', label: t('footer.b2b') },
         { to: '/admin', label: t('footer.admin') },
       ],
     },

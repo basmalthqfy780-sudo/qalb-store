@@ -9,6 +9,7 @@
  *   GET  /orders/:id        → إيصال واحد (لرابط /order?id=…)
  *   GET  /orders?email=…    → إيصالات المشتري
  *   GET  /licences/:key     → { valid, order, seats, domains }
+ *   POST /org/redeem        → مقعدٌ من عقد مؤسسة: يطلب الترخيص بلا دفع (server/orgs.js)
  *   GET  /catalog          → استثناءات الكتالوج التي تكتبها لوحة الإدارة
  *   GET  /download/:id?order=…&key=…  → رابط تسليم محمي لكل مشتري (server/deliver.js)
  *   GET  /dl/<token>       → الحزمة نفسها: qalb-<id>-<order>.zip، مرة واحدة وصالحة 10 دقائق
@@ -26,7 +27,7 @@
  */
 import { createServer } from 'node:http'
 import { appendFile, readFile } from 'node:fs/promises'
-import { existsSync, mkdirSync } from 'node:fs'
+import { existsSync, mkdirSync, openSync, fstatSync, readSync, closeSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import { templates } from '../src/data/templates.js'
@@ -35,6 +36,7 @@ import { createAdminApi } from './admin.js'
 import { createDeliverApi } from './deliver.js'
 import { PRIVATE, sealDir } from './seal.js'
 import { createSitesApi } from './sites.js'
+import { createOrgsApi } from './orgs.js'
 import { VAT as VAT_RATE } from '../src/data/tax.js'
 import { sanitizePersonal } from '../src/data/deliverable.js'
 
@@ -112,8 +114,28 @@ async function save(order) {
     if (!r.ok) throw new Error(`upstream ${r.status}`)
     return (await r.json())[0] || order
   }
-  await appendFile(FILE, JSON.stringify(order) + '\n', { encoding: 'utf8', mode: PRIVATE })
+  // سطرٌ ناقص في آخر الدفتر (ملف كُتب يدويًا أو سُطر نصفه) لا يبتلع الطلب التالي:
+  // نضع فاصلًا قبل الملحق إن لم يكن المنتهي فاصلة — وإلا صار سطران JSON في سطر واحد
+  // فيسقطهما load() بصمت، وهو أسوأ ما يحدث لدفتر فيه مال.
+  await appendFile(FILE, (endsWithNewline() ? '' : '\n') + JSON.stringify(order) + '\n', { encoding: 'utf8', mode: PRIVATE })
   return order
+}
+
+/** آخر بايت في الملف: فاصلة سطر؟ نقرأ بايتًا واحدًا، لا الدفتر كلّه */
+function endsWithNewline() {
+  let fd
+  try {
+    fd = openSync(FILE, 'r')
+    const size = fstatSync(fd).size
+    if (!size) return true
+    const buf = Buffer.alloc(1)
+    readSync(fd, buf, 0, 1, size - 1)
+    return buf[0] === 0x0a
+  } catch {
+    return true // ملف لا يُقرأ: نلحق ولا نخترع فواصل
+  } finally {
+    if (fd != null) closeSync(fd)
+  }
 }
 
 /** المجاميع شاملة الضريبة — تُعاد حسابها هنا ولا تُؤخذ من العميل */
@@ -157,6 +179,9 @@ const PRICES = () => admin.prices()
  */
 const sites = createSitesApi({ dir: DATA, env: process.env, admin })
 
+// مقاعد المؤسسة: تُخصم لحظة استبدال الطالب، والطلب يُكتب من makeOrder نفسها التي يستعملها المتجر.
+const orgs = createOrgsApi({ dir: DATA, env: process.env, admin, makeOrder })
+
 const deliver = createDeliverApi({
   dir: DATA,
   env: process.env,
@@ -165,6 +190,34 @@ const deliver = createDeliverApi({
   overrides: () => admin.overrides(),
   tpls: templates,
 })
+
+/**
+ * السطر الوحيد الذي يكتب دفتر الطلبات: تُبنى منه الحقول وتُختم المجاميع فيه، فيستعمله
+ * الشراءُ الفردي واستبدالُ مقعدٍ من مؤسسة — نسخة واحدة من الحساب، لا مسارٌ ثانٍ ينفصل.
+ */
+async function makeOrder(body, extra = {}) {
+  const math = recompute(body)
+  return save({
+    id: rid(),
+    key: rand(4),
+    date: now(),
+    email: body.email,
+    name: body.name,
+    phone: body.phone || null,
+    country: body.country || null,
+    currency: 'SAR',
+    vatRate: VAT,
+    count: body.count || math.lines.reduce((s, l) => s + (l.qty || 1), 0),
+    method: body.method || 'card',
+    methodLabel: body.methodLabel || null,
+    invoice: !!body.invoice,
+    vatNo: body.vatNo || null,
+    // تخصيص المشتّر الاختياري: تُنقّى هنا بنفس دالة المتجر، ثم تُقرأ عند التوليد
+    personalize: sanitizePersonal(body.personalize),
+    ...math,
+    ...extra,
+  })
+}
 
 const server = createServer(async (req, res) => {
   const u = new URL(req.url, 'http://x')
@@ -177,6 +230,7 @@ const server = createServer(async (req, res) => {
       admin: admin.enabled(),
       deliver: { ttl: deliver.ttl(), perIp: deliver.perIp() },
       hosting: sites.enabled() ? { root: sites.root(), ...sites.stats() } : false,
+      orgs: orgs.enabled() ? orgs.stats() : false,
     })
 
   // طبقة الاستضافة خارج try/catch الأسفل: لو أخطأت هي فلا تُسقط المتجر كلّه
@@ -186,6 +240,7 @@ const server = createServer(async (req, res) => {
     if (!res.headersSent) send(res, 500, { error: 'hosting layer failed', why: String(e.message || e).slice(0, 160) })
     return
   }
+  if (await orgs.handle(req, res, u)) return // مقاعد المؤسسات — قبل اللوحة: /admin/orgs ملك هذه الطبقة
   if (await admin.handle(req, res, u)) return
   if (await deliver.handle(req, res, u)) return // التسليم المحمي — انظر server/deliver.js
 
@@ -207,28 +262,7 @@ const server = createServer(async (req, res) => {
         if (dup) return send(res, 200, dup) // إعادة إرسال نفس الطلب لا تنشئ طلبًا جديدًا
       }
 
-      const math = recompute(body)
-      const order = {
-        id: rid(),
-        key: rand(4),
-        date: now(),
-        email: body.email,
-        name: body.name,
-        phone: body.phone || null,
-        country: body.country || null,
-        currency: 'SAR',
-        vatRate: VAT,
-        count: body.count || math.lines.reduce((s, l) => s + (l.qty || 1), 0),
-        method: body.method || 'card',
-        methodLabel: body.methodLabel || null,
-        invoice: !!body.invoice,
-        vatNo: body.vatNo || null,
-        // تخصيص المشتّر الاختياري: تُنقّى هنا بنفس دالة المتجر، ثم تُقرأ عند التوليد
-        personalize: sanitizePersonal(body.personalize),
-        idempotency: idem || null,
-        ...math,
-      }
-      return send(res, 201, await save(order))
+      return send(res, 201, await makeOrder(body, { idempotency: idem || null }))
     }
 
     if (req.method === 'GET' && u.pathname.startsWith('/orders/')) {

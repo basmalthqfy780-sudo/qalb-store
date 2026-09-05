@@ -79,6 +79,8 @@ async function wait() {
   throw new Error('server did not start\n' + log)
 }
 
+const ORG_RE = /^QALB-[ABCDEFGHJKLMNPQRSTUVWXYZ2-9]{4}-[ABCDEFGHJKLMNPQRSTUVWXYZ2-9]{4}$/
+
 const call = async (method, path, { body, token, header = true, raw = false } = {}) => {
   const res = await fetch(BASE + path, {
     method,
@@ -875,6 +877,213 @@ try {
     )
     ok('hosting: the site ledger on disk is private like the order ledger', modeOf('sites.json') === 0o600, modeOf('sites.json').toString(8))
     ok('hosting: and no markup is stored in it either', !/onerror=/.test(readFileSync(join(DATA, 'sites.json'), 'utf8')))
+  }
+
+  /* --- institution seats (server/orgs.js) --- */
+  {
+    const RED = 'sara@student.qalb.test'
+    const codeOf = async () => {
+      const made = await call('POST', '/admin/orgs', {
+        body: { org: 'جامعة الملك عبدالعزيز', email: 'careers@kau.edu.sa', tier: 'campus' },
+        token: TOKEN,
+      })
+      return made.json.org
+    }
+    const noStaff = await call('GET', '/admin/orgs', { header: false })
+    ok('orgs: the seat registry is not public', noStaff.status === 401, JSON.stringify(noStaff.json))
+    const sloppy = await call('POST', '/admin/orgs', { body: { org: ' ', email: 'nope', tier: 'campus' }, token: TOKEN })
+    ok('orgs: a contract needs a real name and a real mailbox', sloppy.status === 400, JSON.stringify(sloppy.json))
+
+    const made = await codeOf()
+    const code = made.code
+    ok(
+      'orgs: staff mints a code with the tier’s own arithmetic',
+      ORG_RE.test(code) && made.seats === 50 && made.left === undefined && made.status === 'active',
+      JSON.stringify(made).slice(0, 90),
+    )
+    ok(
+      'orgs: the term is twelve months from today, not a rolling deadline',
+      /^\d{4}-\d{2}-\d{2}$/.test(made.expires) && Number(made.expires.slice(0, 4)) - Number(made.issued.slice(0, 4)) === 1,
+      `${made.issued} → ${made.expires}`,
+    )
+    ok('orgs: the seat ledger is private on disk like the order ledger', modeOf('orgs.json') === 0o600, modeOf('orgs.json').toString(8))
+
+    const redeem = (over = {}) =>
+      call('POST', '/org/redeem', {
+        body: { code, email: RED, name: 'سارة العتيبي', template: 'nova', lang: 'ar', personalize: { on: true, role: 'محللة بيانات' }, ...over },
+        header: false,
+      })
+    const first = await redeem()
+    const o = first.json.order || {}
+    ok(
+      'orgs: a student redeems a seat for exactly nothing',
+      first.status === 201 && o.total === 0 && o.vat === 0 && o.subtotal === 89 && o.discount === 89,
+      JSON.stringify({ st: first.status, total: o.total, vat: o.vat, sub: o.subtotal }).slice(0, 90),
+    )
+    ok(
+      'orgs: the line carries the price the shelf had that day',
+      o.lines?.[0]?.id === 'nova' && o.lines[0].price === 89 && o.lines[0].slug === 'nova-cv',
+      JSON.stringify(o.lines),
+    )
+    ok(
+      'orgs: and the contract that paid for it is written on the order',
+      o.org?.code === code && o.org.org === 'جامعة الملك عبدالعزيز' && o.method === 'institution' && /مقاعد/.test(o.methodLabel || ''),
+      JSON.stringify(o.org),
+    )
+    ok(
+      'orgs: the personalisation went through the same sanitizer as a purchase',
+      o.personalize?.role === 'محللة بيانات' && !('on' in (o.personalize || {})),
+      JSON.stringify(o.personalize),
+    )
+    const receipt = await call('GET', '/orders/' + o.id, { header: false })
+    ok('orgs: the receipt is readable like any order, with its key', receipt.status === 200 && receipt.json.key === o.key, receipt.status)
+
+    const counted = await call('GET', '/admin/orgs', { token: TOKEN })
+    const row = (counted.json.orgs || []).find((r) => r.code === code)
+    ok('orgs: the seat is counted once, and only once', counted.status === 200 && row.used === 1 && row.seats === 50, JSON.stringify(row))
+    ok(
+      'orgs: the panel sees counts and choices, never a student',
+      !JSON.stringify(row).includes('student') && !('redemptions' in row),
+      JSON.stringify(row).slice(0, 120),
+    )
+
+    const twice = await redeem()
+    ok(
+      'orgs: the same mailbox and template cannot spend twice',
+      twice.status === 409 && twice.json.error === 'already' && twice.json.left === 49,
+      JSON.stringify(twice.json),
+    )
+    const other = await redeem({ email: 'noura@student.qalb.test' })
+    ok(
+      'orgs: a second student takes the next seat',
+      other.status === 201 && other.json.remaining === 48,
+      JSON.stringify({ st: other.status, left: other.json.remaining }),
+    )
+    const siteOnly = await redeem({ email: 'k@kau.edu.sa', template: 'aether' })
+    ok(
+      'orgs: a site-only template is not something a seat opens',
+      siteOnly.status === 400 && siteOnly.json.error === 'template' && siteOnly.json.templates?.includes('nova-cv'),
+      JSON.stringify(siteOnly.json).slice(0, 110),
+    )
+    const noMail = await redeem({ email: 'not-an-email' })
+    ok(
+      'orgs: a student with no mailbox gets nothing, and spends nothing',
+      noMail.status === 400 && noMail.json.error !== 'ok',
+      JSON.stringify(noMail.json),
+    )
+    const ghost = await redeem({ code: 'QALB-ZZZZ-ZZZ2', email: 'g@kau.edu.sa' })
+    ok('orgs: an unknown code is a 404 that spends nothing', ghost.status === 404 && ghost.json.error === 'unknown', JSON.stringify(ghost.json))
+    const after = await call('GET', '/admin/orgs', { token: TOKEN })
+    ok(
+      'orgs: and the ledger still says two',
+      after.json.orgs.find((r) => r.code === code).used === 2,
+      JSON.stringify(after.json.orgs.find((r) => r.code === code)),
+    )
+
+    const lic = await call('GET', '/licences/' + o.key, { header: false })
+    ok(
+      'orgs: the issued key validates against the same licence endpoint',
+      lic.status === 200 && lic.json.valid === true && lic.json.seats === 1,
+      JSON.stringify(lic.json),
+    )
+    const look = await call('GET', '/org/' + code, { header: false })
+    ok(
+      'orgs: the code alone can read counts, not names',
+      look.status === 200 && look.json.left === 48 && !JSON.stringify(look.json).includes('student') && !('redemptions' in look.json),
+      JSON.stringify(look.json).slice(0, 120),
+    )
+    const csv = await call('GET', '/admin/orgs.csv', { token: TOKEN, raw: true })
+    ok(
+      'orgs: the CSV export is a roster of contracts, not of students',
+      csv.status === 200 &&
+        csv.text.split('\n')[0].endsWith('seats,used') &&
+        !csv.text.includes('student') &&
+        csv.text.includes('careers@kau.edu.sa'),
+      csv.text.slice(0, 90),
+    )
+
+    const paused = await call('PATCH', '/admin/orgs/' + code, { body: { status: 'paused' }, token: TOKEN })
+    ok(
+      'orgs: pausing a contract answers the student with 403, not a shrug',
+      paused.status === 200 && paused.json.org.status === 'paused',
+      JSON.stringify(paused.json.org),
+    )
+    const during = await redeem({ email: 'while@kau.edu.sa' })
+    ok('orgs: while paused, nothing redeems', during.status === 403 && during.json.error === 'paused', JSON.stringify(during.json))
+    const resumed = await call('PATCH', '/admin/orgs/' + code, { body: { status: 'active', seats: 3 }, token: TOKEN })
+    ok(
+      'orgs: seats can be lowered to what was spent, and not beneath it',
+      resumed.status === 200 && resumed.json.org.seats === 3 && resumed.json.left === 1,
+      JSON.stringify(resumed.json),
+    )
+    const last = await redeem({ email: 'third@kau.edu.sa' })
+    ok(
+      'orgs: the last seat is spent, then the contract is empty',
+      last.status === 201 && last.json.remaining === 0,
+      JSON.stringify({ st: last.status, left: last.json.remaining }),
+    )
+    const dry = await redeem({ email: 'fourth@kau.edu.sa' })
+    ok('orgs: an exhausted contract says so instead of over-issuing', dry.status === 409 && dry.json.error === 'exhausted', JSON.stringify(dry.json))
+
+    // انتهاء المدة لا يُولّد من المتجر: نكتب التاريخ في السجلّ ونرى البوابة
+    {
+      const file = join(DATA, 'orgs.json')
+      const reg = JSON.parse(readFileSync(file, 'utf8'))
+      reg[code].expires = '2020-01-01'
+      reg[code].status = 'active'
+      writeFileSync(file, JSON.stringify(reg))
+      const lapsed = await redeem({ email: 'lapsed@kau.edu.sa' })
+      ok(
+        'orgs: a lapsed term is refused as expired, not as unknown',
+        lapsed.status === 403 && lapsed.json.error === 'expired',
+        JSON.stringify(lapsed.json),
+      )
+      const renewed = await call('PATCH', '/admin/orgs/' + code, { body: { months: 24, seats: 6 }, token: TOKEN })
+      ok(
+        'orgs: renewal by staff moves the date and opens seats again',
+        renewed.status === 200 && renewed.json.left === 3 && /2028/.test(renewed.json.org.expires),
+        JSON.stringify(renewed.json),
+      )
+      const back = await redeem({ email: 'after@kau.edu.sa' })
+      ok('orgs: and the student redeems again after it', back.status === 201, JSON.stringify(back.json).slice(0, 90))
+    }
+
+    const wrongShape = await call('POST', '/org/redeem', {
+      body: { code: 'QALB-IOIO-0000', email: 'x@kau.edu.sa', name: 'خالد', template: 'nova' },
+      header: false,
+    })
+    ok(
+      'orgs: a malformed code is refused before the ledger is read',
+      wrongShape.status === 400 && wrongShape.json.error !== 'unknown',
+      JSON.stringify(wrongShape.json),
+    )
+    ok(
+      'orgs: and no seat was touched by a malformed code',
+      (await call('GET', '/admin/orgs', { token: TOKEN })).json.orgs.find((r) => r.code === code).used === 4,
+      'used moved',
+    )
+    const hm = await call('GET', '/health', { header: false })
+    ok(
+      'orgs: health counts contracts and seats for the operator',
+      hm.json.orgs && hm.json.orgs.orgs === 1 && hm.json.orgs.used === 4 && hm.json.orgs.seats === 6 && hm.json.orgs.active === 1,
+      JSON.stringify(hm.json.orgs),
+    )
+    ok('orgs: GET on the redeem door is a 405, not a 404 into the store', (await call('GET', '/org/redeem', { header: false })).status === 405)
+    ok('orgs: POST to the counts door is refused too', (await call('POST', '/org/' + code, { body: {}, header: false })).status === 405)
+    ok('orgs: nothing but markup is ever written to the ledger', !/onerror=|<script/.test(readFileSync(join(DATA, 'orgs.json'), 'utf8')))
+
+    for (let i = 0; i < 3; i++)
+      await call('POST', '/org/redeem', {
+        body: { code: 'QALB-QQQQ-QQQ2', email: 'p' + i + '@kau.edu.sa', name: 'طالب', template: 'nova' },
+        header: false,
+      })
+    const guessing = await call('POST', '/org/redeem', {
+      body: { code: 'QALB-WWWW-WWW2', email: 'p@kau.edu.sa', name: 'طه', template: 'nova' },
+      header: false,
+    })
+    ok('orgs: guessing codes for a minute is locked with 429', guessing.status === 429, JSON.stringify(guessing.json))
+    const spent = await call('GET', '/admin/orgs', { token: TOKEN })
+    ok('orgs: and a locked guesser spends nothing', spent.json.totals.used === 4 && spent.json.totals.seats === 6, JSON.stringify(spent.json.totals))
   }
 
   /* --- throttling --- */

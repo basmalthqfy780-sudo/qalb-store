@@ -30,6 +30,26 @@ import {
   subOf,
 } from '../src/data/hosting.js'
 import { ATS_BANDS, ATS_DEMO, ATS_RULES, ATS_TARGET, analyzeAts, atsReport, atsRuleTable } from '../src/data/ats.js'
+import {
+  B2B_TERM_MONTHS,
+  B2B_TIERS,
+  ORG_CODE_RE,
+  SEAT_TEMPLATES,
+  addMonths,
+  cheapestSeatRetail,
+  makeOrg,
+  makeOrgCode,
+  normalizeCode,
+  orgCsv,
+  orgMailto,
+  orgRowForStaff,
+  orgSummary,
+  perSeat,
+  priciestSeatRetail,
+  redeemReason,
+  seatLeft,
+} from '../src/data/b2b.js'
+import { SUPPORT_MAIL } from '../src/data/contact.js'
 import { zipNames, zipRead } from '../src/data/zip.js'
 import { claimStaleReload, clearStaleReload, isStaleLoadError } from '../src/lib/load-error.js'
 
@@ -148,6 +168,17 @@ const cases = [
     expect: ['Your template becomes a site', 'subdomain', '19', 'free', 'edits a month'],
   },
   { name: 'studio (nothing yet)', url: 'http://localhost/studio', expect: ['لا موقع على هذا المتصفح', 'أنشئ موقعي'] },
+  {
+    name: 'institutions',
+    url: 'http://localhost/b2b',
+    expect: ['مقاعد سنوية', 'عقد سنوي · بلا تجديد تلقائي', 'اطلبوا عقدًا', 'كم بقي من مقاعدنا؟', '15,000', '45,000'],
+  },
+  {
+    name: 'institutions / english',
+    url: 'http://localhost/b2b',
+    lang: 'en',
+    expect: ['Annual seats for your institution', 'Verifying a code needs the order server', 'How many seats are left?', 'per year'],
+  },
   {
     name: 'ats checker',
     url: 'http://localhost/ats',
@@ -1147,7 +1178,8 @@ for (const c of cases) {
     const map = readFileSync('public/sitemap.xml', 'utf8')
     // المشتقّ من جدول المسارات لا العدد المكتوب باليد: صفحة تُنسى في الـsitemap كانت
     // ستُمرَّر على أنها «مغطّاة» لأن الفحص يعدّ ٢٠ فقط.
-    const staticRoutes = [...readFileSync('src/App.jsx', 'utf8').matchAll(/path="(\/[a-z-]*)"/g)]
+    // المسارات قد تحمل رقمًا (/b2b): بلا ذلك كانت صفحةٌ كاملة تفلت من هذا الفحص
+    const staticRoutes = [...readFileSync('src/App.jsx', 'utf8').matchAll(/path="(\/[a-z0-9-]*)"/g)]
       .map((m) => m[1])
       .filter((p) => p === '/' || !p.endsWith('/'))
     const privateRoutes = ['/checkout', '/cart', '/order', '/admin', '/studio'] // الاستوديو أداة خاصة: لا في الـsitemap ولا في الفهرس
@@ -1480,6 +1512,24 @@ for (const c of cases) {
     await g.wait()
   }
   ok('you cannot delete the account you are signed in with', /أنت/.test(g.txt()) && /nouf@qalb.store/.test(g.txt()))
+
+  /* --- institution seats: the tab exists, and the local mode will not mint --- */
+  click(g, /المقاعد$/)
+  await g.wait()
+  ok('the seats tab is a real tab in the panel', !!g.doc.querySelector('[data-orgs]'), g.txt().slice(0, 50))
+  ok('local mode says the seat ledger lives on a server', /دفترٌ على الخادم/.test(g.txt()))
+  ok('and shows no invented contract table', !g.doc.querySelector('[data-orgs] table'))
+  ok('the note hands the reader to the licences page', !!g.doc.querySelector('[data-orgs] a[href="/b2b"]'))
+  ok('nothing claims a code was issued', !/صُدِّر الرمز/.test(g.txt()))
+  const orgsApi = readFileSync('src/api/index.js', 'utf8')
+  ok(
+    'every seat door the panel uses is a server door',
+    ['orgs:', 'mintOrg:', 'patchOrg:', 'orgsCsv'].every((k) => orgsApi.includes(k)) &&
+      (orgsApi.match(/\/admin\/orgs/g) || []).length === 4 &&
+      (orgsApi.match(/apiMode === 'rest' \? restAdmin/g) || []).length === 3 &&
+      /if \(apiMode !== 'rest'\) return ''/.test(orgsApi),
+    String((orgsApi.match(/\/admin\/orgs/g) || []).length),
+  )
 
   /* --- signing out really closes the panel --- */
   click(g, /تسجيل الخروج/)
@@ -2432,6 +2482,213 @@ for (const c of cases) {
   } else {
     groups++
     console.log(`✓ hosting · live pages, plans, and the edit ceiling  (${checks.length} assertions)`)
+  }
+}
+
+/* ---------------- b2b · مقاعد المؤسسة: الشريحة والرمز ومقعدٌ يُخصم مرة واحدة ---------------- */
+{
+  const checks = []
+  const ok = (name, cond, extra = '') => checks.push([cond ? name : `${name} — ${extra}`, !!cond])
+
+  /* ---------- العقد نفسه ---------- */
+  ok(
+    'four tiers, seats and prices both ascending',
+    B2B_TIERS.length === 4 && B2B_TIERS.every((t, i) => !i || (t.seats > B2B_TIERS[i - 1].seats && t.price > B2B_TIERS[i - 1].price)),
+    B2B_TIERS.map((t) => `${t.seats}/${t.price}`).join(' '),
+  )
+  ok(
+    'the approved numbers are the ones on the shelf',
+    B2B_TIERS.map((t) => `${t.seats}/${t.price}`).join(' ') === '50/15000 150/24000 300/33000 500/45000',
+  )
+  ok('a term is one year, never auto-renewed', B2B_TERM_MONTHS === 12 && addMonths('2026-09-05', B2B_TERM_MONTHS) === '2027-09-05')
+  ok(
+    'per-seat price is divided, not marketed',
+    B2B_TIERS.every((t) => perSeat(t) === Math.round((t.price / t.seats) * 100) / 100),
+    String(perSeat(B2B_TIERS[0])),
+  )
+  ok(
+    'a seat opens only templates that carry a CV',
+    SEAT_TEMPLATES.length === 7 && SEAT_TEMPLATES.every((t) => t.ats != null && t.kind !== 'site'),
+    SEAT_TEMPLATES.map((t) => t.id).join(','),
+  )
+  ok(
+    'and the retail range quoted is the catalogue’s own',
+    cheapestSeatRetail() === Math.min(...SEAT_TEMPLATES.map((t) => t.price)) &&
+      priciestSeatRetail() === Math.max(...SEAT_TEMPLATES.map((t) => t.price)),
+  )
+
+  /* ---------- الرمز ---------- */
+  ok(
+    'the code shape excludes letters that read as digits',
+    /^QALB-[ABCDEFGHJKLMNPQRSTUVWXYZ2-9]{4}-[ABCDEFGHJKLMNPQRSTUVWXYZ2-9]{4}$/.test(makeOrgCode(() => 0.99)) &&
+      !/[IO01]/.test(makeOrgCode(() => 0.5)),
+  )
+  ok('a seeded code is stable and matches the gate', ORG_CODE_RE.test(makeOrgCode(() => 0)) && makeOrgCode(() => 0) === makeOrgCode(() => 0))
+  ok(
+    'typing is forgiven, casing is not required',
+    normalizeCode(' qalb-s5qa-2c4b ') === 'QALB-S5QA-2C4B' && normalizeCode('QALB_S5QA_2C4B') === 'QALB-S5QA-2C4B',
+  )
+  ok('an ambiguous code is refused before it reaches the ledger', !ORG_CODE_RE.test(normalizeCode('QALB-IOIO-0000')))
+  const rec = makeOrg({ code: makeOrgCode(() => 0.5), org: 'جامعة', email: 'careers@u.edu.sa', tier: 'campus', issued: '2026-09-05' })
+  ok(
+    'a contract record starts full and dated',
+    rec.seats === 50 && rec.used === 0 && rec.expires === '2027-09-05' && rec.status === 'active' && seatLeft(rec) === 50,
+  )
+  ok('seats cannot be written below what was already spent', makeOrg({ seats: 0 }).seats === 1 && makeOrg({ seats: 99999 }).seats === 5000)
+
+  /* ---------- قرار الاستبدال ---------- */
+  const at = new Date('2026-10-01T00:00:00Z')
+  ok('a valid student redeems once', redeemReason(rec, { email: 'Sara@U.edu.sa', template: 'nova', at }) === 'ok')
+  ok(
+    'the same address and template is refused, not double-spent',
+    redeemReason({ ...rec, redemptions: [{ email: 'sara@u.edu.sa', template: 'nova' }] }, { email: 'sara@u.edu.sa', template: 'nova', at }) ===
+      'already',
+  )
+  ok(
+    'the same address on another template is a new seat',
+    redeemReason({ ...rec, redemptions: [{ email: 'sara@u.edu.sa', template: 'nova' }] }, { email: 'sara@u.edu.sa', template: 'atlas', at }) === 'ok',
+  )
+  ok('a site-only template never reaches the ledger', redeemReason(rec, { email: 'a@u.edu.sa', template: 'aether', at }) === 'template')
+  ok('an exhausted contract says exhausted', redeemReason({ ...rec, used: 50 }, { email: 'a@u.edu.sa', template: 'nova', at }) === 'exhausted')
+  ok(
+    'a paused contract says paused, not expired',
+    redeemReason({ ...rec, status: 'paused' }, { email: 'a@u.edu.sa', template: 'nova', at }) === 'paused',
+  )
+  ok('a lapsed year is expired', redeemReason({ ...rec, expires: '2026-09-30' }, { email: 'a@u.edu.sa', template: 'nova', at }) === 'expired')
+  ok('and an unknown code is unknown', redeemReason(null, { email: 'a@u.edu.sa', template: 'nova', at }) === 'unknown')
+  ok('left seats never go negative', seatLeft({ seats: 50, used: 80 }) === 0)
+
+  /* ---------- ما تراه اللوحة ---------- */
+  const spent = { ...rec, used: 3, redemptions: [{ email: 'sara@student.u.edu.sa', template: 'nova', at: '2026-10-01', order: 'QALB-1' }] }
+  ok(
+    'the summary counts and names templates, never students',
+    (() => {
+      const s = orgSummary(spent)
+      return s.left === 47 && s.templates.join(',') === 'nova' && !JSON.stringify(s).includes('student')
+    })(),
+  )
+  ok(
+    'the staff row is the same rule',
+    (() => {
+      const r = orgRowForStaff(spent)
+      return !JSON.stringify(r).includes('student') && !('redemptions' in r)
+    })(),
+    JSON.stringify(orgRowForStaff(spent)),
+  )
+  ok(
+    'and the CSV export cannot leak a roster',
+    (() => {
+      const c = orgCsv([orgRowForStaff(spent)])
+      return c.split('\n')[0] === 'code,org,email,tier,status,issued,expires,seats,used' && !c.includes('student')
+    })(),
+  )
+  ok('the institution’s own contact is the only address in it', orgCsv([orgRowForStaff(spent)]).includes('careers@u.edu.sa'))
+
+  /* ---------- الطلب البشري ---------- */
+  const mail = orgMailto({ tier: 'employment', org: 'مكتب العمل', email: 'a@b.gov.sa', seats: '700', note: 'أربع مناطق' })
+  ok(
+    'the contract request is a mail, addressed to us',
+    mail.startsWith(`mailto:${SUPPORT_MAIL}?`) && decodeURIComponent(mail).includes('500 seats') && decodeURIComponent(mail).includes('45000 SAR'),
+  )
+  ok(
+    'it carries what was typed, not a stored copy',
+    decodeURIComponent(mail).includes('مكتب العمل') && decodeURIComponent(mail).includes('700') && decodeURIComponent(mail).includes('VAT invoice'),
+  )
+  ok('and an unknown tier falls back to the first, not to nothing', decodeURIComponent(orgMailto({ tier: 'myth' })).includes('50 seats'))
+
+  /* ---------- الصفحة ---------- */
+  const g = await render('http://localhost/b2b')
+  ok('the institutions page renders clean', g.errs.length === 0, g.errs.join('|').slice(0, 140))
+  const nf = new Intl.NumberFormat('en-US')
+  ok(
+    'every tier on screen is a tier in the data',
+    B2B_TIERS.every((t) => g.txt().includes(nf.format(t.price)) && g.txt().includes(String(t.seats))),
+    B2B_TIERS.map((t) => nf.format(t.price)).join(','),
+  )
+  ok(
+    'per-seat figures are computed in the page, not hardcoded',
+    g.txt().includes(String(perSeat(B2B_TIERS[3]))) && g.txt().includes(String(cheapestSeatRetail())),
+  )
+  ok('the term appears as the constant says it', g.txt().includes(String(B2B_TERM_MONTHS)))
+  ok(
+    'no raw dictionary key reaches the reader',
+    !/\bb2b\.[a-zA-Z]/.test(g.txt()) && !/undefined/.test(g.txt()),
+    (g.txt().match(/\bb2b\.[a-z.]+/) || [''])[0],
+  )
+  ok('the page description is the dictionary line', g.doc.querySelector('meta[name="description"]')?.content === dict.ar.meta.b2bDesc)
+  const ld = JSON.parse(g.doc.getElementById('qalb-jsonld')?.textContent || '{}')
+  const cat = ld['@graph']?.find((x) => x['@type'] === 'OfferCatalog')
+  ok(
+    'the structured prices are the contract prices',
+    cat?.offers?.length === 4 && cat.offers.every((o, i) => o.price === B2B_TIERS[i].price.toFixed(2) && o.priceCurrency === 'SAR'),
+    JSON.stringify(cat?.offers || []).slice(0, 90),
+  )
+  ok(
+    'and its questions are the ones printed',
+    ld['@graph']?.find((x) => x['@type'] === 'FAQPage')?.mainEntity?.every((q) => g.txt().includes(q.name)) === true,
+  )
+
+  /* ---------- honesty in the local mode this storefront runs in ---------- */
+  ok(
+    'a seat is not “confirmed” without the order server',
+    !!g.doc.querySelector('[data-b2b-red-form]') === false && g.txt().includes(dict.ar.b2b.localTitle),
+    g.doc.querySelector('[data-b2b-red-form]') ? 'form shown' : '',
+  )
+  ok('and it says what to do instead of failing silently', g.doc.querySelectorAll('a[href^="mailto:"]').length >= 2)
+  ok('the seat counter is honest too, not a mock table', g.txt().includes(dict.ar.b2b.checkLocal))
+  ok(
+    'nothing on this page writes to the device',
+    !/localStorage|sessionStorage/.test(readFileSync(new URL('../src/pages/B2B.jsx', import.meta.url), 'utf8')),
+  )
+  ok(
+    'and the client refuses to pretend a local ledger exists',
+    !/localStorage/.test(readFileSync(new URL('../src/api/orgs.js', import.meta.url), 'utf8')),
+  )
+
+  const pick = [...g.doc.querySelectorAll('[data-b2b-tier] button')].pop()
+  pick?.click()
+  await g.wait(4)
+  ok(
+    'choosing a tier rewrites the request the mail will carry',
+    decodeURIComponent(g.doc.querySelector('[data-b2b-request] a[href^="mailto:"]')?.href || '').includes('500 seats'),
+    String(pick?.textContent),
+  )
+  const name = g.doc.getElementById('b2b-org')
+  Object.getOwnPropertyDescriptor(g.win.HTMLInputElement.prototype, 'value').set.call(name, 'كلية الحاسب')
+  name.dispatchEvent(new g.win.Event('input', { bubbles: true }))
+  await g.wait(2)
+  ok(
+    'what you type is what the mail says — and nothing else happens',
+    decodeURIComponent(g.doc.querySelector('[data-b2b-request] a[href^="mailto:"]')?.href || '').includes('كلية الحاسب') &&
+      !/تم الإرسال|sent/i.test(g.txt()),
+    g.txt().slice(-60),
+  )
+
+  const en = await render('http://localhost/b2b', { 'qalb.lang': 'en' }, { lang: 'en' })
+  ok('english resolves every label of the page', en.txt().includes(dict.en.b2b.title) && !/\bb2b\.[a-zA-Z]/.test(en.txt()), en.txt().slice(0, 60))
+  ok(
+    'and the tiers survive the language swap',
+    B2B_TIERS.every((t) => en.txt().includes(nf.format(t.price))),
+  )
+
+  const home = await render('http://localhost/')
+  ok(
+    'the institutions page is linked from the shop, not hidden',
+    home.doc.querySelectorAll('a[href="/b2b"]').length >= 1,
+    String(home.doc.querySelectorAll('a[href="/b2b"]').length),
+  )
+  const sm = readFileSync(new URL('../public/sitemap.xml', import.meta.url), 'utf8')
+  ok('and it is in the sitemap with the rest of the public pages', sm.includes('https://qalb.store/b2b</loc>'))
+
+  const bad = checks.filter(([, pass]) => !pass)
+  if (bad.length) {
+    failed++
+    groups++
+    console.log('✗ b2b · seat contracts, codes, and the student who redeems one')
+    bad.forEach(([n]) => console.log('   failed: ' + n))
+  } else {
+    groups++
+    console.log(`✓ b2b · seat contracts, codes, and the student who redeems one  (${checks.length} assertions)`)
   }
 }
 
