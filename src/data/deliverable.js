@@ -217,7 +217,7 @@ const accentFor = (tpl, site) => {
   return id && PALETTE.some((c) => c.id === id) ? accentHex(id) : BRAND_HEX
 }
 
-const profileFor = (tpl, k, personal = null) => {
+export const profileFor = (tpl, k, personal = null) => {
   const site = k !== 'cv' ? siteFor(tpl) : null
   const demo = k !== 'site' ? demoFor(tpl) : null
   const base = site || demo || {}
@@ -335,7 +335,7 @@ ${SUPPORT_MAIL}${order.id ? ` — اذكر رقم الطلب \`${order.id}\`.` :
 `.replace(/\n{3,}/g, '\n\n')
 }
 
-const siteCssFor = (tpl, p, k) => {
+export const siteCssFor = (tpl, p, k) => {
   const light = p.theme === 'light'
   const a = p.accent
   return `:root {
@@ -606,7 +606,7 @@ if (score < 70) console.log('fix: اجعل كل نقطة تبدأ بفعل وت�
 process.exit(score < 70 ? 1 : 0)
 `
 
-const siteHtml = (tpl, p) => {
+export const siteHtml = (tpl, p) => {
   const nav = p.nav.en.length ? p.nav.en : ['Work', 'About', 'Services', 'Contact']
   const navAr = p.nav.ar.length ? p.nav.ar : nav
   const cards = p.projects
@@ -707,7 +707,7 @@ ${services || '          <li>عدّل <code>content/profile.json → services</c
 `
 }
 
-const resumeFor = (tpl, p) => {
+export const resumeFor = (tpl, p) => {
   const layout = ['side', 'band', 'timeline'].includes(p.layout) ? p.layout : 'single'
   const jobs = p.jobs.length
     ? p.jobs

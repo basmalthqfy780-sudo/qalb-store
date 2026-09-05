@@ -8,7 +8,27 @@ import { readFileSync, mkdirSync, readdirSync, existsSync } from 'node:fs'
 import { JSDOM, VirtualConsole } from 'jsdom'
 import { dict } from '../src/i18n/translations.js'
 import { byId, templates } from '../src/data/templates.js'
-import { PERSONAL_LIMITS, isProtectedDownload, kindOf, packageFiles, packageZip, sanitizePersonal } from '../src/data/deliverable.js'
+import { PERSONAL_LIMITS, isProtectedDownload, kindOf, packageFiles, packageZip, sanitizePersonal, siteHtml } from '../src/data/deliverable.js'
+import {
+  HOST_FIELDS,
+  HOST_LIMITS,
+  PLANS,
+  ROUTES,
+  SUB_RE,
+  brandBar,
+  droppedSiteFields,
+  editWindow,
+  monthKey,
+  planOf,
+  priceOf,
+  profileOf,
+  publicUrl,
+  renderSite,
+  routeOk,
+  sanitizeSite,
+  slugify,
+  subOf,
+} from '../src/data/hosting.js'
 import { zipNames, zipRead } from '../src/data/zip.js'
 import { claimStaleReload, clearStaleReload, isStaleLoadError } from '../src/lib/load-error.js'
 
@@ -242,6 +262,7 @@ async function render(url, seed = {}, { lang = 'ar', boot } = {}) {
 }
 
 let failed = 0
+let groups = 0 // كل مجموعة تُبلّغ سطرًا واحدًا — فالعدد مشتق لا مكتوب
 let routeChecks = 0
 
 for (const c of cases) {
@@ -318,6 +339,7 @@ for (const c of cases) {
     if (missing.length) console.log(`   missing: ${missing.join(' | ')}`)
     if (reactErrors.length) console.log(`   errors: ${reactErrors.slice(0, 3).join('\n          ')}`)
   } else {
+    groups++
     console.log(`✓ ${c.name}  (${text.length} chars, ${nodes} nodes)`)
   }
   dom.window.close()
@@ -445,10 +467,12 @@ for (const c of cases) {
   const bad = checks.filter(([, ok]) => !ok)
   if (bad.length) {
     failed++
+    groups++
     console.log('✗ checkout funnel')
     bad.forEach(([n]) => console.log('   failed: ' + n))
     if (errs.length) console.log('   ' + errs.slice(0, 2).join('\n   ').slice(0, 400))
   } else {
+    groups++
     console.log(`✓ checkout funnel  (${checks.length} assertions, ${after.length} chars)`)
   }
   window.close()
@@ -520,10 +544,12 @@ for (const c of cases) {
   const bad = checks.filter(([, ok]) => !ok)
   if (bad.length || errs.length) {
     failed++
+    groups++
     console.log('✗ interactions')
     bad.forEach(([n, ok]) => !ok && console.log('   failed: ' + n))
     if (errs.length) console.log('   ' + errs.slice(0, 2).join('\n   ').slice(0, 300))
   } else {
+    groups++
     console.log(`✓ interactions  (${checks.length} assertions)`)
   }
   window.close()
@@ -688,9 +714,11 @@ for (const c of cases) {
 
   if (bad.length) {
     failed++
+    groups++
     console.log('✗ previews · recent · cart math')
     bad.forEach((n) => console.log('   failed: ' + n))
   } else {
+    groups++
     console.log(`✓ previews · recent · cart math  (${checks.length} assertions)`)
   }
 }
@@ -966,9 +994,11 @@ for (const c of cases) {
 
   if (bad.length) {
     failed++
+    groups++
     console.log('✗ themes · structured data · transports')
     bad.forEach((n) => console.log('   failed: ' + n))
   } else {
+    groups++
     console.log(`✓ themes · structured data · transports  (${checks.length} assertions)`)
   }
 }
@@ -1124,9 +1154,11 @@ for (const c of cases) {
 
   if (bad.length) {
     failed++
+    groups++
     console.log('✗ recovery · lookup · licence · social cards')
     bad.forEach((n) => console.log('   failed: ' + n))
   } else {
+    groups++
     console.log(`✓ recovery · lookup · licence · social cards  (${checks.length} assertions)`)
   }
 }
@@ -1270,9 +1302,11 @@ for (const c of cases) {
 
   if (bad.length) {
     failed++
+    groups++
     console.log('✗ home · trust row · chip stacking')
     bad.forEach((n) => console.log('   failed: ' + n))
   } else {
+    groups++
     console.log(`✓ home · trust row · chip stacking  (${checks.length} assertions)`)
   }
 }
@@ -1483,9 +1517,11 @@ for (const c of cases) {
 
   if (bad.length) {
     failed++
+    groups++
     console.log('✗ admin · gate · catalogue · access')
     bad.forEach((n) => console.log('   failed: ' + n))
   } else {
+    groups++
     console.log(`✓ admin · gate · catalogue · access  (${checks.length} assertions)`)
   }
 }
@@ -1617,9 +1653,11 @@ for (const c of cases) {
 
   if (bad.length) {
     failed++
+    groups++
     console.log('✗ i18n · parity · no dead keys · no unbacked promise')
     bad.forEach((n) => console.log('   failed: ' + n))
   } else {
+    groups++
     console.log(`✓ i18n · parity · no dead keys · no unbacked promise  (${checks.length} assertions)`)
   }
 }
@@ -1756,9 +1794,11 @@ for (const c of cases) {
 
   if (bad.length) {
     failed++
+    groups++
     console.log('✗ css · cascade layers')
     bad.forEach((n) => console.log('   failed: ' + n))
   } else {
+    groups++
     console.log(`✓ css · cascade layers  (${checks.length} assertions)`)
   }
 }
@@ -1859,9 +1899,11 @@ for (const c of cases) {
   const bad2 = checks.filter(([, pass]) => !pass)
   if (bad2.length) {
     failed++
+    groups++
     console.log('✗ hardening · partial rows · stale chunks')
     bad2.forEach(([n]) => console.log('   failed: ' + n))
   } else {
+    groups++
     console.log(`✓ hardening · partial rows · stale chunks  (${checks.length} assertions)`)
   }
 }
@@ -2184,10 +2226,192 @@ for (const c of cases) {
   const badGroup = checks.filter(([, pass]) => !pass)
   if (badGroup.length) {
     failed++
+    groups++
     console.log('✗ personalisation · typed once, printed in every file')
     badGroup.forEach(([n]) => console.log('   failed: ' + n))
   } else {
+    groups++
     console.log(`✓ personalisation · typed once, printed in every file  (${checks.length} assertions)`)
+  }
+}
+
+/* ---------------- hosting · the template becomes a live page, and the plan is a switch that actually works ---------------- */
+{
+  const checks = []
+  const ok = (name, cond, extra = '') => checks.push([cond ? name : `${name} — ${extra}`, !!cond])
+
+  /* --- الخطط: كل رقم يراه المتجر له مقابل في الكود --- */
+  const plans = Object.values(PLANS)
+  ok(
+    'two plans, priced exactly as the storefront promises',
+    plans.length === 2 && PLANS.free.price === 0 && priceOf('pro') === 19,
+    plans.map((p) => `${p.id}:${p.price}`).join(' '),
+  )
+  ok('free carries our bar, pro removes it', PLANS.free.brand === true && PLANS.pro.brand === false)
+  ok('only pro may connect a domain', PLANS.free.domain === false && PLANS.pro.domain === true)
+  ok('the free edit ceiling is a number, not an adjective', PLANS.free.editQuota === 10 && PLANS.pro.editQuota === null)
+  ok(
+    'every plan names and explains itself in both languages',
+    plans.every((p) => p.name && p.name.ar && p.name.en && p.note && p.note.ar && p.note.en),
+  )
+  ok('an invented plan never upgrades anyone', planOf('diamond') === 'free' && planOf(null) === 'free' && planOf(undefined) === 'free')
+
+  /* --- النطاق الفرعي --- */
+  const sl = slugify('نورة الحربي')
+  ok(
+    'an Arabic name comes out as a latin subdomain, not a stripped blank',
+    /^[a-z0-9][a-z0-9-]{1,31}$/.test(sl) && !/[\u0600-\u06ff]/.test(sl) && sl.length > 4,
+    sl,
+  )
+  ok('a leading و reads as w', slugify('وصال') === 'wsal', slugify('وصال'))
+  ok('digits or punctuation alone earn no subdomain', slugify('3') === '' && slugify('!-.') === '' && slugify('') === '')
+  ok(
+    'a long name is cut at 32 and never left with a dangling hyphen',
+    slugify('أ'.repeat(90)).length === 32 && !/^-|-$/.test(slugify('  -A  B--c!  ')) && slugify('A  B--c!') === 'a-b-c',
+    `${slugify('أ'.repeat(90))}·${slugify('  -A  B--c!  ')}`,
+  )
+  ok('SUB_RE is the gate the server matches hosts with', SUB_RE.test(sl) && !SUB_RE.test('a') && !SUB_RE.test('A-b') && !SUB_RE.test('-x'))
+  ok(
+    'the public address follows the plan',
+    subOf({ slug: 'ab1' }) === 'ab1.qalb.store' &&
+      publicUrl({ slug: 'ab1', plan: 'pro', domain: 'noura.sa' }) === 'https://noura.sa' &&
+      publicUrl({ slug: 'ab1', plan: 'free', domain: 'noura.sa' }) === 'https://ab1.qalb.store',
+  )
+
+  /* --- السقف الشهري --- */
+  const fresh = editWindow({})
+  ok(
+    'a new site starts with a full month of edits',
+    fresh.used === 0 && fresh.left === PLANS.free.editQuota && fresh.canEdit === true,
+    JSON.stringify(fresh),
+  )
+  ok('a spent month has nothing left', editWindow({ plan: 'free', editMonth: monthKey(), editCount: PLANS.free.editQuota }).left === 0)
+  ok(
+    'a window from an earlier month resets itself',
+    editWindow({ editMonth: '2020-01', editCount: 99 }).used === 0 && editWindow({ editMonth: monthKey(), editCount: 10 }).left === 0,
+  )
+  ok('pro has no ceiling to reach', editWindow({ plan: 'pro', editCount: 9999 }).canEdit === true && editWindow({ plan: 'pro' }).max === null)
+
+  /* --- الحقول: لا يُقبل حقل لا يطبعه مولّد --- */
+  ok(
+    'every hosted field is one the deliverable generator already knows',
+    HOST_FIELDS.every((f) => f in HOST_LIMITS) && HOST_FIELDS.every((f) => f === 'city' || f in PERSONAL_LIMITS),
+    HOST_FIELDS.join(','),
+  )
+  ok(
+    'markup in a hosted field drops that field alone',
+    sanitizeSite({ name: '<script>alert(1)</script>', role: 'مصممة', bio: 'نصّ سليم' }).name === undefined &&
+      sanitizeSite({ name: '<script>alert(1)</script>', role: 'مصممة' }).role === 'مصممة',
+  )
+  ok(
+    'the refusal is reported, not swallowed silently',
+    droppedSiteFields({ name: '<script>alert(1)</script>', role: 'ok' }).join() === 'name',
+    JSON.stringify(droppedSiteFields({ name: '<img src=x onerror=alert(1)>', role: 'ok' })),
+  )
+  ok(
+    'every hosted field has a cap',
+    HOST_FIELDS.every((f) => Number.isFinite(HOST_LIMITS[f]) && HOST_LIMITS[f] <= 700),
+  )
+  ok('city has its own shorter cap', sanitizeSite({ city: 'ج'.repeat(900) }).city.length === HOST_LIMITS.city)
+  ok('an unknown template is refused rather than quietly swapped', sanitizeSite({ name: 'A', template: 'does-not-exist' }).template === null)
+
+  /* --- التقديم الحيّ --- */
+  const typed = {
+    name: 'نورة الحربي',
+    role: 'مصممة واجهات',
+    email: 'noura@studio.sa',
+    phone: '+966551234567',
+    website: 'noura.studio',
+    bio: 'أبني واجهات للمنتجات المالية',
+    city: 'جدة',
+    template: 'aether',
+    lang: 'ar',
+    theme: 'dark',
+  }
+  const rec = { slug: 'noura-alhrbi', plan: 'free', site: sanitizeSite(typed) }
+  const home = renderSite(rec, '/')
+  ok(
+    'the live page is the bought template and has real weight',
+    home.status === 200 && /text\/html/.test(home.type) && home.body.length > 4000,
+    `${home.status}/${home.body.length}`,
+  )
+  ok(
+    'everything the buyer typed is printed on the page',
+    HOST_FIELDS.every((f) => (rec.site[f] ? home.body.includes(rec.site[f]) : true)),
+    HOST_FIELDS.filter((f) => rec.site[f] && !home.body.includes(rec.site[f])).join(','),
+  )
+  ok('the free page carries the bar and it points at us', /class="qalb-brand"/.test(home.body) && home.body.includes('href="https://qalb.store"'))
+  const proRec = { ...rec, plan: 'pro' }
+  const proHome = renderSite(proRec, '/')
+  ok(
+    'paying takes the bar off but never the buyer’s words',
+    !/qalb-brand/.test(proHome.body) && proHome.body.includes('نورة الحربي') && proHome.body.length > 4000,
+    proHome.body.length,
+  )
+  ok(
+    'the stylesheet is served with a plan stamp',
+    (() => {
+      const c = renderSite(rec, '/styles.css')
+      return c.status === 200 && /text\/css/.test(c.type) && /plan=free/.test(c.body)
+    })(),
+  )
+  ok('rendering reads the record, it never writes to it', JSON.stringify(rec.site) === JSON.stringify(sanitizeSite(typed)))
+
+  /* --- الحزمة المُشترى والصفحة الحيّة من مولّد واحد --- */
+  // الخطة تُطبع في الصفحة، فلكل خطة مولّدها الخاص من نفس الدالة — لا نسخة ثانية منها
+  const prof = profileOf(proRec)
+  const boughtPro = siteHtml(byId('aether'), prof)
+  const boughtFree = siteHtml(byId('aether'), profileOf(rec))
+  ok(
+    'the page records the plan and address it was built under',
+    prof.qalb.hosted === true && prof.qalb.plan === 'pro' && prof.qalb.subdomain === 'noura-alhrbi',
+    JSON.stringify(prof.qalb),
+  )
+  ok('the paid page is byte-for-byte the page the package downloads', proHome.body === boughtPro, `${proHome.body.length} vs ${boughtPro.length}`)
+  ok(
+    'and the free page is that same file plus the bar — nothing else',
+    home.body === boughtFree.replace('</body>', `${brandBar(rec)}\n</body>`) && home.body.length - boughtFree.length === brandBar(rec).length + 1,
+    `${home.body.length} vs ${boughtFree.length}`,
+  )
+
+  /* --- السيرة والطبع --- */
+  const cvRec = {
+    slug: 'sara',
+    plan: 'free',
+    site: sanitizeSite({ name: 'سارة العتيبي', role: 'محللة بيانات', email: 's@q.dev', template: 'nova', lang: 'ar' }),
+  }
+  const cvHome = renderSite(cvRec, '/')
+  const pr = renderSite(cvRec, '/print')
+  ok(
+    'a résumé template serves the sheet as its home page',
+    cvHome.status === 200 && cvHome.body.includes('سارة العتيبي') && /text\/html/.test(cvHome.type),
+  )
+  ok('the same sheet is reachable at /cv', renderSite(cvRec, '/cv').body === cvHome.body)
+  ok(
+    'the print sheet asks for A4 and hides our bar',
+    /@page\{size:A4/.test(pr.body) && /qalb-brand\{display:none/.test(pr.body),
+    pr.body.slice(pr.body.indexOf('@page'), pr.body.indexOf('@page') + 40),
+  )
+  ok('a site-only template has no résumé to print', renderSite(rec, '/cv').status === 404 && renderSite(rec, '/print').status === 404)
+  ok(
+    'an unknown route under a site 404s instead of touching the disk',
+    renderSite(rec, '/orders.jsonl').status === 404 && !/sites\.json/.test(renderSite(rec, '/orders.jsonl').body),
+  )
+  ok('only the whitelisted paths render', ROUTES.every(routeOk) && !routeOk('/../../etc/passwd') && !routeOk('/admin') && !routeOk('/s/x/styles.css'))
+  ok(
+    'a record with nothing behind it renders nothing',
+    renderSite({ slug: 'x', site: {} }, '/').status === 404 && profileOf({ slug: 'x', site: {} }) === null,
+  )
+
+  const bad9 = checks.filter(([, pass]) => !pass)
+  if (bad9.length) {
+    failed++
+    groups++
+    console.log('✗ hosting · live pages, plans, and the edit ceiling')
+    bad9.forEach(([n]) => console.log('   failed: ' + n))
+  } else {
+    groups++
+    console.log(`✓ hosting · live pages, plans, and the edit ceiling  (${checks.length} assertions)`)
   }
 }
 
@@ -2352,16 +2576,18 @@ for (const c of cases) {
   const badGroup = checks.filter(([, pass]) => !pass)
   if (badGroup.length) {
     failed++
+    groups++
     console.log('✗ delivery · packages · signed links')
     badGroup.forEach(([n]) => console.log('   failed: ' + n))
   } else {
+    groups++
     console.log(`✓ delivery · packages · signed links  (${checks.length} assertions)`)
   }
 }
 
 console.log(
   failed
-    ? `\n${failed} check group(s) failed`
-    : `\nall ${cases.length + 12} check groups passed · ${cases.length} routes / ${routeChecks} expectations`,
+    ? `\n${failed} of ${groups} check groups failed`
+    : `\nall ${groups} check groups passed · ${cases.length} routes / ${routeChecks} expectations`,
 )
 process.exit(failed ? 1 : 0)

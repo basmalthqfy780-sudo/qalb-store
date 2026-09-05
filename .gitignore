@@ -8,6 +8,7 @@ uploads/
 # بيانات حيّة يكتبها خادم الطلبات — لا تُودَع أبدًا
 server/orders.jsonl
 server/admins.json
+server/sites.json
 server/products.json
 server/.admin-secret
 server/downloads.jsonl

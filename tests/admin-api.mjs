@@ -9,6 +9,7 @@
  * لكل طلب، مرة واحدة، بلا ملف ثابت في public/، وحزمة فيها LICENSE.txt باسم المشتري.
  */
 import { spawn } from 'node:child_process'
+import nodeHttp from 'node:http'
 import { existsSync, readdirSync, rmSync, readFileSync, mkdtempSync, writeFileSync, appendFileSync, chmodSync, statSync } from 'node:fs'
 import { zipNames, zipRead } from '../src/data/zip.js'
 import { tmpdir } from 'node:os'
@@ -40,6 +41,7 @@ for (const [name, body] of [
   ['downloads.jsonl', ''],
   ['.admin-secret', 'a'.repeat(32) + '\n'],
   ['.download-secret', 'b'.repeat(32) + '\n'],
+  ['sites.json', '{}'],
 ]) {
   writeFileSync(join(DATA, name), body, { encoding: 'utf8', mode: 0o644 })
   chmodSync(join(DATA, name), 0o644)
@@ -103,7 +105,7 @@ try {
   ok('health reports admin enabled after bootstrap', h.admin === true, JSON.stringify(h))
   ok('bootstrap wrote admins.json into the data dir', existsSync(join(DATA, 'admins.json')))
   ok('the admin file lands private: password hashes are not world-readable', modeOf('admins.json') === 0o600, modeOf('admins.json').toString(8))
-  const SEALED = ['orders.jsonl', 'downloads.jsonl', '.admin-secret', '.download-secret']
+  const SEALED = ['orders.jsonl', 'downloads.jsonl', '.admin-secret', '.download-secret', 'sites.json']
   ok(
     'boot re-seals every pre-existing buyer file to 0600',
     SEALED.every((f) => modeOf(f) === 0o600),
@@ -591,6 +593,258 @@ try {
       .slice(0, 90),
   )
   ok('the ledger keeps 0600 after a raw append too', modeOf('orders.jsonl') === 0o600, modeOf('orders.jsonl').toString(8))
+
+  /* --- الاستضافة: قالب يصير صفحة حيّة، والخطة مفتاحًا يُطفئ فعلًا --- */
+  {
+    // fetch يتجاهل Host المخصوص (undici يشتقه من URL) — فننزِل إلى node:http للفحصين المبنيين على المضيف
+    const hostGet = (host) =>
+      new Promise((done, fail) => {
+        const r = nodeHttp.request({ port: PORT, path: '/', method: 'GET', headers: { host } }, (res) => {
+          let body2 = ''
+          res.on('data', (d) => (body2 += d))
+          res.on('end', () => done(body2))
+        })
+        r.on('error', fail)
+        r.end()
+      })
+    const siteCall = async (method, path, body, key) => {
+      const res = await fetch(BASE + path, {
+        method,
+        headers: { 'content-type': 'application/json', ...(key ? { 'x-qalb-site': key } : {}) },
+        body: body == null ? undefined : JSON.stringify(body),
+      })
+      const text = await res.text()
+      let json = null
+      try {
+        json = JSON.parse(text)
+      } catch {
+        /* HTML/نصّ: نتركه كما هو */
+      }
+      return { status: res.status, json, text, headers: res.headers }
+    }
+    const noMail = await siteCall('POST', '/sites', { template: 'aether' })
+    ok(
+      'hosting: no e-mail means no site, and it says which is missing',
+      noMail.status === 400 && /email/.test(noMail.json.error),
+      JSON.stringify(noMail.json),
+    )
+    const bogus = await siteCall('POST', '/sites', { email: 'a@b.co', template: 'not-a-template' })
+    ok(
+      'hosting: an unknown template is refused, not swapped for the first one',
+      bogus.status === 400 && /template/.test(bogus.json.error),
+      JSON.stringify(bogus.json),
+    )
+
+    const made = await siteCall('POST', '/sites', {
+      email: 'noura@studio.sa',
+      template: 'aether',
+      site: { name: 'نورة الحربي', role: 'مصممة واجهات', city: 'جدة', bio: 'ست سنوات في واجهات المنتجات المالية', lang: 'ar' },
+    })
+    const SLUG = made.json?.slug
+    const KEY = made.json?.editKey
+    ok(
+      'hosting: a new site is a live free one',
+      made.status === 201 && made.json.plan === 'free' && made.json.status === 'live',
+      JSON.stringify(made.json && { s: made.status, p: made.json.plan }),
+    )
+    ok(
+      'hosting: an Arabic name becomes a latin subdomain we can actually serve',
+      /^[a-z0-9][a-z0-9-]{1,31}$/.test(SLUG || '') && !/[\u0600-\u06ff]/.test(SLUG || '') && made.json.url === `https://${SLUG}.qalb.store`,
+      `${SLUG} · ${made.json && made.json.url}`,
+    )
+    ok('hosting: the edit key is shown once and the notice says so', !!KEY && /لا يُستعاد/.test(made.json.notice || ''), KEY && KEY.length)
+    ok(
+      'hosting: the ceiling is enforced by the server, and counted back to the buyer',
+      made.json.quota.max === 10 && made.json.quota.left === 10 && made.json.quota.used === 0,
+      JSON.stringify(made.json.quota),
+    )
+    const inj = await siteCall('POST', '/sites', {
+      email: 'inj@studio.sa',
+      template: 'aether',
+      site: { name: '<script>alert(1)</script>', role: 'سليمة' },
+    })
+    ok(
+      'hosting: a name carrying markup is refused and the buyer is told which field',
+      inj.status === 201 && Array.isArray(inj.json.dropped) && inj.json.dropped.includes('name'),
+      JSON.stringify(inj.json),
+    )
+    ok('hosting: the good field survives the refused one, and the tag is nowhere', inj.json.slug && !inj.text.includes('alert(1)'), inj.json.slug)
+
+    const pub1 = await siteCall('GET', `/sites/${SLUG}`)
+    ok(
+      'hosting: the public view of a site carries no edit key',
+      pub1.status === 200 && !('editKey' in pub1.json) && !('key' in pub1.json),
+      JSON.stringify(Object.keys(pub1.json)),
+    )
+    ok('hosting: nor does it leak the buyer’s words', !('site' in pub1.json) && !pub1.text.includes('نورة الحربي'), pub1.text.slice(0, 60))
+    const own1 = await siteCall('GET', `/sites/${SLUG}`, null, KEY)
+    ok('with the key you get your own e-mail back', own1.status === 200 && own1.json.editKey === KEY && own1.json.email === 'noura@studio.sa')
+
+    const page = await siteCall('GET', `/s/${SLUG}`)
+    ok(
+      'hosting: the live page is HTML with the buyer’s name printed in it',
+      page.status === 200 && /text\/html/.test(page.headers.get('content-type')) && page.text.includes('نورة الحربي'),
+      `${page.status}/${page.text.length}`,
+    )
+    ok('hosting: the role and the city are there too', page.text.includes('مصممة واجهات') && page.text.includes('جدة'))
+    ok('hosting: the free plan wears our bar', /class="qalb-brand"/.test(page.text) && page.text.includes('href="https://qalb.store"'))
+    ok('hosting: the served page is stamped with slug and plan', page.headers.get('x-qalb-site') === `${SLUG}/free`, page.headers.get('x-qalb-site'))
+    const css1 = await siteCall('GET', `/s/${SLUG}/styles.css`)
+    ok(
+      'hosting: the stylesheet is css, not a fallback page',
+      css1.status === 200 && /text\/css/.test(css1.headers.get('content-type')) && /plan=free/.test(css1.text),
+      css1.headers.get('content-type'),
+    )
+    const hostHtml = await hostGet(`${SLUG}.qalb.store`)
+    ok('hosting: the subdomain host serves the very same bytes as /s/', hostHtml === page.text, `${hostHtml.length} vs ${page.text.length}`)
+    const miss = await siteCall('GET', '/s/nobody-here')
+    ok('hosting: an unknown subdomain 404s as json, not as the storefront', miss.status === 404 && miss.json.error === 'no such site')
+    const sneak = await siteCall('GET', `/s/${SLUG}/orders.jsonl`)
+    ok(
+      'hosting: a path inside a site that we do not render is a 404, not a file read',
+      sneak.status === 404 && !/QALB-/.test(sneak.text),
+      sneak.text.slice(0, 60),
+    )
+
+    const noKey = await siteCall('PATCH', `/sites/${SLUG}`, { site: { role: 'محاولة' } })
+    ok('hosting: editing without the key is refused', noKey.status === 401 && /edit key/.test(noKey.json.error))
+    let quotaOk = true
+    let lastQ = null
+    for (let i = 1; i <= 10; i++) {
+      const r = await siteCall('PATCH', `/sites/${SLUG}`, { site: { role: `دور ${i}` } }, KEY)
+      lastQ = r.json && r.json.quota
+      if (r.status !== 200 || !lastQ || lastQ.left !== 10 - i) quotaOk = false
+    }
+    ok('hosting: ten edits on the free plan all go through, each one counted', quotaOk, JSON.stringify(lastQ))
+    const over = await siteCall('PATCH', `/sites/${SLUG}`, { site: { role: 'دور 11' } }, KEY)
+    ok(
+      'hosting: the eleventh edit is refused with 429 and a sentence in Arabic',
+      over.status === 429 && over.json.max === 10 && /انتهت تعديلات/.test(over.json.ar || '') && /resets next month/.test(over.json.en || ''),
+      JSON.stringify(over.json).slice(0, 140),
+    )
+    const page2 = await siteCall('GET', `/s/${SLUG}`)
+    ok(
+      'hosting: the refused edit never reaches the page',
+      page2.text.includes('دور 10') && !page2.text.includes('دور 11'),
+      page2.text.includes('دور 11'),
+    )
+    const bigBody = await fetch(`${BASE}/sites/${SLUG}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json', 'x-qalb-site': KEY },
+      body: JSON.stringify({ site: { bio: 'س'.repeat(70 * 1024) } }),
+    })
+    ok('hosting: a body past the cap is refused before it is parsed', bigBody.status === 413, bigBody.status)
+
+    const domFree = await siteCall('PATCH', `/sites/${SLUG}`, { domain: 'noura.sa' }, KEY)
+    ok(
+      'hosting: a custom domain on the free plan costs what the storefront says — 19 SAR',
+      domFree.status === 402 && domFree.json.price === 19 && domFree.json.plan === 'free',
+      JSON.stringify(domFree.json),
+    )
+    const selfUpgrade = await siteCall('PATCH', `/sites/${SLUG}`, { plan: 'pro' }, KEY)
+    ok(
+      'hosting: the browser cannot promote itself',
+      selfUpgrade.status === 403 && /staff/.test(selfUpgrade.json.error),
+      JSON.stringify(selfUpgrade.json),
+    )
+    const up = await call('PATCH', `/admin/sites/${SLUG}`, { body: { plan: 'pro' }, token: TOKEN })
+    ok('hosting: staff promotion returns the new plan', up.status === 200 && up.json.plan === 'pro', JSON.stringify(up.json && up.json.plan))
+    const page3 = await siteCall('GET', `/s/${SLUG}`)
+    ok(
+      'hosting: paying really takes the bar off the page',
+      page3.status === 200 && !/qalb-brand/.test(page3.text) && page3.text.includes('نورة الحربي'),
+      page3.headers.get('x-qalb-site'),
+    )
+    ok('hosting: pro has no ceiling in its own quota block', up.json.quota.max === null && up.json.quota.left === null, JSON.stringify(up.json.quota))
+    const domPro = await siteCall('PATCH', `/sites/${SLUG}`, { domain: 'Noura.SA/' }, KEY)
+    ok(
+      'hosting: on pro the domain is accepted and normalised to a bare host',
+      domPro.status === 200 && domPro.json.domain === 'noura.sa',
+      JSON.stringify(domPro.json.domain),
+    )
+    await call('PATCH', `/admin/sites/${inj.json.slug}`, { body: { plan: 'pro' }, token: TOKEN }) // خطة تسمح بالنطاق، وإلا فالرفض يسبق التكرار
+    const dupe = await siteCall('PATCH', `/sites/${inj.json.slug}`, { domain: 'noura.sa' }, inj.json.editKey)
+    ok(
+      'hosting: a plan that may pay still cannot take a domain someone holds',
+      dupe.status === 409 && /already connected/.test(dupe.json.error),
+      JSON.stringify(dupe.json),
+    )
+    const domPage = await hostGet('noura.sa')
+    ok('hosting: the connected domain serves the owner’s page, not ours', domPage === page3.text, `${domPage.length} vs ${page3.text.length}`)
+    const chk = await siteCall('POST', `/sites/${inj.json.slug}/check-domain`, {}, inj.json.editKey)
+    ok(
+      'hosting: without a connected domain the check refuses to pretend',
+      chk.status === 400 && /no domain/.test(chk.json.error),
+      JSON.stringify(chk.json),
+    )
+    const chk2 = await siteCall('POST', `/sites/${SLUG}/check-domain`, {}, KEY)
+    ok(
+      'hosting: the domain check is a real DNS lookup, and its answer matches its status',
+      typeof chk2.json.ok === 'boolean' &&
+        ((chk2.status === 200 && chk2.json.ok === true) || (chk2.status === 404 && chk2.json.ok === false) || chk2.status === 502) &&
+        chk2.json.domain === 'noura.sa',
+      JSON.stringify(chk2.json).slice(0, 150),
+    )
+    const back = await siteCall('POST', `/sites/${SLUG}/revert`, {}, KEY)
+    const backPage = await siteCall('GET', `/s/${SLUG}`)
+    ok(
+      'hosting: one revert step is kept, and it puts the earlier words back on the page',
+      back.status === 200 && backPage.text.includes('دور 9') && !backPage.text.includes('دور 10'),
+      JSON.stringify({ s: back.status, has9: backPage.text.includes('دور 9'), has10: backPage.text.includes('دور 10') }),
+    )
+    const back2 = await siteCall('POST', `/sites/${SLUG}/revert`, {}, KEY)
+    ok(
+      'hosting: revert tells the truth when there is nothing left to undo',
+      back2.status === 200 || (back2.status === 409 && /nothing/.test(back2.json.error)),
+      JSON.stringify(back2.json).slice(0, 90),
+    )
+    const paused = await call('PATCH', `/admin/sites/${SLUG}`, { body: { status: 'paused' }, token: TOKEN })
+    ok('hosting: staff can pause a site', paused.status === 200 && paused.json.status === 'paused', JSON.stringify(paused.json.status))
+    const offPage = await siteCall('GET', `/s/${SLUG}`)
+    ok(
+      'hosting: a paused site stops serving and asks to be un-indexed',
+      offPage.status === 503 && /موقوف/.test(offPage.text) && offPage.headers.get('x-robots-tag') === 'noindex',
+      `${offPage.status}/${offPage.headers.get('x-robots-tag')}`,
+    )
+    await call('PATCH', `/admin/sites/${SLUG}`, { body: { status: 'live' }, token: TOKEN })
+    ok('hosting: and serves again the moment it is resumed', (await siteCall('GET', `/s/${SLUG}`)).status === 200)
+
+    const xssKey = KEY
+    const xss = await siteCall('PATCH', `/sites/${SLUG}`, { site: { name: '<img src=x onerror=alert(1)>', role: 'مصممة' } }, xssKey)
+    const xssPage = await siteCall('GET', `/s/${SLUG}`)
+    ok(
+      'hosting: markup in a name is dropped on the way in, so nothing can execute on the page',
+      xss.status === 200 && xss.json.dropped.includes('name') && !/onerror=alert/.test(xssPage.text),
+      JSON.stringify(xss.json.dropped),
+    )
+
+    const list = await call('GET', '/admin/sites', { token: TOKEN })
+    const row = (list.json.sites || []).find((s) => s.slug === SLUG)
+    ok(
+      'hosting: the dashboard lists sites with plan, quota and domain',
+      list.status === 200 && row && row.plan === 'pro' && row.domain === 'noura.sa',
+      JSON.stringify(row),
+    )
+    ok(
+      'hosting: and the list is not an export of the buyers’ text',
+      !list.text.includes('نورة الحربي') && !list.text.includes('مصممة'),
+      list.text.slice(0, 60),
+    )
+    const anonList = await call('GET', '/admin/sites', { token: undefined, header: true })
+    ok('hosting: the list is behind the session', anonList.status === 401)
+    const hAfter = await call('GET', '/health', { header: false })
+    ok(
+      'health counts the hosted sites, their plans and domains',
+      hAfter.json.hosting?.total === 2 &&
+        hAfter.json.hosting?.live === 2 &&
+        hAfter.json.hosting?.paid === 2 && // ترقيتان من اللوحة فقط — المتصفح لا يرقية نفسه
+        hAfter.json.hosting?.domains === 1 && // واحد موصول، والثاني رُفض لأن النطاق مأخوذ
+        hAfter.json.hosting?.root === 'qalb.store',
+      JSON.stringify(hAfter.json.hosting),
+    )
+    ok('hosting: the site ledger on disk is private like the order ledger', modeOf('sites.json') === 0o600, modeOf('sites.json').toString(8))
+    ok('hosting: and no markup is stored in it either', !/onerror=/.test(readFileSync(join(DATA, 'sites.json'), 'utf8')))
+  }
 
   /* --- throttling --- */
   for (let i = 0; i < 6; i++) await call('POST', '/admin/login', { body: { password: 'nope-nope-nope-1' }, header: false })

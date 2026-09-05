@@ -34,6 +34,7 @@ import { loadDotEnv } from '../scripts/dotenv.mjs'
 import { createAdminApi } from './admin.js'
 import { createDeliverApi } from './deliver.js'
 import { PRIVATE, sealDir } from './seal.js'
+import { createSitesApi } from './sites.js'
 import { VAT as VAT_RATE } from '../src/data/tax.js'
 import { sanitizePersonal } from '../src/data/deliverable.js'
 
@@ -149,6 +150,13 @@ const PRICES = () => admin.prices()
  * طبقة التسليم: تبني حزمة القالب من src/data/deliverable.js لحظة الطلب وتوقّع رابطًا
  * أحادي الاستخدام. لا تُخزَّن أي حزمة في public/، فذاك ملف قابل للمشاركة بلا طلب ولا رخصة.
  */
+/**
+ * الاستضافة بالاشتراك: سجلّ المواقع + تقديمها من نفس مولّدات الحزمة. يُركَّب قبل
+ * اللوحة لأن النطاق الفرعي يستولي على أي مسار (`نورة.qalb.store/print`)، ولأن
+ * `/admin/sites` ملك هذه الطبقة لا طبقة المنتجات.
+ */
+const sites = createSitesApi({ dir: DATA, env: process.env, admin })
+
 const deliver = createDeliverApi({
   dir: DATA,
   env: process.env,
@@ -168,8 +176,16 @@ const server = createServer(async (req, res) => {
       vat: VAT,
       admin: admin.enabled(),
       deliver: { ttl: deliver.ttl(), perIp: deliver.perIp() },
+      hosting: sites.enabled() ? { root: sites.root(), ...sites.stats() } : false,
     })
 
+  // طبقة الاستضافة خارج try/catch الأسفل: لو أخطأت هي فلا تُسقط المتجر كلّه
+  try {
+    if (await sites.handle(req, res, u)) return // الاستضافة — انظر server/sites.js
+  } catch (e) {
+    if (!res.headersSent) send(res, 500, { error: 'hosting layer failed', why: String(e.message || e).slice(0, 160) })
+    return
+  }
   if (await admin.handle(req, res, u)) return
   if (await deliver.handle(req, res, u)) return // التسليم المحمي — انظر server/deliver.js
 

@@ -17,7 +17,8 @@
  * يستعملها المتجر (src/data/catalog.js).
  */
 import { createHmac, randomBytes, scryptSync, timingSafeEqual } from 'node:crypto'
-import { existsSync, readFileSync, writeFileSync, renameSync, chmodSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { writePrivateJson } from './seal.js'
 import path from 'node:path'
 import { sanitize, priceTable, MIN_PRICE, MAX_PRICE } from '../src/data/catalog.js'
 import { computeStats, csvOf } from '../src/data/stats.js'
@@ -44,16 +45,8 @@ export function createAdminApi({ dir, vat = 0.15, env = process.env, orders = as
       return fb
     }
   }
-  const writeJson = (file, data) => {
-    const tmp = `${file}.tmp`
-    writeFileSync(tmp, JSON.stringify(data, null, 2) + '\n', { encoding: 'utf8', mode: 0o600 })
-    renameSync(tmp, file)
-    try {
-      chmodSync(file, 0o600)
-    } catch {
-      /* some mounts refuse chmod; the mode above already applied on creation */
-    }
-  }
+  // كاتب واحد لكل ملفات الحالة — انظر server/seal.js
+  const writeJson = writePrivateJson
 
   /* ---------- secret + hashing ---------- */
   let secretCache = null
@@ -359,5 +352,5 @@ export function createAdminApi({ dir, vat = 0.15, env = process.env, orders = as
     'set-cookie': `${COOKIE}=${encodeURIComponent(t)}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${SESSION_MS / 1000}`,
   })
 
-  return { handle, overrides, prices: () => priceTable(overrides()), minPass: MIN_PASS, enabled: () => bootstrap().length > 0 }
+  return { handle, overrides, prices: () => priceTable(overrides()), minPass: MIN_PASS, enabled: () => bootstrap().length > 0, who }
 }
