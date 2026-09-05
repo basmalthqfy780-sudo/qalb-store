@@ -18,8 +18,13 @@ export const B2B_TIERS = [
     name: { ar: 'قسم أو كلية', en: 'A department' },
     for: { ar: 'دفعة واحدة أو برنامج انتقالي', en: 'One cohort or a bridge programme' },
     includes: {
-      ar: ['٥٠ مقعدًا في السنة', 'رمز واحد يُوزَّع على الطلاب', 'قالب سيرة + موقع لكل مقعد', 'تقرير استخدام في آخر السنة'],
-      en: ['50 seats for a year', 'One code handed to students', 'A CV and a site per seat', 'A usage report at year end'],
+      ar: ['٥٠ مقعدًا في السنة', 'رمز واحد يُوزَّع على الطلاب', 'قالب سيرة + موقع لكل مقعد', 'تقريرُ استخدامٍ نكتبه من دفتر الاستهلاك في آخر السنة'],
+      en: [
+        '50 seats for a year',
+        'One code handed to students',
+        'A CV and a site per seat',
+        'A year-end usage report we write out of the redemption ledger',
+      ],
     },
   },
   {
@@ -29,8 +34,18 @@ export const B2B_TIERS = [
     name: { ar: 'معهد تدريب', en: 'A training institute' },
     for: { ar: 'برامج متقطعة ومسارات توظيف', en: 'Short programmes and employment tracks' },
     includes: {
-      ar: ['١٥٠ مقعدًا تُستهلك عند الحاجة', 'لا يُشترى المقعد إلا عند الاستبدال', 'إضافة قوالب مخصصة عند الطلب', 'تقرير استخدام في منتصف السنة'],
-      en: ['150 seats drawn as needed', 'A seat is only spent on redemption', 'Custom template on request', 'A mid-year usage report'],
+      ar: [
+        '١٥٠ مقعدًا تُستهلك عند الحاجة',
+        'لا يُشترى المقعد إلا عند الاستبدال',
+        'إضافة قوالب مخصصة عند الطلب',
+        'تقريرُ منتصفِ سنةٍ من دفتر الاستهلاك، يدويًا وبلا وعدٍ آلي',
+      ],
+      en: [
+        '150 seats drawn as needed',
+        'A seat is only spent on redemption',
+        'Custom template on request',
+        'A mid-year report, written by hand from the ledger',
+      ],
     },
   },
   {
@@ -40,8 +55,13 @@ export const B2B_TIERS = [
     name: { ar: 'جامعة أو أكاديمية', en: 'A university or academy' },
     for: { ar: 'مركز مهنة يخدم كل الخريجين', en: 'A career centre serving all graduates' },
     includes: {
-      ar: ['٣٠٠ مقعد', 'عدة رموز لأفواج مختلفة', 'صفحة استبدال خاصة بالفوج', 'تقرير استخدام في آخر السنة'],
-      en: ['300 seats', 'Several codes for several cohorts', 'A redemption page per cohort', 'A usage report at year end'],
+      ar: ['٣٠٠ مقعد', 'عدة رموز لأفواج مختلفة', 'رمزٌ مستقل لكل فوج على نموذج الاستبدال نفسه', 'تقريرُ نهاية السنة من دفتر الاستهلاك'],
+      en: [
+        '300 seats',
+        'Several codes for several cohorts',
+        'Its own code per cohort on the same redemption form',
+        'A year-end report from the ledger',
+      ],
     },
   },
   {
@@ -51,8 +71,13 @@ export const B2B_TIERS = [
     name: { ar: 'مكتب توظيف أو برنامج وطني', en: 'An employment office or national programme' },
     for: { ar: 'مستفيدون مسجَّلون بمئات الآلاف', en: 'Beneficiaries counted in the tens of thousands' },
     includes: {
-      ar: ['٥٠٠ مقعد', 'توزيع الرموز على الفروع', 'أولوية في القوالب الجديدة', 'تقرير فصلَي بعدد المستبدَل والمُستخدَم'],
-      en: ['500 seats', 'Codes distributed across branches', 'First access to new templates', 'Half-yearly report of redeemed and used seats'],
+      ar: ['٥٠٠ مقعد', 'توزيع الرموز على الفروع', 'نُعلمك بالقالب الجديد عند صدوره', 'تقريرٌ فصليّ بعدد المقاعد المستهلكة لكل رمز، من الدفتر'],
+      en: [
+        '500 seats',
+        'Codes distributed across branches',
+        'We tell you first when a new template ships',
+        'Half-yearly count of seats spent per code, read out of the ledger',
+      ],
     },
   },
 ]
