@@ -268,6 +268,14 @@ export default function Navbar() {
             </Link>
 
             <Link
+              to="/ats"
+              className="hidden items-center gap-1.5 rounded-xl px-2.5 py-2 text-[13px] font-bold text-ink/80 transition hover:bg-panel2 hover:text-brand lg:inline-flex"
+            >
+              <Icon n="scan" className="size-4 text-brand" />
+              {t('nav.ats')}
+            </Link>
+
+            <Link
               to="/host"
               className="hidden items-center gap-1.5 rounded-xl px-2.5 py-2 text-[13px] font-bold text-ink/80 transition hover:bg-panel2 hover:text-brand lg:inline-flex"
             >

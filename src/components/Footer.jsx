@@ -24,6 +24,7 @@ export default function Footer() {
       head: t('footer.resources'),
       links: [
         { to: '/#guide', label: t('footer.cvGuide') },
+        { to: '/ats', label: t('footer.atsCheck') },
         { to: '/#proof', label: t('footer.atsGuide') },
         { to: '/#deploy', label: t('footer.siteGuide') },
         { to: '/templates?type=cv', label: t('footer.coverLetter') },

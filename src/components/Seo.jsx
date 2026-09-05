@@ -125,6 +125,35 @@ export const itemList = (list) => ({
   })),
 })
 
+/**
+ * أداة مجانية في البحث: صفرُ سعرٍ معلن، وأسئلتها هي أسئلة الصفحة نفسها —
+ * لا نصّ ثانٍ يخالف ما يقرؤه الزائر.
+ */
+export const toolLd = ({ name, desc, path = '/ats', faq = [] }) => ({
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'WebApplication',
+      name,
+      url: `${window.location.origin}${path}`,
+      applicationCategory: 'BusinessApplication',
+      operatingSystem: 'Any — runs in the browser',
+      inLanguage: ['ar', 'en'],
+      isAccessibleForFree: true,
+      description: desc,
+      offers: { '@type': 'Offer', price: '0.00', priceCurrency: 'SAR' },
+    },
+    ...(faq.length
+      ? [
+          {
+            '@type': 'FAQPage',
+            mainEntity: faq.map(([q, a]) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } })),
+          },
+        ]
+      : []),
+  ],
+})
+
 export const productLd = (tpl, lang, t) => ({
   '@context': 'https://schema.org',
   '@type': 'Product',

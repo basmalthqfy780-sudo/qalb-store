@@ -29,6 +29,7 @@ import {
   slugify,
   subOf,
 } from '../src/data/hosting.js'
+import { ATS_BANDS, ATS_DEMO, ATS_RULES, ATS_TARGET, analyzeAts, atsReport, atsRuleTable } from '../src/data/ats.js'
 import { zipNames, zipRead } from '../src/data/zip.js'
 import { claimStaleReload, clearStaleReload, isStaleLoadError } from '../src/lib/load-error.js'
 
@@ -147,6 +148,17 @@ const cases = [
     expect: ['Your template becomes a site', 'subdomain', '19', 'free', 'edits a month'],
   },
   { name: 'studio (nothing yet)', url: 'http://localhost/studio', expect: ['لا موقع على هذا المتصفح', 'أنشئ موقعي'] },
+  {
+    name: 'ats checker',
+    url: 'http://localhost/ats',
+    expect: ['هل يقرأ الآليّ سيرتك', 'يعمل في المتصفح وحده', 'جرّب نموذجًا', 'نصّ السيرة', '320', 'قالب', 'لا نفتح هذا الملف — وعن قصد.'].slice(0, 6),
+  },
+  {
+    name: 'ats checker / english',
+    url: 'http://localhost/ats',
+    lang: 'en',
+    expect: ['Can a machine read your CV', 'Browser-only', 'Try a sample', 'Plain text only'],
+  },
   { name: 'wishlist', url: 'http://localhost/wishlist', wish: '["nova","aether"]', expect: ['المفضلة', 'أيثر'] },
   { name: '404', url: 'http://localhost/nope', expect: ['404', 'الصفحة غير موجودة'] },
   { name: 'admin (first run)', url: 'http://localhost/admin', expect: ['أنشئ حساب الإدارة الأول', 'على هذا الجهاز فقط', 'إنشاء الحساب والدخول'] },
@@ -2420,6 +2432,294 @@ for (const c of cases) {
   } else {
     groups++
     console.log(`✓ hosting · live pages, plans, and the edit ceiling  (${checks.length} assertions)`)
+  }
+}
+
+/* ---------------- ats · الفاحص المجاني، وسكربت الحزمة، وشارة البطاقة — قياسٌ واحد ---------------- */
+{
+  const checks = []
+  const ok = (name, cond, extra = '') => checks.push([cond ? name : `${name} — ${extra}`, !!cond])
+  const CJK = /[\u3000-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uff00-\uffef]/
+
+  /* ---------- القواعد نفسها ---------- */
+  ok(
+    'every rule carries Arabic and English copy',
+    ATS_RULES.length === 7 &&
+      ATS_RULES.every((r) => r.re instanceof RegExp && ['name', 'fix', 'why'].every((k) => r[k]?.ar?.length > 8 && r[k]?.en?.length > 8)),
+    ATS_RULES.map((r) => r.id).join(','),
+  )
+  ok(
+    'no stray script or empty string slipped into the checker copy',
+    ![...ATS_RULES, ...ATS_BANDS].some((r) =>
+      ['name', 'fix', 'why', 'label', 'note'].some((k) => CJK.test(String(r[k]?.ar || '')) || CJK.test(String(r[k]?.en || ''))),
+    ),
+  )
+  ok(
+    'the bands cover the whole scale, best first',
+    ATS_BANDS[0].min === 90 && ATS_BANDS.at(-1).min === 0 && ATS_BANDS.every((b, i) => !i || b.min < ATS_BANDS[i - 1].min),
+  )
+  ok(
+    'the free tool and the shipped script read the same table',
+    atsRuleTable().length === ATS_RULES.length && atsRuleTable().every((r, i) => r.src === ATS_RULES[i].re.source),
+  )
+
+  const demo = analyzeAts(ATS_DEMO)
+  ok('the sample CV passes every rule', demo.score === 100 && demo.gaps.length === 0, `${demo.score} · ${demo.gaps.map((g) => g.id).join(',')}`)
+  ok(
+    'and it is long enough to be a real sample',
+    demo.words >= ATS_TARGET.minWords && demo.bullets >= ATS_TARGET.minBullets,
+    `${demo.words}/${demo.bullets}`,
+  )
+  ok('the sample never measures as HTML', demo.isHtml === false)
+
+  const thin = analyzeAts('علي\nمهندس\nعملت في شركة\nشغلت على مشاريع كثيرة وحسّنت الأداء بشكل عام وأحب التعلم\n'.repeat(4))
+  ok('a thin file scores below the pass line', thin.score !== null && thin.score < ATS_TARGET.pass, String(thin.score))
+  ok(
+    'and names its gaps instead of shrugging',
+    thin.gaps.length >= 5 && thin.gaps.some((g) => g.id === 'email') && thin.gaps.some((g) => g.id === 'numbers'),
+    thin.gaps.map((g) => g.id).join(','),
+  )
+  ok('nothing is asserted about text that is not a CV yet', analyzeAts('سارة · مهندسة').score === null && analyzeAts('سارة · مهندسة').short === true)
+  ok('it tells you how many words it still needs', analyzeAts('علي مهندس برمجيات').needsWords > 0)
+  ok(
+    'too long is as much a failure as too short',
+    analyzeAts('كلمة '.repeat(1200)).checks.some((c) => c.id === 'words' && !c.ok),
+  )
+
+  const htmlish = analyzeAts('<ul><li>cut latency 40 %</li><li>shipped 3 releases</li></ul>')
+  ok('an HTML file is detected and measured as a file', htmlish.isHtml === true && htmlish.bullets === 2, `${htmlish.isHtml}/${htmlish.bullets}`)
+  ok(
+    'layout tables are only judged when there is markup to judge',
+    htmlish.checks.some((c) => c.id === 'tables') && !demo.checks.some((c) => c.id === 'tables'),
+  )
+
+  const rep = atsReport(thin, { lang: 'ar' })
+  ok(
+    'the report misses exactly what the score missed',
+    (rep.match(/MISS/g) || []).length === thin.gaps.length,
+    `${(rep.match(/MISS/g) || []).length}/${thin.gaps.length}`,
+  )
+  ok(
+    'and the report is not a second opinion',
+    rep.includes(String(thin.score)) && rep.includes(String(thin.words)) && !/undefined|\[object/.test(rep),
+  )
+  ok('a non-scored file is refused in the report too', atsReport(analyzeAts('مرحبا'), { lang: 'en' }).includes('Too short'))
+
+  /* ---------- لا تخزين ولا إرسال ---------- */
+  const srcOf = (f) => readFileSync(new URL(`../src/${f}`, import.meta.url), 'utf8')
+  const quiet = ['data/ats.js', 'data/ats-table.js', 'pages/Ats.jsx'].every((f) => {
+    const s = srcOf(f)
+      .replace(/^\s*\*.*$/gm, '')
+      .replace(/^\s*\/\/.*$/gm, '')
+    return !/\bfetch\(|XMLHttpRequest|localStorage|sessionStorage|indexedDB|navigator\.sendBeacon/.test(s)
+  })
+  ok('the checker stores nothing and asks for nothing', quiet)
+
+  /* ---------- سكربت الحزمة = القياس نفسه ---------- */
+  const ord = { id: 'QALB-ATS-1', key: 'KEY-ATS-1111', name: 'سارة', email: 's@q.dev', date: '2026-09-05' }
+  const pkgOf = (t) => Object.fromEntries(packageFiles(t, ord).map((f) => [f.path, f.body]))
+  const script = pkgOf(byId('nova'))['scripts/check-ats.mjs']
+  ok(
+    'the shipped script carries every rule label from the table',
+    atsRuleTable().every((r) => script.includes(r.name)),
+    atsRuleTable()
+      .filter((r) => !script.includes(r.name))
+      .map((r) => r.name)
+      .join(','),
+  )
+  ok('and the same pass line the page prints', script.includes(`TARGET.pass`) && script.includes(String(ATS_TARGET.pass)))
+  ok('a site-only template ships no CV checker', !packageFiles(byId('aether'), ord).some((f) => f.path === 'scripts/check-ats.mjs'))
+
+  const drift = templates
+    .filter((t) => t.ats != null)
+    .map((t) => [t.id, t.ats, analyzeAts(pkgOf(t)['resume.html']).score])
+    .filter(([, card, scored]) => scored !== card)
+  ok(
+    'every ATS badge on the shelf is the score of the CV that template prints',
+    drift.length === 0,
+    drift.map(([id, card, scored]) => `${id}: ${card} vs ${scored}`).join(' · '),
+  )
+  ok(
+    'and no badge claims more than the checker gives',
+    templates.filter((t) => t.ats != null).every((t) => t.ats >= ATS_TARGET.pass && t.ats <= 100),
+  )
+
+  /* ---------- الصفحة ---------- */
+  let saved = null
+  let savedName = ''
+  const g = await render(
+    'http://localhost/ats',
+    {},
+    {
+      boot: (win) => {
+        win.URL.createObjectURL = (b) => {
+          saved = b
+          return 'blob:stub'
+        }
+        win.URL.revokeObjectURL = () => {}
+        win.HTMLAnchorElement.prototype.click = function () {
+          savedName = this.download
+        }
+      },
+    },
+  )
+  const btn = (label) => [...g.doc.querySelectorAll('button')].find((b) => b.textContent.includes(label))
+  ok('the checker renders clean', g.errs.length === 0, g.errs.join('|').slice(0, 140))
+  ok(
+    'it opens asking for text, not for money',
+    !!g.doc.querySelector('textarea') && g.txt().includes(String(ATS_TARGET.minWords)),
+    g.txt().slice(0, 70),
+  )
+  ok('and the honest limit of the tool is said up front', g.txt().includes('يعمل في المتصفح وحده'))
+  ok(
+    'the file input only accepts plain text',
+    (g.doc.querySelector('[data-ats-file]')?.getAttribute('accept') || '')
+      .split(',')
+      .every((x) => /^\.(txt|md|markdown|csv)$/.test(x) || /^(text|application)\//.test(x)),
+  )
+  ok(
+    'no raw dictionary key reaches the reader',
+    !/\bats\.[a-zA-Z]/.test(g.txt()) && !/undefined/.test(g.txt()),
+    (g.txt().match(/\bats\.[a-z.]+/) || [''])[0],
+  )
+  ok(
+    'the page description is the dictionary line, not a second text',
+    g.doc.querySelector('meta[name="description"]')?.content === dict.ar.meta.atsDesc,
+  )
+
+  btn('جرّب نموذجًا')?.click()
+  await g.wait(4)
+  ok(
+    'loading the sample prints the score the sample earns',
+    g.doc.querySelector('[data-ats-score]')?.textContent.includes('100'),
+    g.doc.querySelector('[data-ats-score]')?.textContent.slice(0, 60),
+  )
+  ok(
+    'one row per rule, plus the measured ones',
+    g.doc.querySelectorAll('[data-ats-rules] ul > li').length === demo.total,
+    String(g.doc.querySelectorAll('[data-ats-rules] ul > li').length),
+  )
+  ok(
+    'the page reads its numbers from the rule table',
+    g.txt().includes(String(ATS_TARGET.minWords)) && g.txt().includes(String(ATS_TARGET.maxWords)) && g.txt().includes(String(ATS_TARGET.pass)),
+  )
+  ok('a clean structure is answered with what is left, not with a sales pitch', /مستوفاة/.test(g.txt()))
+
+  btn('نسخ التقرير')?.click()
+  await g.wait(3)
+  ok(
+    'a blocked clipboard is admitted instead of dressed up as success',
+    g.txt().includes('الحافظة محجوبة'),
+    g.doc.querySelector('[data-ats-score]')?.textContent.slice(-60),
+  )
+  btn('حفظ التقرير')?.click()
+  await g.wait(3)
+  const savedTxt = saved ? await saved.text() : ''
+  ok(
+    'saving hands over the report the page just measured',
+    savedTxt.includes('100') && savedTxt.includes(String(demo.words)) && saved.type === 'text/markdown;charset=utf-8',
+    `${!!saved}/${savedTxt.slice(0, 40)}`,
+  )
+  ok('and the download is named for the day, not for us', /^ats-report-\d{4}-\d{2}-\d{2}\.md$/.test(savedName), savedName)
+
+  const fileInp = g.doc.querySelector('[data-ats-file]')
+  Object.defineProperty(fileInp, 'files', { value: [{ name: 'cv-final.pdf', size: 4096, type: 'application/pdf' }], configurable: true })
+  fileInp.dispatchEvent(new g.win.Event('change', { bubbles: true }))
+  await g.wait(3)
+  ok(
+    'a PDF is refused with the reason on screen',
+    !!g.doc.querySelector('[data-ats-refused]') && g.txt().includes('لا نفتح هذا الملف'),
+    g.doc.querySelector('[data-ats-refused]')?.textContent?.slice(0, 60),
+  )
+  ok('and the refusal offers a way out, not a dead end', /الصق|نموذج/.test(g.doc.querySelector('[data-ats-refused]')?.textContent || ''))
+
+  const area = g.doc.querySelector('textarea')
+  const setVal = (v) => {
+    Object.getOwnPropertyDescriptor(g.win.HTMLTextAreaElement.prototype, 'value').set.call(area, v)
+    area.dispatchEvent(new g.win.Event('input', { bubbles: true }))
+  }
+  setVal('علي مهندس\nعملت في شركة على مشاريع كثيرة وحسّنت الأداء بشكل عام، وأحب التعلم المستمر في فريق منتِج.\n'.repeat(9))
+  await g.wait(4)
+  const dirty = analyzeAts(area.value)
+  ok(
+    'the panel follows what you typed, not what we hope',
+    !!g.doc.querySelector('[data-ats-rules]') && !g.txt().includes('100'),
+    g.doc.querySelector('[data-ats-score]')?.textContent.slice(0, 50),
+  )
+  ok(
+    'and a file with gaps is answered with the gaps, in order',
+    dirty.gaps.length > 0 && g.doc.querySelectorAll('[data-ats-rules] .text-gold').length >= dirty.gaps.length,
+    `${dirty.gaps.length}`,
+  )
+  const cta = g.doc.querySelector('[data-ats-cta]')
+  ok(
+    'the fix we sell is the one that exists',
+    !!g.doc.querySelector('a[href="/template/nova-cv"]') && (cta?.textContent || '').includes(String(byId('nova').price)),
+    cta?.textContent?.slice(0, 70),
+  )
+  ok(
+    'and the human path is a mail, not a fake ticket',
+    (cta?.textContent || '').includes('مراجعة بشرية') && !!g.doc.querySelector('a[href^="mailto:qalb@qalb.store"]'),
+  )
+  ok(
+    'the mail carries the report, so nothing is asked twice',
+    decodeURIComponent(g.doc.querySelector('a[href^="mailto:"]')?.href || '').includes(String(dirty.score)),
+    (g.doc.querySelector('a[href^="mailto:"]')?.href || '').slice(0, 60),
+  )
+  ok(
+    'the editor path is offered too, and it is the real route',
+    !!g.doc.querySelector('a[href="/host"]') && (cta?.textContent || '').includes('qalb.store'),
+  )
+
+  const ld = JSON.parse(g.doc.getElementById('qalb-jsonld')?.textContent || '{}')
+  const app = ld['@graph']?.find((x) => x['@type'] === 'WebApplication')
+  const faq = ld['@graph']?.find((x) => x['@type'] === 'FAQPage')
+  ok(
+    'the structured data says free, in the page’s own words',
+    app?.offers?.price === '0.00' && app?.isAccessibleForFree === true,
+    JSON.stringify(app?.offers || {}),
+  )
+  ok(
+    'and its questions are the ones on screen',
+    faq?.mainEntity?.length === 4 && faq.mainEntity.every((q) => g.txt().includes(q.name)),
+    String(faq?.mainEntity?.length),
+  )
+
+  const en = await render('http://localhost/ats', { 'qalb.lang': 'en' }, { lang: 'en' })
+  btnClick(en, 'Try a sample')
+  await en.wait(4)
+  ok('english resolves every key of the checker', en.txt().includes(dict.en.ats.title) && !/\bats\.[a-zA-Z]/.test(en.txt()), en.txt().slice(0, 60))
+  ok(
+    'and measures the same file the same way',
+    en.doc.querySelector('[data-ats-score]')?.textContent.includes('100'),
+    en.doc.querySelector('[data-ats-score]')?.textContent.slice(0, 50),
+  )
+  function btnClick(r, label) {
+    ;[...r.doc.querySelectorAll('button')].find((b) => b.textContent.includes(label))?.click()
+  }
+
+  /* ---------- الظهور والوصول ---------- */
+  const home = await render('http://localhost/')
+  ok(
+    'the checker is linked from the header and the footer',
+    home.doc.querySelectorAll('a[href="/ats"]').length >= 2,
+    String(home.doc.querySelectorAll('a[href="/ats"]').length),
+  )
+  ok('and the ATS section offers the check, not only the guide', home.txt().includes('افحص سيرتك مجانًا'))
+  const sm = readFileSync(new URL('../public/sitemap.xml', import.meta.url), 'utf8')
+  const rb = readFileSync(new URL('../public/robots.txt', import.meta.url), 'utf8')
+  ok('the sitemap publishes /ats', sm.includes('https://qalb.store/ats</loc>'))
+  ok('and robots does not hide it', !rb.includes('Disallow: /ats'))
+
+  const bad9 = checks.filter(([, pass]) => !pass)
+  if (bad9.length) {
+    failed++
+    groups++
+    console.log('✗ ats · the free checker, the shipped script, and the badge')
+    bad9.forEach(([n]) => console.log('   failed: ' + n))
+  } else {
+    groups++
+    console.log(`✓ ats · the free checker, the shipped script, and the badge  (${checks.length} assertions)`)
   }
 }
 

@@ -14,6 +14,7 @@
  *   محتوى حيّ    بيانات العرض نفسها التي شاهدها المشتّر في معاينة الموقع.
  */
 import { PALETTE, byId, demoFor, siteFor, accentHex, fontCss } from './templates.js'
+import { ATS_LINKS, ATS_TARGET, atsRuleTable } from './ats-table.js'
 import { zipStore } from './zip.js'
 import { SUPPORT_MAIL } from './contact.js'
 
@@ -559,20 +560,17 @@ createServer(async (req, res) => {
 }).listen(port, '127.0.0.1', () => console.log('qalb starter · http://localhost:' + port))
 `
 
-const atsScript = `/** فاحص جاهزية ATS — يعمل من جذر الحزمة بـ: node scripts/check-ats.mjs */
+/* سكربت الفحص الذي يُسلَّم داخل الحزمة: يُولَّد من src/data/ats.js، فلا يقيس ما
+   نسلّمه بمسطرة غير التي نقيس بها مجّانًا في المتجر. */
+const atsScript = `/** فاحص جاهزية ATS — يعمل من جذر الحزمة بـ: node scripts/check-ats.mjs
+ * مصدر القواعد: qalb/src/data/ats.js — لا نسخة معدَّلة هنا.
+ */
 import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 
-const want = [
-  ['summary / ملخص', /ملخص|summary|profile/i],
-  ['experience / خبرة', /خبرة|experience|employment/i],
-  ['skills / مهارات', /مهارات|skills/i],
-  ['education / تعليم', /تعليم|education|degree|بكالوريوس/i],
-  ['e-mail contact', /@[\\w.-]+\\.\\w{2,}/],
-  ['date ranges (2019 — 2024)', /\\d{4}\\s*[—–-]\\s*(\\d{4}|present|الآن)/i],
-  ['measured bullets (numbers)', /\\d+\\s*%|\\d+\\s*(users|releases|clients|عميل|إستخدم|مستخدم)/i],
-]
-const links = ['linkedin.com', 'github.com', 'mailto:']
+const RULES = ${JSON.stringify(atsRuleTable())}
+const TARGET = ${JSON.stringify(ATS_TARGET)}
+const LINKS = ${JSON.stringify(ATS_LINKS)}
 const read = async (p) => {
   try {
     return await readFile(resolve(p), 'utf8')
@@ -587,23 +585,22 @@ if (!body) {
   console.error('not found: resume.html or resume.md in the package root / لم أجد ملف السيرة في جذر الحزمة')
   process.exit(1)
 }
-const words = (body.replace(/<[^>]+>/g, ' ').match(/[\\p{L}\\p{N}'’-]+/gu) || []).length
-const li = (body.match(/<li[^>]*>[^<]*/g) || []).map((x) => x.replace(/<[^>]*>/g, ''))
-const bullets = (body.match(/<li|^-\\s/gm) || []).length
+const clean = body.replace(/<[^>]+>/g, ' ').replace(/\\s+/g, ' ').trim()
+const words = (clean.match(/[\\p{L}\\p{N}'’-]+/gu) || []).length
+const li = [...body.matchAll(/<li[^>]*>([\\s\\S]*?)<\\/li>/gi)].map((m) => m[1].replace(/<[^>]+>/g, ' ').trim())
+const bullets = li.length
 const measured = li.filter((x) => /\\d/.test(x)).length
-const checks = [
-  ...want.map(([name, re]) => [name, re.test(body)]),
-  ['320–900 words', words >= 320 && words <= 900],
-  ['4+ experience bullets', bullets >= 4],
-  ['half the bullets carry a number', measured * 2 >= bullets],
-  ['no layout tables', !/<table/i.test(body)],
-  ['a profile link', links.some((l) => body.includes(l))],
-]
+const checks = RULES.map((r) => [r.name, new RegExp(r.src, r.flags + 'i').test(clean)])
+checks.push(['length ' + TARGET.minWords + '-' + TARGET.maxWords + ' words', words >= TARGET.minWords && words <= TARGET.maxWords])
+checks.push([TARGET.minBullets + '+ experience bullets', bullets >= TARGET.minBullets])
+checks.push(['half the bullets carry a number', bullets > 0 && measured * 2 >= bullets])
+checks.push(['no layout tables', !/<table/i.test(body)])
+checks.push(['a profile link', LINKS.some((l) => clean.toLowerCase().includes(l))])
 const score = Math.round((checks.filter(([, ok]) => ok).length / checks.length) * 100)
 for (const [name, ok] of checks) console.log((ok ? ' ok  ' : ' MISS') + '  ' + name)
 console.log('ATS readiness / جاهزية الفرز الآلي: ' + score + '% · words: ' + words + ' · bullets: ' + bullets)
-if (score < 70) console.log('fix: اجعل كل نقطة تبدأ بفعل وتنتهي برقم، وأضف الأقسام الناقصة في content/profile.json')
-process.exit(score < 70 ? 1 : 0)
+if (score < TARGET.pass) console.log('fix: اجعل كل نقطة تبدأ بفعل وتنتهي برقم، وأضف الأقسام الناقصة في content/profile.json')
+process.exit(score < TARGET.pass ? 1 : 0)
 `
 
 export const siteHtml = (tpl, p) => {

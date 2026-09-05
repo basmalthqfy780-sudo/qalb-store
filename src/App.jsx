@@ -21,6 +21,7 @@ const Licence = lazy(() => import('./pages/Licence'))
 const Legal = lazy(() => import('./pages/Legal'))
 const Host = lazy(() => import('./pages/Host'))
 const Studio = lazy(() => import('./pages/Studio'))
+const Ats = lazy(() => import('./pages/Ats'))
 const NotFound = lazy(() => import('./pages/NotFound'))
 const Admin = lazy(() => import('./pages/Admin'))
 
@@ -95,6 +96,7 @@ export default function App() {
               <Route path="/track" element={<Track />} />
               <Route path="/licence" element={<Licence />} />
               <Route path="/legal" element={<Legal />} />
+              <Route path="/ats" element={<Ats />} />
               <Route path="/host" element={<Host />} />
               <Route path="/studio" element={<Studio />} />
               <Route path="/admin" element={<Admin />} />

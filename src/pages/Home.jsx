@@ -496,10 +496,16 @@ function ProofBlock() {
                 ))}
               </ul>
             </div>
-            <Btn to="/templates" className="mt-8">
-              {t('proof.cta')}
-              <Icon n="arrow" className="size-4 rtl:-scale-x-100" />
-            </Btn>
+            <div className="mt-8 flex flex-wrap items-center gap-2.5">
+              <Btn to="/templates">
+                {t('proof.cta')}
+                <Icon n="arrow" className="size-4 rtl:-scale-x-100" />
+              </Btn>
+              <Btn to="/ats" variant="outline">
+                <Icon n="scan" className="size-4 text-brand" />
+                {t('proof.ctaAts')}
+              </Btn>
+            </div>
           </div>
         </Reveal>
 
