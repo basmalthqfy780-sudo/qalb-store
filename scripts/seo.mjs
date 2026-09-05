@@ -25,7 +25,7 @@ mkdirSync(PUB, { recursive: true })
 /* ---------------- robots.txt ---------------- */
 writeFileSync(
   path.join(PUB, 'robots.txt'),
-  `User-agent: *\nAllow: /\nDisallow: /checkout\nDisallow: /order\nDisallow: /cart\nDisallow: /admin\n\nSitemap: ${SITE}/sitemap.xml\n`,
+  `User-agent: *\nAllow: /\nDisallow: /checkout\nDisallow: /order\nDisallow: /cart\nDisallow: /admin\nDisallow: /studio\n\nSitemap: ${SITE}/sitemap.xml\n`,
 )
 
 /* ---------------- sitemap.xml ---------------- */
@@ -37,6 +37,7 @@ const urls = [
   { loc: '/track', pri: '0.5', freq: 'monthly' },
   { loc: '/licence', pri: '0.5', freq: 'monthly' },
   { loc: '/legal', pri: '0.3', freq: 'yearly' },
+  { loc: '/host', pri: '0.8', freq: 'weekly' },
   ...templates.map((t) => ({ loc: `/template/${t.slug}`, pri: t.featured ? '0.9' : '0.8', freq: 'weekly' })),
 ]
 const xml = [

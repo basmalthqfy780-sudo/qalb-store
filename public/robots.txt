@@ -4,5 +4,6 @@ Disallow: /checkout
 Disallow: /order
 Disallow: /cart
 Disallow: /admin
+Disallow: /studio
 
 Sitemap: https://qalb.store/sitemap.xml

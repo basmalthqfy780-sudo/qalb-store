@@ -181,6 +181,14 @@ export function brandBar(site) {
   return `<div class="qalb-brand" style="position:fixed;inset-inline:0;bottom:0;z-index:99;display:flex;justify-content:center;gap:.5rem;align-items:center;padding:.45rem .8rem;font:600 12px/1.4 system-ui;background:#0a0c11e6;color:#e8ebf2;border-top:1px solid #242b3a">${text}</div>`
 }
 
+/** نصّ رفض التعديل الزائد: يقوله الخادم وواجهته من مكان واحد، فلا يختلف الكلامان */
+export function quotaNotice(w) {
+  return {
+    ar: `انتهت تعديلات هذا الشهر (${w.max}). تُصفَّر العدّادة مع الشهر الجديد، أو انتقل إلى «قالب بلس» بتعديلات بلا سقف.`,
+    en: `No edits left this month (${w.max}). The counter resets next month, or move to Qalb Plus for unlimited edits.`,
+  }
+}
+
 /** القالب بالـid أو بالـslug: الاستوديو والخادم كلاهما يرسل أحدهما */
 export const tplOf = (v) => byId(v) || templates.find((t) => t.slug === v) || null
 /** السجلّ يحمل بياناته في `site.site`، وقد يُمرَّر كائن بيانات فقط —الاثنان مقبولان */
@@ -276,6 +284,7 @@ export default {
   printSheet,
   profileOf,
   publicUrl,
+  quotaNotice,
   renderSite,
   routeOk,
   slugify,

@@ -12,7 +12,7 @@
 import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { randomBytes } from 'node:crypto'
-import { PLANS, droppedSiteFields, editWindow, planOf, renderSite, sanitizeSite, slugify } from '../src/data/hosting.js'
+import { PLANS, droppedSiteFields, editWindow, planOf, publicUrl, quotaNotice, renderSite, sanitizeSite, slugify } from '../src/data/hosting.js'
 import { writePrivateJson } from './seal.js'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
@@ -101,7 +101,10 @@ export function createSitesApi({ dir, env = process.env, admin = null } = {}) {
       since: site.createdAt,
       updatedAt: site.updatedAt,
       quota: { month: w.month, used: w.used, max: w.max, left: w.left },
-      ...(mine ? { editKey: site.key, email: site.email || null, public: !!site.public } : {}),
+      // «بانتظار الترقية»: يشتريها المشتري من هنا ويُفعّلها الموظف من اللوحة — لا أكثر
+      planPending: !!site.planPending && planOf(site.plan) === 'free',
+      // مع مفتاح التحرير نعيد الحقول نفسها: الاستوديو يحرّر ما طُبِع، بلا نسخة ثانية من البيانات
+      ...(mine ? { editKey: site.key, email: site.email || null, public: !!site.public, planPending: !!site.planPending, site: site.site } : {}),
     }
   }
 
@@ -140,6 +143,7 @@ export function createSitesApi({ dir, env = process.env, admin = null } = {}) {
         email,
         plan: 'free', // لا تُمنح خطة مدفوعة من المتصفح: التفعيل من الطلب أو من اللوحة
         public: b.public !== false,
+        planPending: !!b.planPending, // المشتري يطلب «بلس»: لا نرفع الخطة من المتصفح، نسجّل الطلب فقط
         domain: null,
         status: 'live',
         site,
@@ -171,7 +175,8 @@ export function createSitesApi({ dir, env = process.env, admin = null } = {}) {
 
       if (sub === '' && req.method === 'GET') {
         if (site.status !== 'live') return (json(res, 503, { error: 'site paused' }), true)
-        return (json(res, 200, pub(site, { mine: mine || me })), true)
+        // الحقول والمفتاح لمالك المفتاح فقط؛ الموظف يدير بلا نسخة من بيانات البائع
+        return (json(res, 200, pub(site, { mine })), true)
       }
       if (sub === '' && req.method === 'PATCH') {
         if (!mine && !me) return (json(res, 401, { error: 'edit key required' }), true)
@@ -199,18 +204,8 @@ export function createSitesApi({ dir, env = process.env, admin = null } = {}) {
         if (b.site) {
           const w = editWindow(cur)
           if (!w.canEdit)
-            return (
-              json(res, 429, {
-                error: 'edit quota',
-                month: w.month,
-                used: w.used,
-                max: w.max,
-                plan: plan.id,
-                ar: `انتهت تعديلات هذا الشهر (${w.max}). تُصفَّر العدّادة مع الشهر الجديد، أو انتقل إلى «قالب بلس» بتعديلات بلا سقف.`,
-                en: `No edits left this month (${w.max}). The counter resets next month, or move to Qalb Plus for unlimited edits.`,
-              }),
-              true
-            )
+            // نفس الجُملة التي تُطبع في الاستوديو: من hosting.js، لا نسخة ثانية هنا
+            return (json(res, 429, { error: 'edit quota', month: w.month, used: w.used, max: w.max, plan: plan.id, ...quotaNotice(w) }), true)
           const merged = { ...cur.site, ...b.site, template: b.site.template || cur.site.template }
           const next = sanitizeSite(merged)
           if (!next.template) next.template = cur.site.template // تعديل يحمل قالبًا مكسورًا لا يهدم الموقع
@@ -221,6 +216,7 @@ export function createSitesApi({ dir, env = process.env, admin = null } = {}) {
           cur.editCount = w.used + 1
         }
         if (b.public != null) cur.public = !!b.public
+        if (b.planPending != null) cur.planPending = plan.id === 'free' ? !!b.planPending : false
         if (b.status && me) cur.status = b.status === 'paused' ? 'paused' : 'live'
         if (b.plan != null) {
           if (!me) return (json(res, 403, { error: 'only staff can change a plan' }), true)
@@ -229,7 +225,7 @@ export function createSitesApi({ dir, env = process.env, admin = null } = {}) {
         cur.updatedAt = today()
         map[slug] = cur
         save(map)
-        return (json(res, 200, { ...pub(cur, { mine: mine || me }), ...(editDropped.length ? { dropped: editDropped } : {}) }), true)
+        return (json(res, 200, { ...pub(cur, { mine }), ...(editDropped.length ? { dropped: editDropped } : {}) }), true)
       }
       if (sub === 'revert' && req.method === 'POST') {
         if (!mine && !me) return (json(res, 401, { error: 'edit key required' }), true)
@@ -288,12 +284,15 @@ export function createSitesApi({ dir, env = process.env, admin = null } = {}) {
       const cur = map[ad[1]]
       if (!cur) return (json(res, 404, { error: 'no such site' }), true)
       const [b] = await readBody(req)
-      if (b && b.plan != null) cur.plan = planOf(b.plan)
+      if (b && b.plan != null) {
+        cur.plan = planOf(b.plan)
+        if (cur.plan !== 'free') cur.planPending = false // قلب الموظف للخطة يُسقط الانتظار: لا يبقى علم معلّق كاذب
+      }
       if (b && b.status) cur.status = b.status === 'paused' ? 'paused' : 'live'
       cur.updatedAt = today()
       map[cur.slug] = cur
       save(map)
-      return (json(res, 200, pub(cur, { mine: true })), true)
+      return (json(res, 200, pub(cur)), true) // اللوحة ترى الخطة والحالة والنطاق: لا المفتاح ولا نصّ البائع
     }
 
     /* ---------- التقديم: /s/<slug>/… أو <slug>.qalb.store/… ---------- */
@@ -336,6 +335,8 @@ export function createSitesApi({ dir, env = process.env, admin = null } = {}) {
       res.writeHead(200, {
         'content-type': r.type,
         'cache-control': 'public, max-age=60',
+        // كانonical للنطاق الذي يملكه الموقع — على مستوى النقل كي لا تمس بايتات المولّد المشترك
+        ...(route === '/' || route === '/index.html' ? { link: `<${publicUrl(site)}/>; rel="canonical"` } : {}),
         'x-qalb-site': `${site.slug}/${planOf(site.plan)}`,
         etag: `"${site.updatedAt}"`,
       })
@@ -360,6 +361,7 @@ export function createSitesApi({ dir, env = process.env, admin = null } = {}) {
         live: v.filter((x) => x.status === 'live').length,
         paid: v.filter((x) => planOf(x.plan) === 'pro').length,
         domains: v.filter((x) => x.domain).length,
+        pending: v.filter((x) => x.planPending && planOf(x.plan) === 'free').length,
       }
     },
   }

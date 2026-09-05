@@ -669,6 +669,16 @@ try {
       JSON.stringify(inj.json),
     )
     ok('hosting: the good field survives the refused one, and the tag is nowhere', inj.json.slug && !inj.text.includes('alert(1)'), inj.json.slug)
+    const pend = await siteCall('PATCH', `/sites/${inj.json.slug}`, { planPending: true }, inj.json.editKey)
+    ok(
+      'hosting: asking for the paid plan records a request and hands out no plan',
+      pend.status === 200 && pend.json.planPending === true && pend.json.plan === 'free',
+      JSON.stringify({ pp: pend.json.planPending, p: pend.json.plan }),
+    )
+    const hPend = await call('GET', '/health', { header: false })
+    ok('health counts the upgrades that wait for a human', hPend.json.hosting?.pending === 1, JSON.stringify(hPend.json.hosting))
+    const pendNoKey = await siteCall('PATCH', `/sites/${inj.json.slug}`, { planPending: true })
+    ok('and a pending request is not something anyone can file', pendNoKey.status === 401, pendNoKey.status)
 
     const pub1 = await siteCall('GET', `/sites/${SLUG}`)
     ok(
@@ -679,6 +689,16 @@ try {
     ok('hosting: nor does it leak the buyer’s words', !('site' in pub1.json) && !pub1.text.includes('نورة الحربي'), pub1.text.slice(0, 60))
     const own1 = await siteCall('GET', `/sites/${SLUG}`, null, KEY)
     ok('with the key you get your own e-mail back', own1.status === 200 && own1.json.editKey === KEY && own1.json.email === 'noura@studio.sa')
+    ok(
+      'and your own fields, so the editor edits what is stored',
+      own1.json.site?.name === 'نورة الحربي' && own1.json.site?.city === 'جدة',
+      JSON.stringify(own1.json.site),
+    )
+    ok(
+      'without the key the same record exposes neither fields nor key',
+      !('site' in pub1.json) && !('editKey' in pub1.json),
+      JSON.stringify(Object.keys(pub1.json)),
+    )
 
     const page = await siteCall('GET', `/s/${SLUG}`)
     ok(
@@ -749,6 +769,11 @@ try {
     )
     const up = await call('PATCH', `/admin/sites/${SLUG}`, { body: { plan: 'pro' }, token: TOKEN })
     ok('hosting: staff promotion returns the new plan', up.status === 200 && up.json.plan === 'pro', JSON.stringify(up.json && up.json.plan))
+    ok(
+      'hosting: the dashboard gets the plan, not the buyer’s words or key',
+      up.status === 200 && !('editKey' in up.json) && !('site' in up.json) && !up.text.includes('نورة الحربي'),
+      JSON.stringify(Object.keys(up.json)),
+    )
     const page3 = await siteCall('GET', `/s/${SLUG}`)
     ok(
       'hosting: paying really takes the bar off the page',
@@ -762,7 +787,13 @@ try {
       domPro.status === 200 && domPro.json.domain === 'noura.sa',
       JSON.stringify(domPro.json.domain),
     )
-    await call('PATCH', `/admin/sites/${inj.json.slug}`, { body: { plan: 'pro' }, token: TOKEN }) // خطة تسمح بالنطاق، وإلا فالرفض يسبق التكرار
+    const injUp = await call('PATCH', `/admin/sites/${inj.json.slug}`, { body: { plan: 'pro' }, token: TOKEN }) // خطة تسمح بالنطاق، وإلا فالرفض يسبق التكرار
+    const hFlip = await call('GET', '/health', { header: false })
+    ok(
+      'hosting: the staff flip turns the plan on and the waiting flag off at once',
+      injUp.status === 200 && injUp.json.plan === 'pro' && injUp.json.planPending === false && hFlip.json.hosting?.pending === 0,
+      JSON.stringify({ p: injUp.json.plan, pp: injUp.json.planPending, h: hFlip.json.hosting }),
+    )
     const dupe = await siteCall('PATCH', `/sites/${inj.json.slug}`, { domain: 'noura.sa' }, inj.json.editKey)
     ok(
       'hosting: a plan that may pay still cannot take a domain someone holds',

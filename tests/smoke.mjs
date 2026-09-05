@@ -139,6 +139,14 @@ const cases = [
       'single-use',
     ],
   },
+  { name: 'hosting', url: 'http://localhost/host', expect: ['قالبك يصير موقعًا', 'qalb.store', '19', 'مجانًا', 'تعديلات في الشهر', 'نسخ'] },
+  {
+    name: 'hosting / english',
+    url: 'http://localhost/host',
+    lang: 'en',
+    expect: ['Your template becomes a site', 'subdomain', '19', 'free', 'edits a month'],
+  },
+  { name: 'studio (nothing yet)', url: 'http://localhost/studio', expect: ['لا موقع على هذا المتصفح', 'أنشئ موقعي'] },
   { name: 'wishlist', url: 'http://localhost/wishlist', wish: '["nova","aether"]', expect: ['المفضلة', 'أيثر'] },
   { name: '404', url: 'http://localhost/nope', expect: ['404', 'الصفحة غير موجودة'] },
   { name: 'admin (first run)', url: 'http://localhost/admin', expect: ['أنشئ حساب الإدارة الأول', 'على هذا الجهاز فقط', 'إنشاء الحساب والدخول'] },
@@ -1130,7 +1138,7 @@ for (const c of cases) {
     const staticRoutes = [...readFileSync('src/App.jsx', 'utf8').matchAll(/path="(\/[a-z-]*)"/g)]
       .map((m) => m[1])
       .filter((p) => p === '/' || !p.endsWith('/'))
-    const privateRoutes = ['/checkout', '/cart', '/order', '/admin']
+    const privateRoutes = ['/checkout', '/cart', '/order', '/admin', '/studio'] // الاستوديو أداة خاصة: لا في الـsitemap ولا في الفهرس
     const publicRoutes = staticRoutes.filter((p) => !privateRoutes.includes(p))
     const notInMap = publicRoutes.filter((p) => !map.includes(`${p}</loc>`))
     ok(
@@ -1139,9 +1147,9 @@ for (const c of cases) {
       `missing=${notInMap.join(',') || '—'} of ${publicRoutes.length}`,
     )
     ok(
-      'the sitemap length is what the generator should write: pages + 15 products',
-      (map.match(/<loc>/g) || []).length === publicRoutes.length + 15,
-      `${(map.match(/<loc>/g) || []).length} vs ${publicRoutes.length + 15}`,
+      'the sitemap length is what the generator should write: pages + every product',
+      (map.match(/<loc>/g) || []).length === publicRoutes.length + templates.length,
+      `${(map.match(/<loc>/g) || []).length} vs ${publicRoutes.length + templates.length}`,
     )
     ok(
       'robots.txt keeps the transactional routes out',
@@ -2412,6 +2420,293 @@ for (const c of cases) {
   } else {
     groups++
     console.log(`✓ hosting · live pages, plans, and the edit ceiling  (${checks.length} assertions)`)
+  }
+}
+
+/* ---------------- hosting · the buyer's own pages: /host claims it, /studio edits it ---------------- */
+{
+  const checks = []
+  const ok = (name, cond, extra = '') => checks.push([cond ? name : `${name} — ${extra}`, !!cond])
+  const seedRec = (over = {}) => ({
+    slug: 'sara-harbi',
+    id: 'QS-TEST',
+    key: 'kkkkkkkkkkkkkkkkkkkk',
+    email: 's@q.dev',
+    plan: 'free',
+    public: true,
+    planPending: false,
+    domain: null,
+    status: 'live',
+    site: {
+      name: 'سارة العتيبي',
+      role: 'محللة بيانات',
+      city: 'الرياض',
+      email: 's@q.dev',
+      bio: 'ست سنوات في البيانات',
+      theme: 'dark',
+      lang: 'ar',
+      template: 'nova',
+    },
+    createdAt: '2026-09-01',
+    updatedAt: '2026-09-01',
+    editMonth: monthKey(),
+    editCount: 0,
+    history: [],
+    ...over,
+  })
+  const siteSeed = (over = {}) => ({
+    'qalb.sites.v1': JSON.stringify({ 'sara-harbi': seedRec(over) }),
+    'qalb.site-keys.v1': JSON.stringify({ 'sara-harbi': 'kkkkkkkkkkkkkkkkkkkk' }),
+  })
+  const type = (g, el, v) => {
+    const proto =
+      el.tagName === 'TEXTAREA'
+        ? g.win.HTMLTextAreaElement.prototype
+        : el.tagName === 'SELECT'
+          ? g.win.HTMLSelectElement.prototype
+          : g.win.HTMLInputElement.prototype
+    Object.getOwnPropertyDescriptor(proto, 'value').set.call(el, v)
+    el.dispatchEvent(new g.win.Event(el.tagName === 'SELECT' ? 'change' : 'input', { bubbles: true }))
+  }
+  const stored = (g, k) => {
+    try {
+      return JSON.parse(g.win.localStorage.getItem(k) || 'null')
+    } catch {
+      return null
+    }
+  }
+
+  /* ---------- /host ---------- */
+  const h = await render('http://localhost/host')
+  ok('hosting storefront renders clean', h.errs.length === 0, h.errs.join('|').slice(0, 140))
+  ok(
+    'the claim form exists with a labelled field for every hosted key',
+    ['name', 'role', 'city', 'email', 'phone', 'website', 'bio'].every(
+      (k) => h.doc.getElementById(`ho-${k}`) && h.doc.getElementById(`ho-${k}`).closest('label')?.textContent?.trim().length > 1,
+    ),
+    HOST_FIELDS.map((f) => `ho-${f}`).join(','),
+  )
+  ok(
+    'only the e-mail is required, and the form says so',
+    h.doc.getElementById('ho-email')?.hasAttribute('required') && !h.doc.getElementById('ho-name').hasAttribute('required'),
+  )
+  ok(
+    'no raw dictionary key reaches the reader',
+    !/(host|studio)\.[a-z][a-zA-Z.]+/.test(h.txt()),
+    (h.txt().match(/(host|studio)\.[a-z.]+/) || [''])[0],
+  )
+  ok(
+    'the free card states the ceiling that the server enforces',
+    h.txt().includes(String(PLANS.free.editQuota)) && h.txt().includes('qalb.store'),
+    h.txt().slice(0, 60),
+  )
+  ok('the paid card states the price the API charges', h.txt().includes(String(PLANS.pro.price)), h.txt().slice(0, 80))
+  ok('and what free carries is named, not hidden', /شريط|bar/.test(h.txt()))
+
+  type(h, h.doc.getElementById('ho-name'), 'سارة العتيبي')
+  await h.wait()
+  ok('typing a name re-solves the address with the server’s own transliteration', h.txt().includes(slugify('سارة العتيبي')), slugify('سارة العتيبي'))
+
+  type(h, h.doc.getElementById('ho-email'), 'not-an-email')
+  h.doc.getElementById('host-form')?.dispatchEvent(new h.win.Event('submit', { bubbles: true, cancelable: true }))
+  await h.wait()
+  ok(
+    'a bad e-mail is refused in place, and nothing is created',
+    /بريد|e-?mail/i.test(h.txt()) && stored(h, 'qalb.sites.v1') === null,
+    h.txt().slice(-90),
+  )
+
+  type(h, h.doc.getElementById('ho-email'), 'sara@q.dev')
+  h.doc.getElementById('host-form')?.dispatchEvent(new h.win.Event('submit', { bubbles: true, cancelable: true }))
+  await h.wait(6)
+  const madeRow = stored(h, 'qalb.sites.v1') || {}
+  const madeSlug = Object.keys(madeRow)[0]
+  ok(
+    'a valid claim creates the site on this device',
+    !!madeSlug && madeRow[madeSlug].plan === 'free' && madeRow[madeSlug].status === 'live',
+    madeSlug,
+  )
+  ok('the printed text is what was typed', madeRow[madeSlug]?.site?.name === 'سارة العتيبي', JSON.stringify(madeRow[madeSlug]?.site?.name))
+  ok(
+    'the address and the one-time key are shown, and the key is remembered for this device',
+    !!h.doc.getElementById('host-done') &&
+      h.txt().includes(`${madeSlug}.qalb.store`) &&
+      (stored(h, 'qalb.site-keys.v1') || {})[madeSlug] === madeRow[madeSlug]?.key,
+    (stored(h, 'qalb.site-keys.v1') || {}).madeSlug,
+  )
+  ok(
+    'the ceiling travels with the record, not with the copy',
+    madeRow[madeSlug]?.editCount === 0 && madeRow[madeSlug]?.editMonth === monthKey(),
+    JSON.stringify(madeRow[madeSlug]?.editMonth),
+  )
+
+  const pre = await render(`http://localhost/host?template=${'nova'}`)
+  ok(
+    'a template can be chosen from the product page',
+    pre.doc.getElementById('ho-template')?.value === 'nova',
+    pre.doc.getElementById('ho-template')?.value,
+  )
+  const nav = await render('http://localhost/templates')
+  ok('the storefront links to hosting without hiding it', !!nav.doc.querySelector('a[href="/host"]'))
+
+  /* ---------- /studio ---------- */
+  const s = await render('http://localhost/studio', siteSeed())
+  ok(
+    'the studio renders clean and picks the only site it knows',
+    s.errs.length === 0 && !!s.doc.querySelector('[data-studio-frame]'),
+    s.errs.join('|').slice(0, 140),
+  )
+  const frame = () => s.doc.querySelector('[data-studio-frame]')?.getAttribute('srcdoc') || ''
+  ok(
+    'the preview is the generator’s own page, with the buyer’s name in it',
+    frame().includes('سارة العتيبي') && /<html|<!doctype/i.test(frame()),
+    frame().length,
+  )
+  ok('the counter starts where the server starts it', s.txt().includes(`0/${PLANS.free.editQuota}`), s.txt().match(/\d+\/\d+/)?.[0])
+  ok('nothing is offered to save when nothing changed', s.doc.querySelector('[data-save]')?.disabled === true && /غير محفوظ|unsaved/i.test(s.txt()))
+
+  type(s, s.doc.getElementById('st-role'), 'محللة أولى')
+  await s.wait()
+  ok(
+    'the preview updates before the save, from the same data',
+    frame().includes('محللة أولى') && s.doc.querySelector('[data-save]')?.disabled === false,
+    frame().includes('محللة أولى'),
+  )
+  s.doc.querySelector('[data-save]')?.click()
+  await s.wait(6)
+  const afterOne = (stored(s, 'qalb.sites.v1') || {})['sara-harbi']
+  ok(
+    'saving writes through the rules and counts the edit',
+    afterOne?.site?.role === 'محللة أولى' && afterOne?.editCount === 1 && afterOne?.history?.length === 1,
+    JSON.stringify({ r: afterOne?.site?.role, c: afterOne?.editCount, h: afterOne?.history?.length }),
+  )
+  ok('and the counter moves on the screen too', s.txt().includes(`1/${PLANS.free.editQuota}`), s.txt().match(/\d+\/\d+/)?.[0])
+
+  for (let i = 2; i <= PLANS.free.editQuota; i++) {
+    type(s, s.doc.getElementById('st-role'), `دور ${i}`)
+    await s.wait()
+    s.doc.querySelector('[data-save]')?.click()
+    await s.wait(5)
+  }
+  const full = (stored(s, 'qalb.sites.v1') || {})['sara-harbi']
+  ok(
+    'the ceiling is reached in the record, not only on screen',
+    full?.editCount === PLANS.free.editQuota && full?.site?.role === `دور ${PLANS.free.editQuota}`,
+    JSON.stringify({ c: full?.editCount, r: full?.site?.role }),
+  )
+  await s.wait()
+  ok(
+    'the eleventh save cannot be attempted: the button is shut and the reason is shown',
+    s.doc.querySelector('[data-save]')?.disabled === true && s.txt().includes(String(PLANS.free.editQuota)),
+    s.txt().slice(-120),
+  )
+  const back = s.btn(/رجوع|Back to the last/i)
+  back?.click()
+  await s.wait(6)
+  ok(
+    'one revert really puts the earlier words back',
+    (stored(s, 'qalb.sites.v1') || {})['sara-harbi']?.site?.role === `دور ${PLANS.free.editQuota - 1}`,
+    (stored(s, 'qalb.sites.v1') || {})['sara-harbi']?.site?.role,
+  )
+
+  const domRow = (stored(s, 'qalb.sites.v1') || {})['sara-harbi']
+  ok('the free plan does not get a domain field to dream with', domRow?.domain === null)
+
+  const st2 = await render('http://localhost/studio', siteSeed())
+  await st2.wait()
+  const ask = st2.btn(/اطلب بلس|Ask for Plus/i)
+  ok('the upgrade is a request, and the page says so in both languages', !!ask)
+  ask?.click()
+  await st2.wait(6)
+  const pending = (stored(st2, 'qalb.sites.v1') || {})['sara-harbi']
+  ok(
+    'asking records planPending and does not hand out the plan',
+    pending?.planPending === true && pending?.plan === 'free',
+    JSON.stringify({ pp: pending?.planPending, p: pending?.plan }),
+  )
+  ok('so our bar is still on the page it serves', /qalb-brand/.test(st2.doc.querySelector('[data-studio-frame]')?.getAttribute('srcdoc') || ''))
+  ok('and the pending state is shown rather than a success', /بانتظار التفعيل|awaiting activation/i.test(st2.txt()))
+
+  const st3 = await render('http://localhost/studio', siteSeed({ plan: 'pro', domain: 'sara.dev' }))
+  await st3.wait()
+  const src3 = st3.doc.querySelector('[data-studio-frame]')?.getAttribute('srcdoc') || ''
+  ok(
+    'on the paid plan the preview loses the bar — because it is the same renderer',
+    !/qalb-brand/.test(src3) && src3.includes('سارة العتيبي'),
+    src3.length,
+  )
+  ok('and the domain field is there to use', st3.doc.getElementById('st-domain')?.value === 'sara.dev', st3.doc.getElementById('st-domain')?.value)
+
+  const lost = await render('http://localhost/studio', { 'qalb.sites.v1': JSON.stringify({ 'sara-harbi': seedRec() }) })
+  ok(
+    'a record without its key asks for the key instead of guessing',
+    !lost.doc.querySelector('[data-studio-frame]') && /مفتاح|edit key/i.test(lost.txt()),
+    lost.txt().slice(0, 90),
+  )
+  const none = await render('http://localhost/studio')
+  console.log('DBG none:', JSON.stringify(none.errs), '|', none.txt().slice(160, 700))
+  ok(
+    'an empty studio sends the visitor to create one, not to a blank editor',
+    /لا موقع على هذا المتصفح/.test(none.txt()) && !!none.doc.querySelector('a[href="/host"]'),
+    none.txt().slice(0, 90),
+  )
+
+  /* ---------- محو البيانات يشمل ما صار يُخزَّن ---------- */
+  const pd = await render(`http://localhost/template/${byId('nova').slug}`, {
+    ...siteSeed(),
+    'qalb.personalize.v1': JSON.stringify({ on: true, name: 'سارة', role: '', email: '', phone: '', website: '', bio: '' }),
+  })
+  const clearBtn = pd.btn(/امسح بياناتي|Clear my details/i)
+  ok('the erase control is on the product page too', !!clearBtn)
+  clearBtn?.click()
+  await pd.wait(6)
+  ok(
+    'and it clears the hosted records from this device as well',
+    stored(pd, 'qalb.sites.v1') === null && stored(pd, 'qalb.site-keys.v1') === null,
+    JSON.stringify([stored(pd, 'qalb.sites.v1'), stored(pd, 'qalb.site-keys.v1')]),
+  )
+  ok('saying how many it removed', /أيضًا|too/.test(pd.txt()) && /[12]/.test(pd.txt().slice(-160)), pd.txt().slice(-120))
+
+  /* ---------- عقد واحد للواجهة والخادم ---------- */
+  // عقد واحد: نقارن مفاتيح pub() في الخادم بـ localPub() في الواجهة، بالمجانسين
+  const pubKeys = (src, fn) => {
+    const open = src.indexOf('return {', src.indexOf(fn))
+    let depth = 0
+    let end = open
+    for (let k = open + 6; k < src.length; k++) {
+      if (src[k] === '{') depth++
+      else if (src[k] === '}') {
+        depth--
+        if (!depth) {
+          end = k
+          break
+        }
+      }
+    }
+    const re = /^\s+([a-zA-Z]+): /gm
+    return [...src.slice(open, end).matchAll(re)].map((m) => m[1]).filter((k, ix, a) => a.indexOf(k) === ix)
+  }
+  const srv = pubKeys(readFileSync('server/sites.js', 'utf8'), 'const pub = (site')
+  const cli = pubKeys(readFileSync('src/api/hosting.js', 'utf8'), 'function localPub(rec')
+  ok(
+    'the client and the server publish the same fields, so the studio cannot show less',
+    srv.length > 6 && srv[0] === 'slug' && JSON.stringify(srv) === JSON.stringify(cli),
+    `${srv.join(',')} vs ${cli.join(',')}`,
+  )
+  ok(
+    'and both hand the editable text only to whoever presents the key',
+    /editKey[\s\S]{0,120}?site: site\.site/.test(readFileSync('server/sites.js', 'utf8')) &&
+      /editKey[\s\S]{0,120}?site: rec\.site/.test(readFileSync('src/api/hosting.js', 'utf8')),
+  )
+
+  const bad10 = checks.filter(([, pass]) => !pass)
+  if (bad10.length) {
+    failed++
+    console.log('✗ hosting · the buyer’s pages')
+    bad10.forEach(([n]) => console.log('   failed: ' + n))
+  } else {
+    groups++
+    console.log(`✓ hosting · the buyer’s pages  (${checks.length} assertions)`)
   }
 }
 

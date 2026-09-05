@@ -19,6 +19,8 @@ const Wishlist = lazy(() => import('./pages/Wishlist'))
 const Track = lazy(() => import('./pages/Track'))
 const Licence = lazy(() => import('./pages/Licence'))
 const Legal = lazy(() => import('./pages/Legal'))
+const Host = lazy(() => import('./pages/Host'))
+const Studio = lazy(() => import('./pages/Studio'))
 const NotFound = lazy(() => import('./pages/NotFound'))
 const Admin = lazy(() => import('./pages/Admin'))
 
@@ -93,6 +95,8 @@ export default function App() {
               <Route path="/track" element={<Track />} />
               <Route path="/licence" element={<Licence />} />
               <Route path="/legal" element={<Legal />} />
+              <Route path="/host" element={<Host />} />
+              <Route path="/studio" element={<Studio />} />
               <Route path="/admin" element={<Admin />} />
               <Route path="*" element={<NotFound />} />
             </Routes>

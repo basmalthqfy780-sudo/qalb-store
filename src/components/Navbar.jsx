@@ -267,6 +267,14 @@ export default function Navbar() {
               <Count n={totals.count} />
             </Link>
 
+            <Link
+              to="/host"
+              className="hidden items-center gap-1.5 rounded-xl px-2.5 py-2 text-[13px] font-bold text-ink/80 transition hover:bg-panel2 hover:text-brand lg:inline-flex"
+            >
+              <Icon n="globe" className="size-4 text-brand" />
+              {t('nav.host')}
+            </Link>
+
             <Btn to="/templates" size="sm" className="hidden md:inline-flex">
               {t('hero.ctaPrimary')}
             </Btn>

@@ -15,6 +15,7 @@ export default function Footer() {
       head: t('footer.shop'),
       links: [
         { to: '/templates', label: t('footer.allTemplates') },
+        { to: '/host', label: t('nav.host') },
         ...categories.slice(0, 4).map((c) => ({ to: `/templates?cat=${c.id}`, label: lang === 'ar' ? c.ar : c.en })),
         { to: '/#bundles', label: t('footer.bundles') },
       ],

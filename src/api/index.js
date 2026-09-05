@@ -8,6 +8,9 @@
  * Switch with VITE_QALB_API=rest + VITE_QALB_API_BASE=… . Nothing else in the
  * app talks to storage or fetch directly, so a real gateway (Stripe/salla) or a
  * Supabase edge function only has to satisfy these four functions.
+ *
+ * الاستضافة في وحدة شقيقة (src/api/hosting.js) تُحمَّل مع صفحاتها وحدها:
+ * لا يدفع متجرٌ كاملٌ كودَ المولّدات وهو يعرض قائمة قوالب.
  */
 /** اللوحة تستورده عند الحاجة فقط: لا يحمل متجرٌ صفحته الأولى كودَ الإدارة */
 const localAdmin = () => import('./adminLocal.js').then((m) => m.localAdmin)
@@ -22,12 +25,12 @@ const env = (k) => {
   }
 }
 
-const BASE = (env('VITE_QALB_API_BASE') || '').replace(/\/+$/, '')
+export const BASE = (env('VITE_QALB_API_BASE') || '').replace(/\/+$/, '')
 export const apiMode = env('VITE_QALB_API') === 'rest' && BASE ? 'rest' : 'local'
 
 const ORDERS = 'qalb.orders.v1'
 const LAST = 'qalb.lastOrder'
-const read = (k, fb) => {
+export const read = (k, fb) => {
   try {
     const raw = localStorage.getItem(k)
     return raw ? JSON.parse(raw) : fb
@@ -35,7 +38,7 @@ const read = (k, fb) => {
     return fb
   }
 }
-const write = (k, v) => {
+export const write = (k, v) => {
   try {
     localStorage.setItem(k, JSON.stringify(v))
   } catch {

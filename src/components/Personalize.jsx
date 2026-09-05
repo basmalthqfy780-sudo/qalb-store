@@ -37,7 +37,7 @@ const PH = {
 export default function Personalize({ compact = false, className = '' }) {
   const { t, lang } = useI18n()
   const { personal, setPersonal, resetPersonal } = useStore()
-  const [cleared, setCleared] = useState(false)
+  const [cleared, setCleared] = useState(null)
   const on = !!personal.on
   // يبقى الحقل محفوظًا بعد إلغاء التحديد: فالمسح إذن فعلٌ مستقل له زرّه
   const dirty = PERSONAL_FIELDS.some((f) => String(personal[f.k] || '').length > 0) || on
@@ -138,7 +138,9 @@ export default function Personalize({ compact = false, className = '' }) {
             className="!h-8 !px-2.5 !text-[11.5px]"
             onClick={() => {
               resetPersonal()
-              setCleared(true)
+              setCleared({ sites: 0 })
+              // مواقع الاستضافة تحمل النصوص نفسها: تُمسح من الجهاز في اللحظة نفسها، ويُبلَّغ عددها
+              import('../api/hosting').then((m) => setCleared(m.sites.eraseAll())).catch(() => setCleared({ sites: 0 }))
             }}
           >
             <Icon n="close" className="size-3.5" sw={2.6} />
@@ -149,7 +151,10 @@ export default function Personalize({ compact = false, className = '' }) {
       {cleared ? (
         <p role="status" className="mt-2 flex items-start gap-1.5 text-[11px] leading-relaxed text-dim">
           <Icon n="check" className="mt-px size-3.5 shrink-0 text-brand" sw={2.8} />
-          <span>{t('personal.cleared')}</span>
+          <span>
+            {t('personal.cleared')}
+            {cleared.sites ? t('personal.clearedSites', { n: cleared.sites }) : ''}
+          </span>
         </p>
       ) : null}
     </div>

@@ -475,6 +475,13 @@ export default function Product() {
                     {saved ? t('wishlist.saved') : t('wishlist.save')}
                   </Btn>
                 </div>
+                <Link
+                  to={`/host?template=${tpl.id}`}
+                  className="mt-0.5 inline-flex items-center gap-1.5 text-[12.5px] font-bold text-dim transition hover:text-brand"
+                >
+                  <Icon n="globe" className="size-3.5" />
+                  {t('host.fromProduct')}
+                </Link>
                 {inCart(tpl.id) && (
                   <Link
                     to="/cart"

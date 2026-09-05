@@ -397,7 +397,13 @@ export default function Success() {
               {t('product.support')} · {SUPPORT_MAIL}
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            {bought[0] ? (
+              <Btn to={`/host?template=${bought[0].id}`} size="md">
+                <Icon n="globe" className="size-4" />
+                {t('host.afterBuy')}
+              </Btn>
+            ) : null}
             <Btn to="/templates" variant="outline" size="md">
               {t('cart.browse')}
             </Btn>
