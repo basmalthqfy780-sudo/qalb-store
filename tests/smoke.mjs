@@ -1521,6 +1521,12 @@ for (const c of cases) {
   ok('and shows no invented contract table', !g.doc.querySelector('[data-orgs] table'))
   ok('the note hands the reader to the licences page', !!g.doc.querySelector('[data-orgs] a[href="/b2b"]'))
   ok('nothing claims a code was issued', !/صُدِّر الرمز/.test(g.txt()))
+  const adminSrc = readFileSync('src/pages/Admin.jsx', 'utf8')
+  ok(
+    'the seats table carries the per-template report column',
+    /admin\.orgsUsage/.test(adminSrc) && /r\.byTemplate/.test(adminSrc) && /colSpan=\{9\}/.test(adminSrc),
+    'usage column',
+  )
   const viteCfg = readFileSync('vite.config.js', 'utf8')
   ok(
     'the dev/preview bridge forwards the seat doors too',
@@ -2585,7 +2591,7 @@ for (const c of cases) {
     'and the CSV export cannot leak a roster',
     (() => {
       const c = orgCsv([orgRowForStaff(spent)])
-      return c.split('\n')[0] === 'code,org,email,tier,status,issued,expires,seats,used' && !c.includes('student')
+      return c.split('\n')[0] === 'code,org,email,tier,status,issued,expires,seats,used,byTemplate' && !c.includes('student')
     })(),
   )
   ok('the institution’s own contact is the only address in it', orgCsv([orgRowForStaff(spent)]).includes('careers@u.edu.sa'))

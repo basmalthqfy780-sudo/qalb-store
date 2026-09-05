@@ -996,7 +996,7 @@ try {
     ok(
       'orgs: the CSV export is a roster of contracts, not of students',
       csv.status === 200 &&
-        csv.text.split('\n')[0].endsWith('seats,used') &&
+        csv.text.split('\n')[0].endsWith('seats,used,byTemplate') &&
         !csv.text.includes('student') &&
         csv.text.includes('careers@kau.edu.sa'),
       csv.text.slice(0, 90),
@@ -1071,6 +1071,30 @@ try {
     ok('orgs: GET on the redeem door is a 405, not a 404 into the store', (await call('GET', '/org/redeem', { header: false })).status === 405)
     ok('orgs: POST to the counts door is refused too', (await call('POST', '/org/' + code, { body: {}, header: false })).status === 405)
     ok('orgs: nothing but markup is ever written to the ledger', !/onerror=|<script/.test(readFileSync(join(DATA, 'orgs.json'), 'utf8')))
+    const bulk = await redeem({ email: 'cohort@student.qalb.test', template: 'mirrorbundle' })
+    ok(
+      'orgs: a bundle redeems off the same seat pool',
+      bulk.status === 201 && bulk.json.order.lines[0].id === 'mirrorbundle' && bulk.json.remaining === 1,
+      JSON.stringify({ st: bulk.status, left: bulk.json.remaining }),
+    )
+    const report = await call('GET', '/admin/orgs', { token: TOKEN })
+    const rrow = report.json.orgs.find((r) => r.code === code)
+    ok(
+      'orgs: the panel reads a per-template usage report off the ledger',
+      rrow.byTemplate === 'nova:4;mirrorbundle:1',
+      JSON.stringify(rrow.byTemplate),
+    )
+    const csv2 = await call('GET', '/admin/orgs.csv', { token: TOKEN, raw: true })
+    ok(
+      'orgs: the CSV carries that report as its last column',
+      csv2.text.split('\n')[0].endsWith('seats,used,byTemplate') && csv2.text.includes('"nova:4;mirrorbundle:1"'),
+      csv2.text.split('\n')[0],
+    )
+    ok(
+      'orgs: and the report names no student — addresses stay out of it',
+      !csv2.text.includes('@student') && csv2.text.includes('careers@kau.edu.sa'),
+      csv2.text.trim().split('\n').length + ' rows',
+    )
 
     for (let i = 0; i < 3; i++)
       await call('POST', '/org/redeem', {
@@ -1083,7 +1107,7 @@ try {
     })
     ok('orgs: guessing codes for a minute is locked with 429', guessing.status === 429, JSON.stringify(guessing.json))
     const spent = await call('GET', '/admin/orgs', { token: TOKEN })
-    ok('orgs: and a locked guesser spends nothing', spent.json.totals.used === 4 && spent.json.totals.seats === 6, JSON.stringify(spent.json.totals))
+    ok('orgs: and a locked guesser spends nothing', spent.json.totals.used === 5 && spent.json.totals.seats === 6, JSON.stringify(spent.json.totals))
   }
 
   /* --- throttling --- */

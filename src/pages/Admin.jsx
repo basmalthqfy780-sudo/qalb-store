@@ -1078,6 +1078,9 @@ function Orgs() {
                 <th scope="col" className="px-3 py-2.5 text-center">
                   {t('admin.orgsExpires')}
                 </th>
+                <th scope="col" className="px-3 py-2.5 text-center">
+                  {t('admin.orgsUsage')}
+                </th>
                 <th scope="col" className="px-5 py-2.5 text-center">
                   {t('admin.colStatus')}
                 </th>
@@ -1107,6 +1110,9 @@ function Orgs() {
                     <td className="num px-3 py-2.5 text-center text-dim" dir="ltr">
                       {r.expires}
                     </td>
+                    <td className="num px-3 py-2.5 text-center text-[11.5px] text-dim" dir="ltr" title={t('admin.orgsUsage')}>
+                      {r.byTemplate || '—'}
+                    </td>
                     <td className="px-5 py-2.5 text-center">
                       <Pill tone={r.status === 'active' ? 'brand' : 'gold'}>
                         {t(r.status === 'active' ? 'admin.orgsActive' : 'admin.orgsPaused')}
@@ -1125,7 +1131,7 @@ function Orgs() {
                   </tr>
                   {edit === r.code && (
                     <tr className="border-t border-line bg-bg/40">
-                      <td colSpan={8} className="px-5 py-4">
+                      <td colSpan={9} className="px-5 py-4">
                         <div className="flex flex-wrap items-end gap-3">
                           <Field id={`oe-seats-${r.code}`} label={t('admin.orgsSeats')} className="w-28">
                             <Text

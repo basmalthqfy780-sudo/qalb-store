@@ -178,6 +178,19 @@ export const orgSummary = (org) => ({
   templates: [...new Set((org.redemptions || []).map((r) => r.template))].sort(),
 })
 
+/** ما استُهلك لكل قالب — مشتقٌّ من دفتر الاستهلاك ولا يخزّن عن الطالب شيئًا جديدًا */
+export const orgUsage = (org) => {
+  const counts = {}
+  for (const r of org.redemptions || []) counts[r.template] = (counts[r.template] || 0) + 1
+  return Object.entries(counts).sort((a, b) => b[1] - a[1] || String(a[0]).localeCompare(String(b[0])))
+}
+
+/** صيغة العمود في تصدير اللوحة: nova:4;mirrorbundle:1 — بلا أسماء ولا بريدا */
+export const orgUsageLabel = (org) => {
+  const pairs = orgUsage(org)
+  return pairs.length ? pairs.map(([k, v]) => `${k}:${v}`).join(';') : '—'
+}
+
 /** صفّ اللوحة و‎.csv‎ الصادر عنها: لا نصّ للطالب ولا بريده */
 export const orgRowForStaff = (org) => ({
   code: org.code,
@@ -189,13 +202,14 @@ export const orgRowForStaff = (org) => ({
   expires: org.expires,
   seats: Number(org.seats) || 0,
   used: Number(org.used) || 0,
+  byTemplate: orgUsageLabel(org),
 })
 
 export const orgCsv = (rows) =>
-  ['code,org,email,tier,status,issued,expires,seats,used']
+  ['code,org,email,tier,status,issued,expires,seats,used,byTemplate']
     .concat(
       rows.map((r) =>
-        [r.code, r.org, r.email, r.tier, r.status, r.issued, r.expires, r.seats, r.used]
+        [r.code, r.org, r.email, r.tier, r.status, r.issued, r.expires, r.seats, r.used, r.byTemplate]
           .map((x) => `"${String(x ?? '').replace(/"/g, '""')}"`)
           .join(','),
       ),
@@ -235,6 +249,8 @@ export default {
   seatLeft,
   redeemReason,
   orgSummary,
+  orgUsage,
+  orgUsageLabel,
   orgRowForStaff,
   orgCsv,
   orgMailto,
