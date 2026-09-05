@@ -1521,6 +1521,12 @@ for (const c of cases) {
   ok('and shows no invented contract table', !g.doc.querySelector('[data-orgs] table'))
   ok('the note hands the reader to the licences page', !!g.doc.querySelector('[data-orgs] a[href="/b2b"]'))
   ok('nothing claims a code was issued', !/صُدِّر الرمز/.test(g.txt()))
+  const viteCfg = readFileSync('vite.config.js', 'utf8')
+  ok(
+    'the dev/preview bridge forwards the seat doors too',
+    /PROXY_PATHS = \[[^\]]*'\/org'/.test(viteCfg) && /'\/org'/.test(viteCfg),
+    (viteCfg.match(/PROXY_PATHS = \[[^\]]*\]/) || [''])[0].slice(0, 60),
+  )
   const orgsApi = readFileSync('src/api/index.js', 'utf8')
   ok(
     'every seat door the panel uses is a server door',

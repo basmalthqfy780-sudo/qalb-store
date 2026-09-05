@@ -14,7 +14,9 @@ const API = process.env.QALB_API_TARGET || 'http://127.0.0.1:8787'
 // signed one-shot link they redirect to. They stay on the page's own origin, so the browser
 // never needs to know a second host or port.
 // Note: '/download' is a prefix match, and the storefront has no client route of that name.
-const PROXY_PATHS = ['/orders', '/licences', '/catalog', '/admin/', '/download', '/dl/', '/health']
+// '/org' is the seat ledger (/org/redeem and /org/<code>); no client route starts with it, so the
+// prefix is safe — and without it a redemption would be answered by index.html, not by the server.
+const PROXY_PATHS = ['/orders', '/org', '/licences', '/catalog', '/admin/', '/download', '/dl/', '/health']
 const PROXY = Object.fromEntries(PROXY_PATHS.map((p) => [p, { target: API, changeOrigin: true }]))
 
 export default defineConfig({
