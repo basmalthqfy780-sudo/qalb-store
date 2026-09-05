@@ -1,25 +1,6 @@
-import { useLayoutEffect, useRef, useState } from 'react'
 import { accentHex, fontCss, siteFor } from '../data/templates'
 import { useI18n } from '../i18n'
-
-function useWidth() {
-  const ref = useRef(null)
-  const [w, setW] = useState(0)
-  useLayoutEffect(() => {
-    const el = ref.current
-    if (!el) return
-    const set = () => setW(el.getBoundingClientRect().width)
-    set()
-    if (typeof ResizeObserver === 'undefined') {
-      window.addEventListener('resize', set)
-      return () => window.removeEventListener('resize', set)
-    }
-    const ro = new ResizeObserver(set)
-    ro.observe(el)
-    return () => ro.disconnect()
-  }, [])
-  return [ref, w]
-}
+import { useFitWidth } from '../lib/use-fit-width'
 
 const DEVICE = {
   desktop: { w: 1280, h: 820 },
@@ -432,7 +413,7 @@ export default function SitePreview({ template, device = 'desktop', theme, hero,
   const raw = siteFor(template) || {}
   const pick = (v) => (v && typeof v === 'object' ? (v[lang] ?? v.en) : v)
 
-  const [ref, w] = useWidth()
+  const [ref, w] = useFitWidth()
   const d = {
     name: pick(raw.name) || template?.name?.[lang] || '',
     role: pick(raw.role),
@@ -457,7 +438,6 @@ export default function SitePreview({ template, device = 'desktop', theme, hero,
   // w === 0 means the box has not been measured (hidden container, jsdom…) —
   // render the site unscaled instead of leaving an empty box forever.
   const scale = w ? w / dev.w : 1
-  const boxH = dev.h * scale
 
   const themeNow = theme || template?.theme || 'light'
   const accHex = accent && String(accent).startsWith('#') ? accent : accentHex(accent || template?.accent || raw.accent)
@@ -466,10 +446,11 @@ export default function SitePreview({ template, device = 'desktop', theme, hero,
   return (
     <div
       ref={ref}
-      className={`relative overflow-hidden ${className}`}
-      style={{ height: w ? boxH : undefined, background: themeNow === 'dark' ? '#0c0d12' : '#fff', ...style }}
+      className={`fitbox ${className}`}
+      style={{ aspectRatio: `${dev.w} / ${dev.h}`, background: themeNow === 'dark' ? '#0c0d12' : '#fff', ...style }}
     >
       <div
+        className="fitscale"
         style={{
           position: 'absolute',
           top: 0,
@@ -477,7 +458,6 @@ export default function SitePreview({ template, device = 'desktop', theme, hero,
           width: dev.w,
           height: dev.h,
           transform: `scale(${scale})`,
-          transformOrigin: 'top left',
           opacity: w ? 1 : 0,
           transition: 'opacity .4s ease',
           display: 'flex',

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useI18n, num } from '../i18n'
-import { categories, templates, testimonials, brands, brandsEn } from '../data/templates'
+import { brands, brandsEn, byId, categories, templates, testimonials } from '../data/templates'
 import { SUPPORT_MAIL, SUPPORT_MAILTO } from '../data/contact'
 import Preview, { ArtTile } from '../components/Preview'
 import TemplateCard from '../components/TemplateCard'
@@ -559,18 +559,16 @@ function ProofBlock() {
               </div>
             </div>
             <div className="mt-6 space-y-2 rounded-2xl border border-line bg-bg p-4 font-mono text-[11.5px] leading-relaxed text-dim">
-              <p>
-                <span className="text-brand">✓</span> site: work section parsed, 4 projects
-              </p>
-              <p>
-                <span className="text-brand">✓</span> cv: experience + education extracted
-              </p>
-              <p>
-                <span className="text-brand">✓</span> contact block selectable (not an image)
-              </p>
-              <p className="text-gold">
-                <span>!</span> add a metric to project 2 to reach 100
-              </p>
+              {[
+                ['✓', 'hero.scan1'],
+                ['✓', 'hero.scan2'],
+                ['✓', 'hero.scan3'],
+                ['!', 'hero.scan4'],
+              ].map(([mark, k]) => (
+                <p key={k} className={mark === '!' ? 'text-gold' : undefined}>
+                  <span className={mark === '!' ? '' : 'text-brand'}>{mark}</span> {t(k)}
+                </p>
+              ))}
             </div>
           </div>
         </Reveal>
@@ -692,9 +690,18 @@ function Bundles() {
   const { t } = useI18n()
   const { add, toast } = useStore()
   const plans = [
-    { key: 'single', price: 149, ids: ['folio'], icon: 'globe' },
-    { key: 'duo', price: 449, ids: ['mirrorbundle'], icon: 'layers', pop: true },
-    { key: 'career', price: 999, ids: templates.slice(0, 8).map((x) => x.id), icon: 'crown' },
+    // السعرُ مشتقٌّ من مَنشورِ كل قالبٍ لا رقمٌ مكتوب تحت البطاقة: ما تراه الباقة
+    // هو ما تحسبه السلة بالضبط، وعددُ «كل القوالب» هو عددُ المتجر حقًّا.
+    ...['single', 'duo', 'career'].map((key, i) => {
+      const ids = key === 'single' ? ['folio'] : key === 'duo' ? ['mirrorbundle'] : templates.map((x) => x.id)
+      return {
+        key,
+        ids,
+        price: ids.reduce((n, id) => n + (byId(id)?.price || 0), 0),
+        icon: ['globe', 'layers', 'crown'][i],
+        pop: key === 'duo',
+      }
+    }),
   ]
   return (
     <section className="relative border-y border-line bg-bg2/50 py-20" id="bundles">

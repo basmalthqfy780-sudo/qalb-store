@@ -1,26 +1,7 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { accentHex, demoFor, fontCss } from '../data/templates'
 import { useI18n } from '../i18n'
-
-/* measures the wrapper and returns [ref, width] */
-function useWidth() {
-  const ref = useRef(null)
-  const [w, setW] = useState(0)
-  useLayoutEffect(() => {
-    const el = ref.current
-    if (!el) return
-    const set = () => setW(el.getBoundingClientRect().width)
-    set()
-    if (typeof ResizeObserver === 'undefined') {
-      window.addEventListener('resize', set)
-      return () => window.removeEventListener('resize', set)
-    }
-    const ro = new ResizeObserver(set)
-    ro.observe(el)
-    return () => ro.disconnect()
-  }, [])
-  return [ref, w]
-}
+import { useFitWidth } from '../lib/use-fit-width'
 
 const DESIGN_W = 640
 const DESIGN_H = Math.round(DESIGN_W * 1.4142)
@@ -299,7 +280,7 @@ function Sheet({ demo, name, layout, a, ff, full, labels, lang }) {
  */
 export default function ResumePreview({ template, layout, accent, font, variant = 'compact', zoom = 1, className = '', style }) {
   const { L, lang } = useI18n()
-  const [ref, w] = useWidth()
+  const [ref, w] = useFitWidth()
   const [ready, setReady] = useState(false)
   const full = variant === 'full'
   const lay = layout || template.layout
@@ -332,8 +313,9 @@ export default function ResumePreview({ template, layout, accent, font, variant 
   const scale = w ? (w * zoom) / DESIGN_W : 1
 
   return (
-    <div ref={ref} data-resume={template?.slug} className={`sheet relative overflow-hidden ${className}`} style={style}>
+    <div ref={ref} data-resume={template?.slug} className={`sheet fitbox ${className}`} style={style}>
       <div
+        className="fitscale"
         style={{
           position: 'absolute',
           top: 0,
@@ -341,7 +323,6 @@ export default function ResumePreview({ template, layout, accent, font, variant 
           width: DESIGN_W,
           height: DESIGN_H,
           transform: `scale(${scale})`,
-          transformOrigin: 'top left',
           opacity: ready ? 1 : 0,
           transition: 'opacity .45s ease',
         }}

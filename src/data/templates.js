@@ -1183,3 +1183,12 @@ export const coupons = {
   WELCOME10: { pct: 10, ar: 'ترحيبي', en: 'Welcome' },
   QALB30: { pct: 30, ar: 'خصم الطلبة', en: 'Student offer' },
 }
+
+/*
+ * شارة «تمرّ بفاحص ATS» التي نطبعها على البطاقة لها حدٌّ واحد في المتجر كله:
+ * 97 فما فوق. قبل هذه الجولة كان الحدُّ مكتوبًا مرّتين في صفحة /ats — رقمٌ
+ * يتغيّر بصمتٍ فيصير «المُوصى به» شيئًا آخر. التعريف هنا، والفرز بسعرٍ صاعد
+ * لأن من جاء بالفاحص يريد أولًا أرخصَ ما يصلحه.
+ */
+export const ATS_STORE_MIN = 97
+export const atsReadyTemplates = () => templates.filter((x) => (x.ats ?? 0) >= ATS_STORE_MIN).sort((a, b) => a.price - b.price)

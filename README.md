@@ -232,12 +232,15 @@ ALLOW_ADMIN_SETUP=1 npm run api
 
 ## أصول الظهور والخطوط
 
-- `scripts/seo.mjs` (يعمل قبل كل `build`) يولّد `robots.txt` و`sitemap.xml` (٢٠ رابطًا) وبطاقة
+- `scripts/seo.mjs` (يعمل قبل كل `build`) يولّد `robots.txt` و`sitemap.xml` (٢٤ رابطًا) وبطاقة
   `og-cover.png` مرسومة برمجيًا بـ Pillow (`scripts/og-cover.py`) — بدون صور مخزّنة في المستودع.
   يولّد أيضًا **بطاقة لكل منتج** في `public/og/` (تُقرأ من نفس `src/data/templates.js`)؛ لو لم تتوفّر
   Pillow يُتخطّى الرسم وتبقى البطاقات السابقة — لا يفشل البناء لهذا السبب.
-- `public/_redirects` (`/* /index.html 200`) يُبقي الروابط العميقة تعمل على Netlify وCloudflare Pages؛
-  Vercel يكتشف ذلك تلقائيًا لمشاريع Vite.
+- الروابط العميقة لا وجود لها على القرص — يولّدها الراوتر في المتصفح — فتحتاج إعادةَ كتابةٍ على كل
+  منصّة: `public/_redirects` (`/* /index.html 200`) لـ Netlify وCloudflare Pages، و`vercel.json` في جذر
+  المستودع لـ Vercel، وبمحتًى واحد: `{"rewrites":[{"source":"/(.*)","destination":"/index.html"}]}`.
+  الفحص يقرأ الملفين معًا ويؤكد أن `/ats` و`/admin` و`/studio` تقع داخل النمط نفسه؛ من اعتمد على أن
+  Vercel «يكتشف مشاريع Vite تلقائيًا» رآها بيضاء عند أول تحديثٍ على `/template/…`.
   `SITE_URL=https://mydomain.com npm run gen:seo` يعيد توليدها بنطاقك، أو ضع
   `SITE_URL=https://mydomain.com` في `.env` مرة واحدة فتُقرأ في كل `npm run build`.
 - البريد الرسمي `qalb@qalb.store` هو الافتراضي في `src/data/contact.js`، ويظهر في الواجهات
@@ -289,16 +292,20 @@ src/
 
 scripts/  seo.mjs (robots + sitemap بـ ٢٤ عنوانًا + og-cover + ١٥ بطاقة منتج) · og-cover.py · fonts.mjs · deliverables.mjs (١٥ حزمة، ومعها scripts/check-ats.mjs) · check-ats.mjs (الفاحص على سطر الأوامر)
 server/   worker.js (Node، بلا اعتماديات) · admin.js (بوابة اللوحة: scrypt + كوكي + خنق المحاولات) · deliver.js (تسليم موقّع: HMAC · ١٠ دقائق · مرة واحدة) · sites.js (مواقع الاستضافة وحصص التحرير) · orgs.js (عقود المقاعد وأبواب /org) · seal.js (كل ملف حالة 0600، ختمٌ عند الإقلاع أيضًا) · schema.sql · README.md
-tests/    entry.jsx · smoke.mjs (الحزمة الحقيقية في jsdom — ٤٥ مجموعة، ٢٩ مسارًا، ١٥١ توقّعًا، منها ٥٠ للتخصيص و١٧ للتسليم و٤٧ للمقاعد و٥٢ لفاحص ATS) · admin-api.mjs (خادم فعلي على :8899 — ١٦٩ فحصًا: اللوحة، التوقيع، صلاحيات الملفات، المقاعد)
+tests/    entry.jsx · smoke.mjs (الحزمة الحقيقية في jsdom — ٤٥ مجموعة، ٢٩ مسارًا، ١٥١ توقّعًا، منها ٥٠ للتخصيص و١٧ للتسليم و٤٧ للمقاعد و٥٨ لفاحص ATS) · admin-api.mjs (خادم فعلي على :8899 — ١٧٣ فحصًا: اللوحة، التوقيع، صلاحيات الملفات، المقاعد)
 public/   fonts/ · robots.txt · sitemap.xml · _redirects · og-cover.png · og/ (بطاقات مولّدة)
 
-eslint.config.js · .prettierrc.json · .prettierignore · .github/workflows/ci.yml · LICENSE · .env.example
+vercel.json (إعادة كتابة SPA) · eslint.config.js · .prettierrc.json · .prettierignore · .github/workflows/ci.yml · LICENSE · .env.example
 ```
 
 ## ملاحظات تنفيذية
 
 - **التحجيم التلقائي**: المكوّنان يرسمان على «عرض تصميم» ثابت (640px للسيرة، 1280/768/420 للموقع) ثم
-  `transform: scale()` محسوب من عرض الحاوية عبر `ResizeObserver` — لذا المعاينة نفسها تتغيّر مع النوافذ.
+  `transform: scale()` محسوب من عرض الحاوية عبر `useFitWidth()` في `src/lib/use-fit-width.js`، فالمعاينة
+  تتبع النافذة فعلًا. والاهتزاز كان ثمنَ هذا: القياسُ يُقرَّب إلى أقرب بكسل، ولا `setState` إلا عند
+  تغيّرٍ حقيقي لأن `ResizeObserver` يُطلَق للارتفاع أيضًا، والارتفاعُ لا يُكتب من JS بل من `aspect-ratio`
+  في CSS، والصندوقُ `contain: layout paint` مع `scrollbar-gutter: stable` على `html` فلا يفتح شريطُ
+  تمريرٍ حلقةَ قياسٍ مغلقة. `@utility fitbox` و`@utility fitscale` مكانُ هاتين القاعدتين الوحيد.
 - **الضريبة**: الأسعار شاملة ١٥٪ وتُستخرج في الملخص (لا تُضاف فوقه) كما هو معتاد في المتاجر السعودية.
 - **RTL**: مسافات منطقية دائمًا (`ps-/pe-/ms-/me-/start-/end-`)، والأرقام داخل `.num` (tabular-nums + LTR).
   لا نعتمد على ترتيب الكلاسات المتضادة؛ اتجاهات الجرّ تتحدد من `lang` في JS.

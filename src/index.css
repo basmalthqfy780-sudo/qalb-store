@@ -122,6 +122,15 @@
 
   html {
     scroll-behavior: smooth;
+    /* بلا هذه السطر تعيش المعاينات على حدّ الظهور: شريطٌ أفقي يظهر فيُضيّق الحاوية
+       فتقصر الصفحة فيختفي الشريط فتتّسع الحاوية… دورةٌ لا تنتهي تُقرأ اهتزازًا.
+       بحجز المجرى دائمًا يصير العرضُ ثابتًا مهما طالت الصفحة. */
+    scrollbar-gutter: stable;
+  }
+  /* روابط الأقسام (/#bundles و/#faq …): الترويسة sticky، فبلا هذا الهامش يبتلع
+     عنوانَ القسم بعد scrollIntoView — فيُرى الرابط كأنه لم يفعل شيئًا. */
+  [id] {
+    scroll-margin-block-start: 5.5rem;
   }
   @media (prefers-reduced-motion: reduce) {
     html {
@@ -267,6 +276,21 @@
 @utility reveal-in {
   opacity: 1;
   transform: none;
+}
+
+/* ---------- fit-to-width boxes (معاينات حيّة داخل صندوق مُصغَّر) ----------
+   الحاوية تُقيَس ثم يُصغَّر المحتوى بمصفوفة scale. بلا containment كانت إعادةُ تخطيط
+   الطفل تُعيد رسم الجار وتُغيّر ارتفاع الأب؛ وبـ aspect-ratio في CSS لا يكتب JS
+   ارتفاعًا فتُلغى حلقة التغذية الراجعة من أصلها. */
+@utility fitbox {
+  position: relative;
+  overflow: hidden;
+  contain: layout paint;
+}
+@utility fitscale {
+  will-change: transform;
+  backface-visibility: hidden;
+  transform-origin: top left;
 }
 
 /* A4 sheet used by the live resume previews */

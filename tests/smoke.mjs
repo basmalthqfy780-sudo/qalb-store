@@ -106,13 +106,22 @@ const cases = [
   {
     name: 'home / arabic',
     url: 'http://localhost/',
-    expect: ['قالب', 'الأكثر رواجًا هذا الأسبوع', 'هوية واحدة', 'ادفع مرة واحدة', '449', 'معرض أعمالك', 'SALE25', 'qalb@qalb.store'],
+    expect: [
+      'قالب',
+      'الأكثر رواجًا هذا الأسبوع',
+      'القالب ملكك مدى الحياة',
+      'الاستضافةُ اختيارية',
+      'ادفع مرة واحدة',
+      '449',
+      'SALE25',
+      'qalb@qalb.store',
+    ],
   },
   {
     name: 'home / english',
     url: 'http://localhost/',
     lang: 'en',
-    expect: ['Qalb', 'Trending this week', 'One identity', 'Pay once', '449', 'Your portfolio', 'ATS'],
+    expect: ['Qalb', 'Trending this week', 'The template is yours for life', 'hosting is optional', 'Pay once', '449', 'ATS'],
   },
   { name: 'catalog', url: 'http://localhost/templates', expect: ['كل القوالب', 'الفلاتر', 'أيثر', 'نِكسَس', 'نوع المنتج'] },
   { name: 'catalog by field', url: 'http://localhost/templates?cat=graduate', expect: ['فِست ستيب'] },
@@ -1350,6 +1359,32 @@ for (const c of cases) {
     JSON.parse(g.win.localStorage.getItem('qalb.newsletter.v1') || '[]')[0] === 'sara@qalb.dev' && !/تم الاشتراك|Subscribed/.test(nl.textContent),
     JSON.parse(g.win.localStorage.getItem('qalb.newsletter.v1') || '[]').join(','),
   )
+  /* ---- «كل القوالب» رقمٌ يُقرأ من الرّفّ، لا يُروى من نصّ ---- */
+  const bundlesTxt = (g.doc.querySelector('#bundles')?.textContent || '').replace(/\s+/g, ' ')
+  const shelfSum = templates.reduce((n, x) => n + x.price, 0)
+  const en0 = new Intl.NumberFormat('en-US')
+  ok(
+    'the full-path badge states the shelf as it is today',
+    bundlesTxt.includes(en0.format(templates.length)) && bundlesTxt.includes('قالب'),
+    `${templates.length} templates · ${bundlesTxt.slice(0, 40)}`,
+  )
+  ok('and it charges what those templates add up to, to the riyal', bundlesTxt.includes(en0.format(shelfSum)), en0.format(shelfSum))
+  ok('no invented bundle price is left standing in the page', !bundlesTxt.includes('999'), bundlesTxt.slice(0, 90))
+
+  /* ---- الرابط إلى #bundles ينزل إلى الباقات، لا إلى السقف ---- */
+  let scrolledTo = 'nothing'
+  g.win.HTMLElement.prototype.scrollIntoView = function scroll() {
+    scrolledTo = this.id
+  }
+  const navLink = g.doc.querySelector('a[href="#bundles"], a[href$="/#bundles"]')
+  ok('the navbar carries an anchor for the section', !!navLink, [...g.doc.querySelectorAll('nav a')].map((a) => a.getAttribute('href')).join(' '))
+  navLink?.dispatchEvent(new g.win.MouseEvent('click', { bubbles: true, cancelable: true, button: 0 }))
+  await g.wait(90)
+  ok('and clicking it lands on the section, not on the top of the page', scrolledTo === 'bundles', scrolledTo)
+  ok(
+    'the public footer no longer advertises the staff panel',
+    ![...g.doc.querySelectorAll('footer a')].some((a) => a.getAttribute('href') === '/admin'),
+  )
   g.dom.window.close()
 
   if (bad.length) {
@@ -1860,6 +1895,19 @@ for (const c of cases) {
     ),
   )
   ok('the print block sits at the top level, outside every @layer', printAt > -1 && depthAt(printAt) === 0)
+  /*
+   * الصندوقُ المتذبذب عيبٌ في الفيزياء لا في الذوق: لا ارتفاعٌ يُكتب من JS فوق
+   * نسبةِ البُعد، ولا شريطُ تمريرٍ يُفتح ويُغلق، ولا قياسٌ يعيد نفسه.
+   */
+  ok('the html reserves its scrollbar so no reflow can toggle it', /scrollbar-gutter:\s*stable/.test(cssSrc))
+  ok('and a sticky navbar stops eating the top of every anchor', /scroll-margin-block-start:\s*5\.5rem/.test(cssSrc))
+  const fitBox = cssSrc.slice(cssSrc.indexOf('@utility fitbox'), cssSrc.indexOf('@utility fitscale'))
+  const fitScale = cssSrc.slice(cssSrc.indexOf('@utility fitscale'), cssSrc.indexOf('@utility sheet'))
+  ok(
+    'the measured box is contained: layout and paint, nothing re-lays out upward',
+    /contain:\s*layout paint/.test(fitBox) && /overflow:\s*hidden/.test(fitBox),
+  )
+  ok('the scaled layer promises the compositor, and only that', /will-change:\s*transform/.test(fitScale) && !/transition/.test(fitScale))
   const built = existsSync('dist/assets') ? readdirSync('dist/assets').filter((f) => f.endsWith('.css')) : []
   if (built.length) {
     const min = built
@@ -1872,6 +1920,11 @@ for (const c of cases) {
       built.join(','),
     )
     ok('and the paper margins survive too', min.includes('@page{margin:18mm16mm}'))
+    ok(
+      'the built stylesheet carries the anti-flicker trio too — the minifier eats the spaces in values',
+      /scrollbar-gutter:\s*stable/.test(min) && /contain:layout\s?paint/.test(min) && /will-change:transform/.test(min),
+      built.join(','),
+    )
   }
 
   if (bad.length) {
@@ -1978,6 +2031,25 @@ for (const c of cases) {
     /err\.stale/.test(eb) && typeof dict.ar.err.stale === 'string' && typeof dict.en.err.stale === 'string',
   )
 
+  /*
+   * المساراتُ كلها تُقرأ في المتصفح وحده. على Vercel لا وجود لـ _redirects، فمن
+   * يكتب /ats و /admin هناك؟ ملفٌ واحد يجب أن يوازي سطر Netlify.
+   */
+  const vercel = JSON.parse(readSrc('vercel.json'))
+  ok(
+    'vercel rewrites every path into the SPA shell',
+    vercel.rewrites?.length === 1 && vercel.rewrites[0].source === '/(.*)' && vercel.rewrites[0].destination === '/index.html',
+    JSON.stringify(vercel),
+  )
+  ok(
+    'and that pattern really swallows the hidden routes',
+    ['/ats', '/admin', '/studio', '/template/nova-cv'].every((u) => new RegExp('^' + vercel.rewrites[0].source + '$').test(u)),
+  )
+  ok('Netlify keeps the same map in its own tongue', /^\/\*\s+\/index\.html\s+200$/m.test(readSrc('public/_redirects')))
+  ok(
+    'the admin path is unlisted: no link, no sitemap entry, one robots line',
+    !readSrc('src/components/Footer.jsx').includes('/admin') && !readSrc('public/sitemap.xml').includes('/admin'),
+  )
   const bad2 = checks.filter(([, pass]) => !pass)
   if (bad2.length) {
     failed++
@@ -2927,6 +2999,35 @@ for (const c of cases) {
     cta?.textContent?.slice(0, 70),
   )
   ok(
+    'under the bar we sell the fix, not a shelf of alternatives',
+    dirty.score < ATS_TARGET.pass && !g.doc.querySelector('[data-ats-alt]') && !g.txt().includes('بنيتُك تُقرأ'),
+    `${dirty.score}`,
+  )
+  ok('and the shelf link is the real filter, not a made-up flag', !!g.doc.querySelector('a[href="/templates?flags=ats"]'))
+  setVal(
+    'نورة العتيبي — مصمّمة واجهات\nm:noura@example.com\nhttps://github.com/noura\nالمهارات: تصميم واجهات، بحث مستخدم، React، Tailwind، Figma، نظام تصميم\nالخبرة:\nمصمّمة أولى، شركة نماء، 2022 – 2026\n- أعيد تصميم بوابة تعليمية يخدمها 40,000 طالب، فارتفعت نسبة إكمال التسجيل 18%.\n- بُني نظام مكوّنات من 60 عنصرًا فقلّ زمن التسليم 25%.\n- قادت اختبارًا مع 12 مستخدمًا وأنتجت 9 توصيات مطبّقة.\n- حسّنت الوصول إلى WCAG AA في 14 شاشة.\nالتعليم: بكالوريوس تصميم الجازم، جامعة الملك سعود، 2021',
+  )
+  await g.wait(6)
+  const mid = analyzeAts(area.value)
+  ok(
+    'above the bar the same page changes its offer: identity, not rescue',
+    mid.score >= ATS_TARGET.pass && (g.doc.querySelector('[data-ats-cta]')?.textContent || '').includes('بنيتُك تُقرأ'),
+    `${mid.score}`,
+  )
+  const alts = [...g.doc.querySelectorAll('[data-ats-alt] a')]
+  const measured = templates.filter((x) => (x.ats ?? 0) >= 97)
+  ok(
+    'the alternates are three live products with their own prices',
+    alts.length === 3 && alts.every((a) => /^\/template\//.test(a.getAttribute('href')) && /\d/.test(a.textContent)),
+    alts.map((a) => a.getAttribute('href')).join(' '),
+  )
+  ok('the rescue template is never offered as an alternate to itself', !alts.some((a) => a.getAttribute('href') === '/template/nova-cv'))
+  ok(
+    'and the count on the shelf link is the count in the data',
+    (g.doc.querySelector('[data-ats-cta]')?.textContent || '').includes(new Intl.NumberFormat('en-US').format(measured.length)),
+    `${measured.length}`,
+  )
+  ok(
     'and the human path is a mail, not a fake ticket',
     (cta?.textContent || '').includes('مراجعة بشرية') && !!g.doc.querySelector('a[href^="mailto:qalb@qalb.store"]'),
   )
@@ -3213,7 +3314,6 @@ for (const c of cases) {
     lost.txt().slice(0, 90),
   )
   const none = await render('http://localhost/studio')
-  console.log('DBG none:', JSON.stringify(none.errs), '|', none.txt().slice(160, 700))
   ok(
     'an empty studio sends the visitor to create one, not to a blank editor',
     /لا موقع على هذا المتصفح/.test(none.txt()) && !!none.doc.querySelector('a[href="/host"]'),

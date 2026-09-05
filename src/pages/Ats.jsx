@@ -2,7 +2,7 @@ import { useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useI18n, num } from '../i18n'
 import { ATS_DEMO, ATS_TARGET, analyzeAts, atsReport } from '../data/ats'
-import { byId } from '../data/templates'
+import { atsReadyTemplates, byId } from '../data/templates'
 import { SUPPORT_MAILTO } from '../data/contact'
 import { toolLd, useSeo } from '../components/Seo'
 import { Btn, Head, Icon, Money, Pill, Reveal } from '../components/ui'
@@ -27,6 +27,16 @@ export default function Ats() {
   const res = useMemo(() => analyzeAts(text), [text])
   const scored = res.score != null
   const target = byId('nova')
+  /* القوالب التي يقيسها هذا الفاحص نفسه — لا شارةً نختلقها: نفس ats في بيانات القالب */
+  const atsReady = useMemo(() => atsReadyTemplates(), [])
+  /*
+   * ثلاثُ درجاتٍ ثلاثُ جُمل: تحت حدّ القبول العمودُ أول ما ينكسر، ومن الحدّ إلى
+   * NEAR_PERFECT البنيةُ صالحة فالمعروضُ هويةٌ لا إنقاذ، وفوقه الملفُ يقرأه الآلي
+   * فلا فائدة من بيعه له — نبيعُه مطابقةَ المفردات. الحدُّ الأوسط ليس سحرًا: هو
+   * درجةُ «atlas» في الرفّ، أي أول من يحمل شارةً في البطاقة.
+   */
+  const NEAR_PERFECT = 92
+  const ctaLead = !scored ? '' : res.score >= NEAR_PERFECT ? t('ats.ctaNear') : res.score >= ATS_TARGET.pass ? t('ats.ctaTune') : t('ats.ctaSub')
 
   const faq = [
     [t('ats.q1'), t('ats.a1')],
@@ -259,7 +269,7 @@ export default function Ats() {
             {scored && res.gaps.length > 0 && (
               <div className="mt-4 rounded-3xl border border-brand/25 bg-brand/6 p-4.5" data-ats-cta>
                 <p className="text-[13px] font-extrabold text-ink">{t('ats.ctaTitle')}</p>
-                <p className="mt-1.5 text-[12.5px] leading-relaxed text-dim">{t('ats.ctaSub')}</p>
+                <p className="mt-1.5 text-[12.5px] leading-relaxed text-dim">{ctaLead}</p>
                 <div className="mt-3 flex flex-col gap-1.5">
                   <Link
                     to={`/template/${target.slug}`}
@@ -272,6 +282,36 @@ export default function Ats() {
                     <span className="ms-auto shrink-0">
                       <Money v={target.price} size="text-[12px]" />
                     </span>
+                  </Link>
+                  {scored && res.score >= ATS_TARGET.pass && (
+                    <div className="mt-1.5 flex flex-col gap-1.5" data-ats-alt>
+                      {atsReady
+                        .filter((x) => x.id !== target.id)
+                        .slice(0, 3)
+                        .map((x) => (
+                          <Link
+                            key={x.id}
+                            to={`/template/${x.slug}`}
+                            className="flex items-center gap-2.5 rounded-2xl border border-line bg-panel/60 p-2.5 transition hover:border-brand/45"
+                          >
+                            <span className="grid size-8 shrink-0 place-items-center rounded-xl bg-bg/80 text-dim">
+                              <Icon n="file" className="size-4" />
+                            </span>
+                            <span className="min-w-0 text-[12.5px] font-semibold text-ink">{L(x.name)}</span>
+                            <span className="ms-auto shrink-0">
+                              <Money v={x.price} size="text-[12px]" />
+                            </span>
+                          </Link>
+                        ))}
+                    </div>
+                  )}
+                  <Link
+                    to="/templates?flags=ats"
+                    className="flex items-center gap-2 px-1 pt-1 text-[12px] text-dim transition hover:text-brand"
+                    data-ats-all
+                  >
+                    <Icon n="arrow" className="size-3.5 rtl:-scale-x-100" />
+                    {t('ats.ctaAll', { n: num(atsReady.length) })}
                   </Link>
                   <a
                     href={`${SUPPORT_MAILTO}?subject=${encodeURIComponent(t('ats.ctaManualSubject'))}&body=${encodeURIComponent(report.slice(0, 900))}`}

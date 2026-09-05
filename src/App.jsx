@@ -50,18 +50,67 @@ function RouteFallback() {
   )
 }
 
+/** «لطيف» حسب تفضيل النظام: من طلب بلا حركة لا يُدفَع إلى حركةٍ ناعمة */
+const smoothBehavior = () => {
+  try {
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
+  } catch {
+    return 'smooth' // بيئة بلا matchMedia (اختبارًا): الحركة لا تضرّ
+  }
+}
+
+/**
+ * Links to a section — `/#bundles` من الترويسة والفوتر، و`/legal#privacy` من صفحة الحقوق.
+ * ثغرتان كانتا تجعلانه ميتًا أو ناجزًا إلى الخطأ:
+ *   ١) المسار مُحمَّل بالكسل: في أول إطار لا يكون العنصر رُكِّب، فكان يسقط إلى أعلى
+ *      الصفحة بدل أن ينتظره. نطلبه بضع إطارات (سقفٌ لا معلَّق).
+ *   2) النقر على رابط القسم الذي أنت فيه: لا يتغيّر pathname ولا hash فلا يعود effect
+ *      أصلاً. يُنقذها مستمعُ نقرٍ يقرأ الرابط من DOM.
+ */
 function ScrollManager() {
   const { pathname, hash } = useLocation()
+
   useEffect(() => {
-    if (hash) {
-      const el = document.getElementById(hash.slice(1))
+    const id = hash ? hash.slice(1) : ''
+    if (!id) {
+      window.scrollTo({ top: 0, behavior: 'instant' in document.documentElement.style ? 'instant' : 'auto' })
+      return
+    }
+    let raf = 0
+    let tries = 0
+    const go = () => {
+      const el = document.getElementById(id)
       if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        el.scrollIntoView({ behavior: smoothBehavior(), block: 'start' })
         return
       }
+      if (tries++ < 24) raf = requestAnimationFrame(go)
     }
-    window.scrollTo({ top: 0, behavior: 'instant' in document.documentElement.style ? 'instant' : 'auto' })
+    go()
+    return () => cancelAnimationFrame(raf)
   }, [pathname, hash])
+
+  useEffect(() => {
+    const onClick = (e) => {
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
+      const a = e.target?.closest?.('a[href]')
+      if (!a || a.target === '_blank' || a.hasAttribute('download')) return
+      let url
+      try {
+        url = new URL(a.href, window.location.href)
+      } catch {
+        return
+      }
+      if (!url.hash || url.pathname !== window.location.pathname) return
+      const el = document.getElementById(url.hash.slice(1))
+      if (!el) return
+      e.preventDefault()
+      el.scrollIntoView({ behavior: smoothBehavior(), block: 'start' })
+    }
+    document.addEventListener('click', onClick, true)
+    return () => document.removeEventListener('click', onClick, true)
+  }, [])
+
   return null
 }
 

@@ -171,6 +171,7 @@ export default function Host() {
                       {pro ? <Icon n="crown" className="size-4 text-brand" fill sw={0} /> : null}
                     </p>
                     <p className="mt-1 max-w-sm text-[12.5px] leading-relaxed text-dim">{L(p.note)}</p>
+                    {pro ? <p className="mt-1.5 text-[11.5px] font-semibold text-brand">{t('host.managedOptional')}</p> : null}
                   </div>
                   <p className="text-end">
                     {p.price ? <Money v={p.price} size="text-2xl" /> : <span className="text-2xl font-extrabold">{t('host.priceFree')}</span>}
