@@ -7,10 +7,31 @@
  * ترخيص من نفس مسار الطلب (بلا دفع من الطالب). وما هو بشري صريح: العقد والفاتورة —
  * لا تصدران من هذا المتجر، بل تُطلبان بالبريد. الصفحة تقول ذلك، ولا تُظهر «تم الإرسال».
  */
-import { SUPPORT_MAIL } from './contact.js'
 import { templates } from './templates.js'
 
 export const B2B_TIERS = [
+  {
+    // بوابةُ الدخول: لا لجنةَ مشتريات ولا منافسة — توقيعُ عميدٍ واحد، ثم تُخصَم في العقد السنوي
+    id: 'pilot',
+    seats: 25,
+    price: 3900,
+    name: { ar: 'فصل دراسي واحد — تجريبي', en: 'One cohort — pilot' },
+    for: { ar: 'فوجٌ واحد يُقاس قبل أن يوقّع العقد السنوي', en: 'A single cohort, measured before the annual contract' },
+    includes: {
+      ar: [
+        '٢٥ مقعدًا في السنة — مقعدٌ لكل طالبٍ في الفوج',
+        'رمزٌ واحد يُوزَّع على الطلاب، ويُستهلك المقعد عند الاستبدال',
+        'قالب سيرة + موقع لكل مقعد، ونفس سكربت فحص ATS في الحزمة',
+        'يُثبّت الموظف ما دُفع منها خصمًا في العقد السنوي — لا شيء يُخصم آليًا بلا بوابة دفع',
+      ],
+      en: [
+        '25 seats for a year — one per student in the cohort',
+        'One code handed out; a seat is spent only on redemption',
+        'A CV and a site per seat, with the same ATS script shipped in the package',
+        'A staff member credits what was paid against the annual contract — nothing auto-credits without a payment gateway',
+      ],
+    },
+  },
   {
     id: 'campus',
     seats: 50,
@@ -117,6 +138,35 @@ export const retailValue = (tier) => tier.seats * cheapestSeatRetail()
 /** كم من سعر الفرد يدفعه المعهد عن كل مقعد — يُحسب، ولا يُروَّج */
 export const perSeatVsRetail = (tier) => Math.round((perSeat(tier) / cheapestSeatRetail()) * 100)
 
+/**
+ * ما يقارن به المشتري فعلًا. من يقرأ «٣٠٠ ريال للمقعد» يضربه بأرخص قالبٍ في المتجر، لا
+ * بأغلب ما يُسلَّم إليه: فالمقعدُ في عقدٍ مؤسسي يُستهلك عادةً على حزمة الموقع + السيرة،
+ * وسعرُها الفردي هو المرجع. نسمّي المنتج ونحسب النسبة من البيانات، ولا نترك الحساب في رأس
+ * موظفِ مشترياتٍ يحسب ٥٠ × ١٤٩ ثم يسأل لماذا الدفعُ أضعاف.
+ */
+export const seatBundle = () => templates.find((t) => t.id === 'mirrorbundle') || null
+export const perSeatVsBundle = (tier) => {
+  const b = seatBundle()
+  if (!b || !b.price) return 0
+  return Math.max(0, Math.round((1 - perSeat(tier) / Number(b.price)) * 100))
+}
+
+/** ما يفتحه المقعد: عددُه ومدى أسعار قائمته — نطاقٌ مشتقٌّ لا نصٌّ مكتوب باليد */
+export const seatRetailBand = () => ({ count: SEAT_TEMPLATES.length, min: cheapestSeatRetail(), max: priciestSeatRetail() })
+
+/**
+ * عددُ مقاعدَ يطلبه الطرفُ الآخر ← أقربُ باقةٍ تسعه. لا سعرٌ لكل مقعد يُخترع في المتصفح:
+ * من طلب ٦٠ يأخذ «معهد تدريب» (١٥٠) ويحصل على الزائد بلا مقابل، لأن ما تحتها لا يسعه.
+ */
+export function tierForSeats(seats) {
+  const n = Math.max(1, Math.round(Number(seats) || 0))
+  const fit = B2B_TIERS.slice()
+    .sort((a, b) => a.seats - b.seats)
+    .find((t) => t.seats >= n)
+  if (fit) return { tier: fit, over: fit.seats - n, under: 0 }
+  const top = B2B_TIERS.slice().sort((a, b) => b.seats - a.seats)[0]
+  return { tier: top, over: 0, under: Math.max(0, n - top.seats) }
+}
 export const addMonths = (iso, months) => {
   const d = new Date(`${String(iso).slice(0, 10)}T00:00:00Z`)
   if (Number.isNaN(d.getTime())) return null
@@ -143,7 +193,7 @@ export function redeemReason(org, { email, template, at = new Date() } = {}) {
 }
 
 /** السجلّ الرسمي لمقعد مؤسسة — يستعمله الخادم ومحليّ المتجر معًا */
-export function makeOrg({ code, org, email, tier, issued, seats, months = B2B_TERM_MONTHS, note = '' }) {
+export function makeOrg({ code, org, email, tier, issued, seats, months = B2B_TERM_MONTHS, note = '', credit = 0 }) {
   const start = `${String(issued || new Date().toISOString()).slice(0, 10)}`
   const t = B2B_TIERS.find((x) => x.id === tier) || null
   return {
@@ -159,6 +209,8 @@ export function makeOrg({ code, org, email, tier, issued, seats, months = B2B_TE
     expires: addMonths(start, months),
     status: 'active',
     note: String(note || '').slice(0, 240),
+    // ما دفعته الجهة في باقةٍ تجريبية، يثبّته الموظف: لا يُخصم شيءٌ آليًّا بلا بوابة دفع
+    credit: Math.max(0, Math.round(Number(credit) || 0)),
     used: 0,
     redemptions: [],
   }
@@ -202,35 +254,22 @@ export const orgRowForStaff = (org) => ({
   expires: org.expires,
   seats: Number(org.seats) || 0,
   used: Number(org.used) || 0,
+  credit: Number(org.credit) || 0,
   byTemplate: orgUsageLabel(org),
 })
 
 export const orgCsv = (rows) =>
-  ['code,org,email,tier,status,issued,expires,seats,used,byTemplate']
+  ['code,org,email,tier,status,issued,expires,seats,used,credit,byTemplate']
     .concat(
       rows.map((r) =>
-        [r.code, r.org, r.email, r.tier, r.status, r.issued, r.expires, r.seats, r.used, r.byTemplate]
+        [r.code, r.org, r.email, r.tier, r.status, r.issued, r.expires, r.seats, r.used, r.credit, r.byTemplate]
           .map((x) => `"${String(x ?? '').replace(/"/g, '""')}"`)
           .join(','),
       ),
     )
     .join('\n') + '\n'
 
-/** طلب العقد بالبريد — لا نموذجًا يرسل إلى لا أحد */
-export function orgMailto({ tier = 'campus', org = '', email = '', seats = '', note = '' } = {}) {
-  const t = B2B_TIERS.find((x) => x.id === tier) || B2B_TIERS[0]
-  const lines = [
-    `Tier / الباقة: ${t.id} — ${t.name.ar} (${t.seats} seats / ${t.price} SAR per year)`,
-    `Organisation / الجهة: ${org}`,
-    `Contact / البريد: ${email}`,
-    seats ? `Seats requested / المقاعد المطلوبة: ${seats}` : '',
-    note ? `Notes / ملاحظات: ${note}` : '',
-    '',
-    `Please send the annual contract and the VAT invoice to ${SUPPORT_MAIL}.`,
-  ].filter(Boolean)
-  const subject = `Qalb · institutional licence (${t.seats} seats)`
-  return `mailto:${SUPPORT_MAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(lines.join('\n'))}`
-}
+/* طلبُ الجهة صار في src/data/leads.js: حقلٌ واحد للنصّ والسجلّ وعرض السعر — فلا تتباعد الرسالة عن الدفتر */
 
 export default {
   B2B_TIERS,
@@ -253,5 +292,4 @@ export default {
   orgUsageLabel,
   orgRowForStaff,
   orgCsv,
-  orgMailto,
 }

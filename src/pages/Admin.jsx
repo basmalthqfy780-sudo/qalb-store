@@ -7,6 +7,8 @@ import { adminRows } from '../data/catalog'
 import { isProtectedDownload } from '../data/deliverable'
 import { B2B_TIERS, B2B_TERM_MONTHS } from '../data/b2b'
 import { SUPPORT_MAIL } from '../data/contact'
+import { leads as leadsApi } from '../api/leads'
+import { LEAD_STATUSES, clearLocalLeads, leadCsv } from '../data/leads'
 import '../i18n/admin-strings' // نصوص اللوحة تُحمّل معها فقط، فلا وزنها على صفحات المتجر
 import { useStore } from '../store/StoreContext'
 import { Btn, Icon, Money, Pill, Skeleton } from '../components/ui'
@@ -18,6 +20,7 @@ const TABS = [
   { id: 'orders', icon: 'cart' },
   { id: 'users', icon: 'briefcase' },
   { id: 'orgs', icon: 'cap' },
+  { id: 'leads', icon: 'mail' },
 ]
 
 const INPUT = 'h-10 w-full rounded-xl border border-line bg-bg px-3 text-[13.5px] outline-none transition focus:border-brand/60'
@@ -878,6 +881,250 @@ function Users({ user }) {
  * اللوحة لا تخترع دفتر مقاعد: في الوضع المحلي تُقال حدود الجهاز بدل جدولٍ وهمي،
  * وفي وضع rest تُقرأ العقود من server/orgs.js — وهو لا يعيد أسماء الطلاب أصلًا.
  */
+
+/**
+ * طلباتُ الجهات: الدفترُ الذي كان مفقودًا — عِشرون جامعةً في شهر لا تُرى إلا هنا.
+ * في وضع rest تُقرأ من server/leads.js وتُحدَّث حالاتها؛ وفي الوضع المحلي لا يوجد دفترٌ
+ * للموظف أصلاً، فتُصدَّر النسخُ المحفوظة في هذا المتصفح وحده، ويُقال ذلك نصًّا.
+ */
+function Leads() {
+  const { t, lang } = useI18n()
+  const { toast } = useStore()
+  const rest = apiMode === 'rest'
+  const [rows, setRows] = useState(null)
+  const [statuses, setStatuses] = useState(LEAD_STATUSES)
+  const [busy, setBusy] = useState('')
+
+  const reload = useCallback(async () => {
+    const r = await api.leads()
+    if (!r || r.ok === false) {
+      setRows(rest ? [] : null)
+      if (rest) toast(t('admin.leadsErr'))
+      return
+    }
+    setRows(r.leads || [])
+    if (Array.isArray(r.statuses) && r.statuses.length) setStatuses(r.statuses)
+  }, [rest, toast, t])
+
+  useEffect(() => {
+    if (!rest) return
+    // القراءةُ في سلسلةٍ غير متزامنة داخل الأثر: لا setState متزامنٌ في جسده (قاعدة react-hooks)
+    api.leads().then((r) => {
+      if (!r || r.ok === false) return setRows([])
+      setRows(r.leads || [])
+      if (Array.isArray(r.statuses) && r.statuses.length) setStatuses(r.statuses)
+    })
+  }, [rest])
+
+  async function patch(quote, body) {
+    setBusy(quote)
+    const r = await api.patchLead({ quote, patch: body })
+    setBusy('')
+    if (!r || r.ok === false) return toast(t('admin.leadsErr'))
+    setRows((all) => (all || []).map((x) => (x.quote === quote ? { ...x, ...body, ...(r.lead || {}) } : x)))
+    return toast(t('admin.leadsOk'))
+  }
+
+  function exportLocal() {
+    const csv = leadCsv(leadsApi.local())
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }))
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `qalb-leads-local-${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  async function exportCsv() {
+    const text = await api.leadsCsv()
+    if (!text) return toast(t('admin.leadsErr'))
+    const url = URL.createObjectURL(new Blob([text], { type: 'text/csv;charset=utf-8' }))
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `qalb-leads-${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  if (!rest) {
+    const saved = leadsApi.local()
+    return (
+      <Panel className="p-5">
+        <h2 className="font-display text-[18px] font-extrabold">{t('admin.leadsTitle')}</h2>
+        <p className="mt-2 max-w-[70ch] text-[13px] leading-relaxed text-dim">{t('admin.leadsLocal')}</p>
+        <p className="num mt-3 rounded-xl border border-line bg-bg/60 p-2.5 text-[12.5px] text-ink">
+          {t('admin.leadsSavedHere').replace('{n}', num(saved.length))}
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Btn size="sm" variant="outline" onClick={exportLocal}>
+            <Icon n="download" className="size-3.5" />
+            {t('admin.leadsExport')}
+          </Btn>
+          <Btn
+            size="sm"
+            variant="ghost"
+            onClick={() => {
+              clearLocalLeads(window.localStorage)
+              toast(t('admin.leadsCleared'))
+              reload()
+            }}
+          >
+            {t('admin.leadsClear')}
+          </Btn>
+        </div>
+      </Panel>
+    )
+  }
+
+  if (!rows)
+    return (
+      <div className="space-y-3">
+        {[0, 1, 2].map((i) => (
+          <Skeleton key={i} className="h-16" />
+        ))}
+      </div>
+    )
+
+  return (
+    <div className="space-y-4" data-admin-leads>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="font-display text-[18px] font-extrabold">{t('admin.leadsTitle')}</h2>
+          <p className="mt-1.5 max-w-[74ch] text-[13px] leading-relaxed text-dim">{t('admin.leadsSub')}</p>
+        </div>
+        <div className="flex gap-2">
+          <Btn size="sm" variant="outline" onClick={exportCsv}>
+            <Icon n="download" className="size-3.5" />
+            {t('admin.exportCsv')}
+          </Btn>
+          <Btn size="sm" variant="ghost" onClick={reload}>
+            <Icon n="refresh" className="size-3.5" />
+            {t('admin.refresh')}
+          </Btn>
+        </div>
+      </div>
+
+      {rows.length ? (
+        <div className="overflow-x-auto rounded-2xl border border-line">
+          <table className="w-full min-w-[900px] border-collapse text-[13px]">
+            <thead>
+              <tr className="border-b border-line bg-panel/60 text-[11.5px] text-dim">
+                <th className="px-3 py-2 text-start font-semibold">{t('admin.leadsTitle')}</th>
+                <th className="px-3 py-2 text-start font-semibold">{t('admin.colCustomer')}</th>
+                <th className="px-3 py-2 text-start font-semibold">{t('admin.leadsCall')}</th>
+                <th className="px-3 py-2 text-start font-semibold">{t('admin.orgsTier')}</th>
+                <th className="px-3 py-2 text-start font-semibold">{t('admin.leadsStatus')}</th>
+                <th className="px-3 py-2 text-start font-semibold">{t('admin.leadsNote')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.quote} className="border-b border-line/60 align-top last:border-0" data-lead={r.quote}>
+                  <td className="px-3 py-2.5">
+                    <p className="num text-[12px] font-bold text-ink" dir="ltr">
+                      {r.quote}
+                    </p>
+                    <p className="num mt-0.5 text-[11px] text-dim" dir="ltr">
+                      {String(r.at || '').slice(0, 16)}
+                    </p>
+                    {r.etimad ? (
+                      <Pill tone="gold" className="mt-1">
+                        {t('admin.leadsEtimad')}
+                      </Pill>
+                    ) : null}
+                  </td>
+                  <td className="px-3 py-2.5">
+                    <p className="font-semibold text-ink" dir="auto">
+                      {r.org}
+                    </p>
+                    <p className="num mt-0.5 text-[11.5px] text-dim" dir="ltr">
+                      {r.email}
+                    </p>
+                    {r.contact ? <p className="mt-0.5 text-[11.5px] text-dim">{r.contact}</p> : null}
+                    {r.note ? (
+                      <p className="mt-1 max-w-[46ch] text-[11.5px] leading-relaxed text-dim/90" dir="auto">
+                        {r.note}
+                      </p>
+                    ) : null}
+                  </td>
+                  <td className="px-3 py-2.5">
+                    {r.phone ? (
+                      <a
+                        href={`tel:${String(r.phone).replace(/[^\d+]/g, '')}`}
+                        className="num text-[12.5px] font-semibold text-brand hover:underline"
+                        dir="ltr"
+                      >
+                        {r.phone}
+                      </a>
+                    ) : (
+                      <span className="text-[11.5px] text-dim">—</span>
+                    )}
+                    {r.slots ? (
+                      <p className="mt-1 text-[11.5px] leading-relaxed text-dim" dir="auto">
+                        {r.slots}
+                      </p>
+                    ) : null}
+                  </td>
+                  <td className="px-3 py-2.5">
+                    <p className="text-[12px] text-ink">{(B2B_TIERS.find((x) => x.id === r.tier)?.name?.[lang] || r.tier || '—').trim()}</p>
+                    <p className="num mt-0.5 text-[11.5px] text-dim">
+                      {num(r.seats || 0)} · {num(r.money?.totalIncl ?? 0)}
+                    </p>
+                    <label className="mt-1.5 block">
+                      <span className="text-[10.5px] text-dim">{t('admin.leadsCredit')}</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="1"
+                        defaultValue={Number(r.creditApplied || 0)}
+                        disabled={busy === r.quote}
+                        onBlur={(e) => {
+                          const v = Math.round(Number(e.target.value) || 0)
+                          if (v !== Math.round(Number(r.creditApplied || 0))) patch(r.quote, { credit: v })
+                        }}
+                        className={`${INPUT} mt-1 h-8 text-[12px]`}
+                        dir="ltr"
+                      />
+                    </label>
+                  </td>
+                  <td className="px-3 py-2.5">
+                    <select
+                      value={r.status || 'new'}
+                      disabled={busy === r.quote}
+                      onChange={(e) => patch(r.quote, { status: e.target.value })}
+                      className={`${INPUT} h-8 cursor-pointer text-[12px]`}
+                    >
+                      {statuses.map((x) => (
+                        <option key={x} value={x}>
+                          {x}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+                  <td className="px-3 py-2.5">
+                    <input
+                      type="text"
+                      defaultValue={r.staffNote || ''}
+                      disabled={busy === r.quote}
+                      placeholder={t('admin.leadsNote')}
+                      onBlur={(e) => {
+                        if (e.target.value.trim() !== String(r.staffNote || '').trim()) patch(r.quote, { staffNote: e.target.value.trim() })
+                      }}
+                      className={`${INPUT} h-8 text-[12px]`}
+                      dir="auto"
+                    />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <p className="rounded-2xl border border-line bg-panel/50 p-4 text-[13px] leading-relaxed text-dim">{t('admin.leadsNone')}</p>
+      )}
+    </div>
+  )
+}
 function Orgs() {
   const { t, lang } = useI18n()
   const { toast } = useStore()
@@ -1413,6 +1660,7 @@ export default function Admin() {
         {tab === 'orders' && <Orders orders={data.orders} />}
         {tab === 'users' && <Users user={user} />}
         {tab === 'orgs' && <Orgs />}
+        {tab === 'leads' && <Leads />}
       </div>
 
       <p className="mt-12 border-t border-line pt-6 text-[11.5px] leading-relaxed text-dim">

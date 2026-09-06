@@ -225,7 +225,17 @@ export function createOrgsApi({ dir, env = process.env, admin = null, makeOrder 
       const email = mailOf(b.email)
       if (!email) return (json(res, 400, { error: 'a valid contact email is required' }), true)
       const map = all()
-      const rec = makeOrg({ org: orgName, email, tier: b.tier, seats: b.seats, months: b.months, note: b.note, issued: new Date().toISOString() })
+      const rec = makeOrg({
+        org: orgName,
+        email,
+        tier: b.tier,
+        seats: b.seats,
+        months: b.months,
+        note: b.note,
+        credit: b.credit,
+        issued: new Date().toISOString(),
+      })
+      // credit: خصمُ الباقة التجريبية — رقمٌ يُدخله الموظف، لا دَينٌ يُختلَع
       // رمزٌ مكرّر مستحيل عمليًا، لكنه لا يُقبل أصلًا: نولّد حتى ينفرد المفتاح
       for (let i = 0; map[rec.code] && i < 20; i++) rec.code = makeOrgCode()
       if (map[rec.code]) return (json(res, 503, { error: 'could not allocate a licence code' }), true)
@@ -260,6 +270,11 @@ export function createOrgsApi({ dir, env = process.env, admin = null, makeOrder 
         next.expires = makeOrg({ issued: next.issued, months }).expires
       }
       if (b.note != null) next.note = String(b.note).slice(0, 240)
+      if (b.credit != null) {
+        const c = Math.round(Number(b.credit) || 0)
+        if (!Number.isFinite(c) || c < 0 || c > 1_000_000) return (json(res, 400, { error: 'credit must be 0..1000000' }), true)
+        next.credit = c
+      }
       map[rec.code] = next
       save(map)
       return (json(res, 200, { org: orgRowForStaff(next), left: seatLeft(next) }), true)

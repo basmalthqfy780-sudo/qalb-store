@@ -310,6 +310,16 @@
  * @layer عمدًا — وكذا `@page` — لأن وظيفتها أن تغلب الـutilities وقت الطباعة فقط.
  */
 @media print {
+  /*
+   * صفحة المؤسسات تبيع ورقتَين: عرضُ السعر يُطبع وحدَه. ما عداها — الشبكاتُ والنماذجُ
+   * والأسئلة — يُطوى، فليست كلُّ بطاقةٍ في الصفحة وثيقةً تُوقَّع.
+   */
+  [data-no-print] {
+    display: none !important;
+  }
+  body:has([data-b2b-quote]) .page-x > *:not([data-b2b-quote]) {
+    display: none !important;
+  }
   :root,
   .light {
     --c-bg: #ffffff;

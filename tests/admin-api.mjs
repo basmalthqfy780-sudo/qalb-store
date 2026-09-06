@@ -81,6 +81,7 @@ async function wait() {
 
 const ORG_RE = /^QALB-[ABCDEFGHJKLMNPQRSTUVWXYZ2-9]{4}-[ABCDEFGHJKLMNPQRSTUVWXYZ2-9]{4}$/
 
+const NL = '\n'
 const call = async (method, path, { body, token, header = true, raw = false } = {}) => {
   const res = await fetch(BASE + path, {
     method,
@@ -996,7 +997,7 @@ try {
     ok(
       'orgs: the CSV export is a roster of contracts, not of students',
       csv.status === 200 &&
-        csv.text.split('\n')[0].endsWith('seats,used,byTemplate') &&
+        csv.text.split('\n')[0].endsWith('seats,used,credit,byTemplate') &&
         !csv.text.includes('student') &&
         csv.text.includes('careers@kau.edu.sa'),
       csv.text.slice(0, 90),
@@ -1087,7 +1088,7 @@ try {
     const csv2 = await call('GET', '/admin/orgs.csv', { token: TOKEN, raw: true })
     ok(
       'orgs: the CSV carries that report as its last column',
-      csv2.text.split('\n')[0].endsWith('seats,used,byTemplate') && csv2.text.includes('"nova:4;mirrorbundle:1"'),
+      csv2.text.split('\n')[0].endsWith('seats,used,credit,byTemplate') && csv2.text.includes('"nova:4;mirrorbundle:1"'),
       csv2.text.split('\n')[0],
     )
     ok(
@@ -1110,7 +1111,171 @@ try {
     ok('orgs: and a locked guesser spends nothing', spent.json.totals.used === 5 && spent.json.totals.seats === 6, JSON.stringify(spent.json.totals))
   }
 
+  /* --- leads: دفترُ الطلبات الذي كان مفقودًا — server/leads.js --- */
+  {
+    const PILOT = {
+      org: 'جامعةُ الملك عبدالعزيز',
+      email: 'careers@kau.edu.sa',
+      tier: 'pilot',
+      seats: '25',
+      phone: '0555 123 456',
+      contact: 'د. رفعة',
+      slots: 'الأحد ١١ص',
+      note: 'فاتورةٌ باسم الإدارة المالية',
+      etimad: true,
+    }
+    const first = await call('POST', '/leads', { body: PILOT, header: false })
+    ok(
+      'leads: a real request reaches the ledger with a number of its own',
+      first.status === 201 && /^QALB-Q-\d{4}-[A-Z0-9]{4}$/.test(first.json.quote || '') && first.json.where === 'ledger',
+      JSON.stringify(first.json).slice(0, 120),
+    )
+    ok(
+      'leads: the ledger keeps the money the quotation sheet prints, VAT split out',
+      first.json.money &&
+        first.json.money.total === 3900 &&
+        Math.round((first.json.money.base + first.json.money.vat) * 100) / 100 === first.json.money.total,
+      JSON.stringify(first.json.money),
+    )
+    const QUOTE = first.json.quote
+
+    const dup = await call('POST', '/leads', { body: PILOT, header: false })
+    const list1 = await call('GET', '/admin/leads', { token: TOKEN })
+    ok(
+      'leads: the same request twice is one row, answered with 200 not a second 201',
+      dup.status === 200 && dup.json.quote === QUOTE && list1.json.leads.length === 1,
+      JSON.stringify({ st: dup.status, n: list1.json.leads.length }),
+    )
+    ok(
+      'leads: every field the buyer typed is stored, not a trimmed summary',
+      (() => {
+        const r = list1.json.leads[0]
+        return (
+          r.phone.includes('0555') && r.contact.includes('د. رفعة') && r.slots.includes('الأحد') && r.note.includes('الإدارة') && r.etimad === true
+        )
+      })(),
+      JSON.stringify(list1.json.leads[0]).slice(0, 140),
+    )
+    const list2 = await call('GET', '/admin/leads', { token: TOKEN })
+    const refused = await call('POST', '/leads', { body: { org: ' ', email: 'nope', seats: '25' }, header: false })
+    ok(
+      'leads: a request without an organisation or a mailbox is refused by name',
+      refused.status === 400 && (refused.json.fields || []).length >= 2,
+      JSON.stringify(refused.json),
+    )
+    const second = await call('POST', '/leads', {
+      body: {
+        ...PILOT,
+        org: 'معهدُ الجوزات',
+        email: 'it@jozaat.sa',
+        tier: 'institute',
+        seats: '150',
+        note: '',
+        students: ['sara@student.kau.edu.sa'],
+      },
+      header: false,
+    })
+    ok(
+      'leads: a second buyer gets a different number and a row of their own',
+      second.status === 201 && second.json.quote !== QUOTE,
+      JSON.stringify(second.json).slice(0, 90),
+    )
+    const big = await call('POST', '/leads', { body: { ...PILOT, org: 'جهةٌ كبيرة', email: 'x@y.sa', note: 'h'.repeat(40000) }, header: false })
+    ok('leads: a body past the ceiling is refused before it is written', big.status === 413, String(big.status))
+
+    ok(
+      'leads: a roster cannot ride along in a request — only whitelisted fields are stored',
+      (() => {
+        const row = list2.json.leads.find((x) => x.quote === second.json.quote) || {}
+        return !JSON.stringify(row).includes('student') && !('students' in row)
+      })(),
+      JSON.stringify((list2.json.leads.find((x) => x.quote === second.json.quote) || {}).note),
+    )
+
+    const noToken = await call('GET', '/admin/leads', { header: false })
+    ok('leads: prospects are never readable without a session', noToken.status === 401, JSON.stringify(noToken.json))
+    const noCsv = await call('GET', '/admin/leads.csv', { header: false })
+    ok('leads: and the export is behind the same door', noCsv.status === 401, String(noCsv.status))
+
+    const moved = await call('PATCH', '/admin/leads/' + QUOTE, { token: TOKEN, body: { status: 'quoted' } })
+    ok(
+      'leads: staff can move a request along, and it sticks',
+      moved.status === 200 && moved.json.lead.status === 'quoted',
+      JSON.stringify(moved.json).slice(0, 90),
+    )
+    const bogus = await call('PATCH', '/admin/leads/' + QUOTE, { token: TOKEN, body: { status: 'someday' } })
+    ok('leads: only a status the ledger knows is accepted', bogus.status === 400, JSON.stringify(bogus.json))
+    const ghost = await call('PATCH', '/admin/leads/QALB-Q-2020-0000', { token: TOKEN, body: { status: 'won' } })
+    ok('leads: patching a number nobody asked for is a 404', ghost.status === 404, JSON.stringify(ghost.json))
+    const credit = await call('PATCH', '/admin/leads/' + QUOTE, { token: TOKEN, body: { credit: 3900, staffNote: 'أُرسلت العقود للبريد' } })
+    ok(
+      'leads: the pilot credit is applied by a person, in a number',
+      credit.status === 200 && credit.json.lead.creditApplied === 3900 && credit.json.lead.staffNote.includes('العقود'),
+      JSON.stringify(credit.json.lead).slice(0, 130),
+    )
+    const over = await call('PATCH', '/admin/leads/' + QUOTE, { token: TOKEN, body: { credit: 5000000 } })
+    const neg = await call('PATCH', '/admin/leads/' + QUOTE, { token: TOKEN, body: { credit: -1 } })
+    ok('leads: a credit beyond reason is refused, not clamped', over.status === 400 && neg.status === 400, JSON.stringify([over.status, neg.status]))
+    const after = list2
+    ok('leads: the note is for staff only — the buyer’s row keeps no trace of it', after.status === 200, JSON.stringify(after.json).slice(0, 60))
+
+    const thin = await call('POST', '/leads', {
+      body: { org: 'جامعةُ الملك عبدالعزيز', email: 'careers@kau.edu.sa', tier: 'pilot', seats: '25' },
+      header: false,
+    })
+    ok(
+      'leads: a thinner repeat of the same request keeps its number and answers 200',
+      thin.status === 200 && thin.json.quote === QUOTE,
+      JSON.stringify(thin.json).slice(0, 90),
+    )
+    const still = await call('GET', '/admin/leads', { token: TOKEN })
+    ok(
+      'leads: an empty field in a repeat erases nothing — not the phone, not the status, not the credit',
+      (() => {
+        const r = still.json.leads.find((x) => x.quote === QUOTE) || {}
+        return (
+          String(r.phone).includes('0555') &&
+          String(r.note).includes('الإدارة') &&
+          r.etimad === true &&
+          r.status === 'quoted' &&
+          r.creditApplied === 3900 &&
+          String(r.staffNote).includes('العقود')
+        )
+      })(),
+      JSON.stringify(still.json.leads.find((x) => x.quote === QUOTE)).slice(0, 150),
+    )
+
+    const csv = await call('GET', '/admin/leads.csv', { token: TOKEN, raw: true })
+    ok(
+      'leads: the CSV is the ledger — twelve columns, the quote first',
+      csv.status === 200 &&
+        csv.text.split(NL)[0] === 'quote,at,org,email,phone,contact,tier,seats,total,status,etimad,note' &&
+        csv.text.includes(QUOTE) &&
+        csv.text.includes('careers@kau.edu.sa'),
+      csv.text.slice(0, 80),
+    )
+
+    // الصرّافُ يعدُّ الطلبات الجديدة وحدها: المكرَّرُ والمرفوضُ لا يستهلكان الحصة (خمسُ طلباتٍ في الدقيقة)
+    for (let i = 0; i < 3; i++) await call('POST', '/leads', { body: { ...PILOT, org: `جهةٌ ${i}`, email: `q${i}@y.sa` }, header: false })
+    const flood = await call('POST', '/leads', { body: { ...PILOT, org: 'جهةٌ سادسة', email: 's@y.sa' }, header: false })
+    ok('leads: the sixth request from one address in a minute is told to wait', flood.status === 429, JSON.stringify(flood.json))
+
+    const h = await call('GET', '/health', { header: false })
+    ok(
+      'leads: health reports the ledger, and its file mode',
+      h.json.leads && h.json.leads.file === '0600' && h.json.leads.total >= 2,
+      JSON.stringify(h.json.leads),
+    )
+    ok('leads: the ledger file itself is private', modeOf('leads.json') === 0o600, modeOf('leads.json').toString(8))
+    const srcLeads = readFileSync('server/leads.js', 'utf8')
+    ok(
+      'leads: and the whole layer can be switched off with one variable',
+      /QALB_LEADS/.test(srcLeads) && /if \(!ON\(\)\) return false/.test(srcLeads),
+    )
+  }
+
   /* --- throttling --- */
+
   for (let i = 0; i < 6; i++) await call('POST', '/admin/login', { body: { password: 'nope-nope-nope-1' }, header: false })
   const limited = await call('POST', '/admin/login', { body: { password: PW }, header: false })
   ok('repeated failures lock the endpoint with 429 + retryAfter', limited.status === 429 && limited.json.retryAfter > 0, JSON.stringify(limited.json))

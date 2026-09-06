@@ -226,6 +226,16 @@ export const admin = {
   mintOrg: (payload) => (apiMode === 'rest' ? restAdmin('/admin/orgs', { method: 'POST', body: payload }) : Promise.resolve(null)),
   patchOrg: ({ code, patch }) =>
     apiMode === 'rest' ? restAdmin(`/admin/orgs/${encodeURIComponent(code)}`, { method: 'PATCH', body: patch }) : Promise.resolve(null),
+  /* طلباتُ الجهات: اللوحةُ وحدها تقرأها، والوضعُ المحلي لا دفتر للموظف فيه */
+  leads: () => (apiMode === 'rest' ? restAdmin('/admin/leads', { method: 'GET' }) : Promise.resolve(null)),
+  patchLead: ({ quote, patch }) =>
+    apiMode === 'rest' ? restAdmin(`/admin/leads/${encodeURIComponent(quote)}`, { method: 'PATCH', body: patch }) : Promise.resolve(null),
+  async leadsCsv() {
+    if (apiMode !== 'rest') return ''
+    const t = token()
+    const res = await fetch(`${BASE}/admin/leads.csv`, { headers: t ? { authorization: `Bearer ${t}` } : {}, credentials: 'include' })
+    return res.ok ? res.text() : ''
+  },
   async orgsCsv() {
     if (apiMode !== 'rest') return ''
     const t = token()

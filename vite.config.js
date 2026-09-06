@@ -16,7 +16,7 @@ const API = process.env.QALB_API_TARGET || 'http://127.0.0.1:8787'
 // Note: '/download' is a prefix match, and the storefront has no client route of that name.
 // '/org' is the seat ledger (/org/redeem and /org/<code>); no client route starts with it, so the
 // prefix is safe — and without it a redemption would be answered by index.html, not by the server.
-const PROXY_PATHS = ['/orders', '/org', '/licences', '/catalog', '/admin/', '/download', '/dl/', '/health']
+const PROXY_PATHS = ['/orders', '/org', '/leads', '/licences', '/catalog', '/admin/', '/download', '/dl/', '/health']
 const PROXY = Object.fromEntries(PROXY_PATHS.map((p) => [p, { target: API, changeOrigin: true }]))
 
 export default defineConfig({

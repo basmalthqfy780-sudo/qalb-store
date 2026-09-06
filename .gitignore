@@ -5,13 +5,11 @@ coverage
 uploads/
 .npm/
 
-# بيانات حيّة يكتبها خادم الطلبات — لا تُودَع أبدًا
-server/orders.jsonl
-server/admins.json
-server/sites.json
-server/products.json
+# بيانات حيّة يكتبها خادم الطلبات — لا تُودَع أبدًا: دفاترُ الطلبات والمؤسسات
+# والمفاتيحُ والحسابات. النمطُ يشمل كلَّ ما يولّده الخادم لاحقًا، فلا يُنسى دفترٌ.
+server/*.json
+server/*.jsonl
 server/.admin-secret
-server/downloads.jsonl
 server/.download-secret
 
 # قد يكتب المشغّل credential.helper store داخل جذر المستودع (~ = مجلد العمل):
@@ -20,6 +18,7 @@ server/.download-secret
 !.git-credentials.example
 
 # HOME هنا هو جذر المستودع: أي إعداد عام أو حزمة مؤقتة يسقطان داخل الشجرة
+/.ssh/
 /.gitconfig
 /qalb-*.bundle
 # حزم التسليم المولّدة للاستضافة اليدوية — ليست جزءًا من المستودع
