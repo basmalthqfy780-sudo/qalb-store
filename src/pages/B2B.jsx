@@ -13,6 +13,7 @@ import {
   seatBundle,
   seatRetailBand,
   tierForSeats,
+  COHORT_MAX,
 } from '../data/b2b'
 import { SUPPORT_MAIL, SUPPORT_MAILTO, SUPPORT_PHONE } from '../data/contact'
 import { COMPANY, isSet, quoteMissing } from '../data/company'
@@ -120,13 +121,14 @@ export default function B2B() {
       .map((x) => x.trim())
       .filter((x) => x.length > 40)
     if (!parts.length) return null
-    const rows = parts.map((text, i) => {
+    const capped = parts.length > COHORT_MAX
+    const rows = (capped ? parts.slice(0, COHORT_MAX) : parts).map((text, i) => {
       const r = analyzeAts(text)
       return { n: i + 1, score: r.score, gaps: r.gaps.length, words: r.words }
     })
     const avg = Math.round(rows.reduce((s, r) => s + r.score, 0) / rows.length)
     const pass = rows.filter((r) => r.score >= ATS_TARGET.pass).length
-    return { rows, avg, pass, count: rows.length, below: rows.length - pass }
+    return { rows, avg, pass, count: rows.length, below: rows.length - pass, capped, seen: parts.length }
   }, [cohort])
 
   const cohortCsv = useMemo(() => {
@@ -491,6 +493,13 @@ export default function B2B() {
               <Icon n="shield" className="size-3.5 text-brand" />
               {t('b2b.cohortNote').replace('{n}', String(ATS_TARGET.pass))}
             </p>
+            {cohortResults?.capped ? (
+              <p className="mt-2 text-[11.5px] leading-relaxed text-dim" data-b2b-cohort-cap>
+                <Icon n="pulse" className="me-1 inline size-3.5 align-[-2px] text-brand" />
+                {t('b2b.cohortCapped').replace('{n}', num(COHORT_MAX)).replace('{all}', num(cohortResults.seen))}
+              </p>
+            ) : null}
+
             {cohortResults ? (
               <div className="mt-4 grid gap-2 sm:grid-cols-4" data-b2b-cohort-out>
                 {[

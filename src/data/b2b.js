@@ -152,7 +152,11 @@ export const perSeatVsBundle = (tier) => {
 }
 
 /** ما يفتحه المقعد: عددُه ومدى أسعار قائمته — نطاقٌ مشتقٌّ لا نصٌّ مكتوب باليد */
-export const seatRetailBand = () => ({ count: SEAT_TEMPLATES.length, min: cheapestSeatRetail(), max: priciestSeatRetail() })
+export const seatRetailBand = () => ({ count: SEAT_TEMPLATES.length, min: cheapestSeatRetail(), max: priciestSeatRetail() }) /**
+ * سقفُ قياسِ الدفعة: كلُّ لصقٍ يعيد الحسابَ في المتصفح، فبلا سقفٍ تتحوّل مئةُ سيرةٍ إلى
+ * محرّكٍ يعلق مع كلِّ مفتاح. الرقمُ معلنٌ في الفاحص وفي llms.txt من هذا السطر وحده.
+ */
+export const COHORT_MAX = 500
 
 /**
  * عددُ مقاعدَ يطلبه الطرفُ الآخر ← أقربُ باقةٍ تسعه. لا سعرٌ لكل مقعد يُخترع في المتصفح:

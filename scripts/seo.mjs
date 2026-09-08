@@ -22,11 +22,10 @@ const dict = (await import(path.join(ROOT, 'src/i18n/translations.js'))).default
 
 mkdirSync(PUB, { recursive: true })
 
-/* ---------------- robots.txt ---------------- */
-writeFileSync(
-  path.join(PUB, 'robots.txt'),
-  `User-agent: *\nAllow: /\nDisallow: /checkout\nDisallow: /order\nDisallow: /cart\nDisallow: /admin\nDisallow: /studio\n\nSitemap: ${SITE}/sitemap.xml\n`,
-)
+/* ---------------- robots.txt و llms.txt: أصولُ القراءة الآلية ---------------- */
+const agents = await import(path.join(ROOT, 'scripts/agents.mjs'))
+writeFileSync(path.join(PUB, 'robots.txt'), agents.buildRobots({ site: SITE }))
+writeFileSync(path.join(PUB, 'llms.txt'), await agents.buildLlms({ site: SITE }))
 
 /* ---------------- sitemap.xml ---------------- */
 const today = new Date().toISOString().slice(0, 10)
@@ -103,5 +102,5 @@ if (!html.includes('og:image')) {
 }
 
 console.log(
-  `seo: ${urls.length} urls in sitemap · robots.txt · og-cover.png=${rasterized ? 'ok' : 'skipped (no pillow)'} · public/og=${ogCount} بطاقات`,
+  `seo: ${urls.length} urls in sitemap · robots.txt (${agents.AI_AGENTS.length} AI agents allowed) · llms.txt · og-cover.png=${rasterized ? 'ok' : 'skipped (no pillow)'} · public/og=${ogCount} بطاقات`,
 )

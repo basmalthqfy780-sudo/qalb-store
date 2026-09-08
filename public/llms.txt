@@ -1,0 +1,165 @@
+# Qalb · قالب
+
+> Qalb sells a CV and a site that a recruiter’s parser can actually read, gives away the measurement tool that proves it, and licenses that tool to whole graduating cohorts. Arabic-first RTL interface with a complete English mirror; prices in Saudi riyals, VAT 15% included. Every page here is a client-rendered React app, so this file — not a crawl of the DOM — is the plain-text authority for what the site is.
+
+## What is sold
+
+15 published templates, SAR 59–449 each. 7 of them also produce an ATS-readable CV, and that subset is what an institutional seat unlocks: a seat buys a machine-readable document, not decoration.
+
+### Templates
+- [Aether](https://qalb.store/template/aether-portfolio): Dark-mode portfolio for designers — SAR 249, site only
+- [Atelier](https://qalb.store/template/atelier-photography): For photographers: images lead — SAR 279, site only
+- [Nexus](https://qalb.store/template/nexus-engineer): Engineers: numbers over images — SAR 219, site only
+- [Folio](https://qalb.store/template/folio-minimal): The simplest honest start — SAR 149, site only
+- [Reel](https://qalb.store/template/reel-motion): Motion and video, unstuttered — SAR 299, site only
+- [Quill](https://qalb.store/template/quill-writer): For writers: reading first — SAR 179, site only
+- [Vertex](https://qalb.store/template/vertex-3d): 3D that loads instantly — SAR 349, site only
+- [Studio](https://qalb.store/template/studio-team): For teams of 2–6 — SAR 399, site only
+- [Mirror Pro](https://qalb.store/template/mirror-pro-bundle): Site + CV, one identity — SAR 449, ships an ATS-readable CV as well as the site
+- [DevPack](https://qalb.store/template/devpack-bundle): Engineers: site + ATS CV — SAR 379, ships an ATS-readable CV as well as the site
+- [First Step](https://qalb.store/template/firststep-bundle): Graduate site + CV — SAR 199, ships an ATS-readable CV as well as the site
+- [Nova](https://qalb.store/template/nova-cv): Single-column ATS CV — SAR 89, ships an ATS-readable CV as well as the site
+- [Atlas](https://qalb.store/template/atlas-cv): The engineer’s CV — SAR 99, ships an ATS-readable CV as well as the site
+- [Apex](https://qalb.store/template/apex-cv): Executive CV in serif — SAR 129, ships an ATS-readable CV as well as the site
+- [Echo](https://qalb.store/template/echo-cv): For grads, no record needed — SAR 59, ships an ATS-readable CV as well as the site
+
+## Free tool: ATS readiness checker
+
+https://qalb.store/ats · no account, no upload, nothing stored. 7 rules are scored out of 100 against text pasted in your own browser, in Arabic or English, and every gap comes with the fix for that gap. The passing line is 70, and the structural thresholds behind it are public: 320–900 words and at least 4 bullet lines; an empty document scores 0, so the scale has no participation floor. The sample CV in the repository scores 100. The paid templates emit the same structure this checker reads.
+
+## For universities, colleges and employment offices
+
+Annual seat contracts of 12 months, no auto-renewal. A seat is redeemed once by one student e-mail on one template with an institution code (`QALB-XXXX-XXXX`, excluding letters that read as digits), and it issues a licence key for that student’s own download. Prices are contract figures, not promotions:
+
+- 25 seats · SAR 3,900 for 12 months · SAR 156 per seat · 65% under buying the same product one by one
+- 50 seats · SAR 15,000 for 12 months · SAR 300 per seat · 33% under buying the same product one by one
+- 150 seats · SAR 24,000 for 12 months · SAR 160 per seat · 64% under buying the same product one by one
+- 300 seats · SAR 33,000 for 12 months · SAR 110 per seat · 76% under buying the same product one by one
+- 500 seats · SAR 45,000 for 12 months · SAR 90 per seat · 80% under buying the same product one by one
+
+The entry offer is 25 seats for SAR 3,900 — sized to stay under a dean’s signature authority — and what was paid for it is credited against the first annual contract by a staff member, manually, because there is no payment gateway here to net it automatically.
+A seat is compared with what a seat opens, never with the cheapest item on the shelf: the reference product is “Mirror Pro” at SAR 449, and the individual-purchase range across the 7 measurable templates is SAR 59–449.
+
+### Measuring a cohort (the part we ask to be judged on)
+
+On https://qalb.store/b2b the shipped checker runs over a whole cohort: paste up to 500 CV texts separated by a line of three hyphens and you get the average score, how many cleared 70, the total number of gaps, and a CSV of exactly those numbers. Text never leaves the browser tab — it is not stored, not uploaded, and not logged; the export carries scores, not students. Institutions are offered the same measurement twice, before and after a term, so employability is reported as a delta in a number rather than an adjective — and it is the same code path as the free tool, not a second, gentler algorithm built for marketing.
+
+### What an institution gets on paper
+
+A printable quotation sheet: quote number (`QALB-Q-<year>-<4>`), date, validity 30 days, seats and tier, then net amount, 15% VAT and total on separate lines, with the seller’s registration block below. The identical number goes into the lead ledger together with the organisation, contact e-mail, phone, requested seat count, meeting slots and note — one record, one figure, three places (ledger, printed sheet, e-mail). Student names and student addresses are not part of it at any point.
+
+Buying through the Etimad (اعتماد) government procurement platform: we are not listed there yet, and the page says so. An institution whose procurement must run through Etimad is asked to tell us first, and no “registered” badge is shown to look better.
+
+No sales phone number and no booking link are published, because none is configured on this deployment; the site says that plainly instead of showing a call button that reaches nothing. The working channel is qalb@qalb.store.
+
+## Personal hosting
+
+A hosted page on `<name>.qalb.store`: free with 10 edits a month and a made-with bar, or SAR 19/month with your own domain, no branding bar and no edit ceiling. Pages are static HTML generated from the same record as the CV, so the printed A4 sheet and the browser page are the same file.
+
+## Payment, invoicing, and what we do not claim
+
+- There is no card gateway and no card data is stored; an institutional purchase is settled as a signed contract and a bank transfer. The storefront’s checkout is a demo: order records are written for real, money does not move.
+- Refunds follow https://qalb.store/legal: full refund within 14 days provided the files were not redistributed; a seat already redeemed is a licence already issued, so it is not refundable after redemption.
+- We do not issue ZATCA e-invoices and do not claim to. The VAT invoice is produced by the owner from the printed quotation once their fiscal details are registered on the site.
+- A template licence is perpetual for the person and domain it was issued to; seats and hosting are annual because the institution’s contract is annual.
+
+## Legal identity of the seller
+
+No VAT registration number, commercial-registration number, IBAN or bank name is published by this storefront, because none is entered by the owner — the site will not print an invented one. The quotation sheet prints “pending verification” in each empty field and lists what is missing; today that list is: الاسم التجاري, رقم السجل التجاري, الرقم الضريبي, الآيبان, اسم البنك. Every price is inclusive of 15% Saudi VAT and the printed sheet separates net amount, tax and total on three lines so a finance department can redo the arithmetic.
+
+## Index
+
+- E-mail: qalb@qalb.store
+- Legal, licence and refund terms: https://qalb.store/legal
+- Catalogue: https://qalb.store/templates
+- ATS checker: https://qalb.store/ats
+- Institutional seats and cohort measurement: https://qalb.store/b2b
+- Hosting: https://qalb.store/host
+- Track an order: https://qalb.store/track
+- Verify a licence key: https://qalb.store/licence
+- Sitemap: https://qalb.store/sitemap.xml
+- Crawling rules: https://qalb.store/robots.txt
+
+---
+
+# قالب — بالعربية
+
+> قالبُ واحدٌ وسيرةٌ ذاتيةٌ واحدة: موقعٌ وسيرةٌ يقرؤهما فرزُ الشركات الآلي فعلًا، وأداةُ قياسٍ مجانيةٌ تُثبت ذلك، وعقودُ مقاعد سنوية للجامعات والمعاهد ومكاتب التوظيف تقيس بها جاهزيةَ دفعةٍ كاملة. الواجهةُ عربيةٌ من اليمين إلى اليسار بنسخةٍ إنجليزيةٍ كاملة، والأسعارُ بالريال السعودي مشتملةً على ضريبة القيمة المضافة 15٪. كلُّ صفحةٍ هنا تطبيقُ React يُبنى في المتصفح، فهذا الملفُّ هو المرجعُ المسطّحُ لما لا يستطيع الفاحصُ تنفيذَه.
+
+## ما يُباع
+
+15 قالبًا منشورًا من ٥٩ إلى ٤٤٩ ريالًا؛ 7 منها يُخرِج مع الموقع سيرةً ذاتيةً بمعايير الفرز الآلي، وهذا الجزءُ وحدَه هو ما تفتحه المقاعدُ المؤسسية: المقعدُ يشتري وثيقةً تقرؤها الآلة، لا زينةً.
+
+### القوالب
+- [أيثر](https://qalb.store/template/aether-portfolio): بورتفوليو المصممين بنمط داكن — ٢٤٩ ريالًا · موقعٌ فقط
+- [أتيلييه](https://qalb.store/template/atelier-photography): للمصوّرين: الصور تتكلّم أولًا — ٢٧٩ ريالًا · موقعٌ فقط
+- [نِكسَس](https://qalb.store/template/nexus-engineer): موقع المهندسين: أرقام قبل صور — ٢١٩ ريالًا · موقعٌ فقط
+- [فوليو](https://qalb.store/template/folio-minimal): أبسط بداية لمعرض أعمال — ١٤٩ ريالًا · موقعٌ فقط
+- [ريل](https://qalb.store/template/reel-motion): موشن وفديو بدون تقطيع — ٢٩٩ ريالًا · موقعٌ فقط
+- [كوِل](https://qalb.store/template/quill-writer): للكتّاب: قراءة قبل زخرفة — ١٧٩ ريالًا · موقعٌ فقط
+- [فِرتِكس](https://qalb.store/template/vertex-3d): ثلاثي الأبعاد دون انتظار تحميل — ٣٤٩ ريالًا · موقعٌ فقط
+- [ستوديو](https://qalb.store/template/studio-team): لاستوديوهات من ٢ إلى ٦ أشخاص — ٣٩٩ ريالًا · موقعٌ فقط
+- [مِرآة برو](https://qalb.store/template/mirror-pro-bundle): موقع + سيرة بهوية واحدة — ٤٤٩ ريالًا · يُخرِج سيرةً ذاتية يقرؤها الفرزُ الآلي مع الموقع
+- [دِب باك](https://qalb.store/template/devpack-bundle): للمهندسين: موقع + ATS — ٣٧٩ ريالًا · يُخرِج سيرةً ذاتية يقرؤها الفرزُ الآلي مع الموقع
+- [فِست ستيب](https://qalb.store/template/firststep-bundle): للخريج: موقع وسيرة معًا — ١٩٩ ريالًا · يُخرِج سيرةً ذاتية يقرؤها الفرزُ الآلي مع الموقع
+- [نوفا](https://qalb.store/template/nova-cv): سيرة ATS بعمود واحد — ٨٩ ريالًا · يُخرِج سيرةً ذاتية يقرؤها الفرزُ الآلي مع الموقع
+- [أطلس](https://qalb.store/template/atlas-cv): سيرة المهندسين والتقنيين — ٩٩ ريالًا · يُخرِج سيرةً ذاتية يقرؤها الفرزُ الآلي مع الموقع
+- [أبيكس](https://qalb.store/template/apex-cv): سيرة تنفيذية بخط serif — ١٢٩ ريالًا · يُخرِج سيرةً ذاتية يقرؤها الفرزُ الآلي مع الموقع
+- [إيكو](https://qalb.store/template/echo-cv): لخريج بلا خبرة طويلة — ٥٩ ريالًا · يُخرِج سيرةً ذاتية يقرؤها الفرزُ الآلي مع الموقع
+
+## الأداةُ المجانية: فاحصُ جاهزية الفرز الآلي
+
+https://qalb.store/ats — بلا حسابٍ ولا رفعِ ملفٍ ولا تخزين: 7 قواعدَ تُحسب من مئةٍ على النصِّ الملصوق في متصفحك أنت، بالعربية أو الإنجليزية، وكلُّ فجوةٍ معها علاجُها. حدُّ العبور 70، والمدى المطلوب ٣٢٠–٩٠٠ كلمةً و٤ نقطةً على الأقل، والمستندُ الفارغُ يأخذ صفرًا فلا مجاملةَ في المقياس. ونموذجُ السيرة المرفق مع المشروع يأخذ ١٠٠. القالبُ المدفوع يُخرِج البنيةَ نفسَها التي يقرأها هذا الفاحص.
+
+## للجامعات والمعاهد ومكاتب التوظيف
+
+عقودُ مقاعد بمدّة ١٢ شهرًا وبلا تجديدٍ تلقائي. المقعدُ يُستبدل مرةً واحدةً لبريدِ طالبٍ واحد على قالبٍ واحد برمزٍ مؤسسيّ (`QALB-XXXX-XXXX`، بلا حروفٍ تُقرأ أرقامًا)، ويصدر معه مفتاحُ ترخيصٍ لصاحبِه. الأسعارُ أرقامُ عقدٍ لا عروضُ ترويجية:
+
+- ٢٥ مقعدًا · ٣,٩٠٠ ريالًا لكل ١٢ شهرًا · ١٥٦ ريالًا للمقعد · أقلُّ بـ٦٥٪ من شرائه فرديًا
+- ٥٠ مقعدًا · ١٥,٠٠٠ ريالًا لكل ١٢ شهرًا · ٣٠٠ ريالًا للمقعد · أقلُّ بـ٣٣٪ من شرائه فرديًا
+- ١٥٠ مقعدًا · ٢٤,٠٠٠ ريالًا لكل ١٢ شهرًا · ١٦٠ ريالًا للمقعد · أقلُّ بـ٦٤٪ من شرائه فرديًا
+- ٣٠٠ مقعدًا · ٣٣,٠٠٠ ريالًا لكل ١٢ شهرًا · ١١٠ ريالًا للمقعد · أقلُّ بـ٧٦٪ من شرائه فرديًا
+- ٥٠٠ مقعدًا · ٤٥,٠٠٠ ريالًا لكل ١٢ شهرًا · ٩٠ ريالًا للمقعد · أقلُّ بـ٨٠٪ من شرائه فرديًا
+
+باقةُ الدخول ٢٥ مقعدًا بـ٣,٩٠٠ ريالًا مصمَّمةٌ لتبقى تحت سلطة توقيع العميد، ويُخصَم ما دُفع منها من عقد السنة الأولى بخطوةٍ من موظفنا يدويًا — لا خصمًا ذاتيًّا لأن لا بوابة دفع لدينا.
+المقعدُ يُقارَن بما يفتحه هو، لا بأرخص شيءٍ على الرف: المرجعُ «مِرآة برو» بـ٤٤٩ ريالًا، ونطاقُ الشراء الفردي للّ٧ القابلة للقياس ٥٩–٤٤٩ ريالًا.
+
+### قياسُ جاهزية الدفعة
+
+في https://qalb.store/b2b يعمل الفاحصُ المشحون نفسه على الدفعة كلِّها: تُلصق حتى ٥٠٠ سيرةٍ مفصولةً بسطرٍ من ثلاثِ شرطات فتحصل متوسطَ الدرجات، وعددَ مَن جاوز حدَّ 70، ومجموعَ الفجوات، وملفَّ CSV بتلك الأرقام وحدَها. نصُّ السيرة لا يُخزَّن ولا يُرفَع ولا يغادر الصفحة، والتصديرُ نتائجُ لا أسماءَ ولا عناوينَ طلاب. يُعرض على الجهة قياسُ الدفعة مرّتَين — قبل الفصل وبعده — ليكونُ أثرُ التوظيف فرقًا في رقمٍ لا صفةً إنشائية، ومن نفس مسارِ الكود لا من نسخةٍ ألينَ أُعدّت للتسويق.
+
+## ما تحصل عليه الجهةُ ورقًا
+
+ورقةُ عرضِ سعرٍ تُطبع PDF: رقمُ العرض (`QALB-Q-<سنة>-<٤>`)، التاريخ، الصلاحية ٣٠ يومًا، عددُ المقاعد والباقة، ثم الأساسُ والضريبةُ (15٪) والإجمالي في أسطرٍ منفصلة، وتحتها كتلةُ بيانات البائع التجارية. الرقمُ نفسه يذهب إلى دفتر الطلبات مع الجهة وبريدِها وهاتفها والمقاعد المطلوبة ومواعيدُ العرض والملاحظة — سجلٌّ واحدٌ ورقمٌ واحد في ثلاثة مواضع (الدفتر، الورقة، البريد)، ولا اسمَ طالبٍ ولا بريدَ طالبٍ في أيِّها.
+
+الشراءُ عبر منصة اعتماد: لسنا مُدرَجين هناك بعد، والصفحةُ تقول ذلك ولا تُظهر شارةَ «مسجَّل» لتبدو أفضل؛ ومَن تشترطُ الشراءَ من اعتماد تُخبرنا أولًا لِنُكمل المسارَ معها.
+
+لا هاتفَ مبيعات ولا رابطَ حجزٍ منشورًا — لا شيء مضبوطًا في هذا النشر، والصفحةُ تقول ذلك بصريح العبارة بدل زرِّ «اتصل» لا يوصل إلى شيء. القناةُ العاملةُ هي الكتابةُ إلى qalb@qalb.store.
+
+## الاستضافة الشخصية
+
+صفحةٌ مستضافةٌ على `<الاسم>.qalb.store`: بالمجان مع ١٠ تعديلاتٍ في الشهر وشريطِ العلامة، أو بـ١٩ ريالًا في الشهر لنطاقِكَ الخاصّ بلا شريطِ علامة وبلا سقفِ تعديل. الصفحاتُ HTML ثابتةٌ تُولَّد من سجلِّ بيانات الطالب نفسِه، فورقةُ A4 المطبوعة والصفحةُ في المتصفح ملفٌّ واحد.
+
+## الدفعُ والفواتيرُ وما لا ندّعيه
+
+- لا بوابةَ دفعٍ بالبطاقة ولا بياناتِ بطاقةٍ محفوظة؛ شراءُ الجهة عقدٌ موقَّعٌ وتحويلٌ بنكيّ، ومسارُ الدفعِ في المتجر تجريبيّ: سجلُّ الطلب يُكتب فعلًا وحركةُ المال لا تقع.
+- الاسترجاعُ كما في https://qalb.store/legal: كاملٌ خلال ١٤ يومًا ما لم تُعَد توزيعُ الملفات، والمقعدُ المستبدَل رخصةٌ صُدِرت فلا يُسترجَع بعد الاستبدال.
+- لا نُصدر فاتورةً إلكترونية مطابقةً لـZATCA ولا ندّعي ذلك؛ الفاتورةُ الضريبية يُصدرها المالك من ورقةِ العرض بعد ضبطِ بياناته التجارية.
+- رخصةُ القالب دائمةٌ لصاحبها ونطاقها، والمقاعدُ والاستضافةُ سنويةٌ لأن عقدَ الجهة سنويّ.
+
+## هويةُ البائع القانونية
+
+لا يُنشر رقمٌ ضريبيٌّ ولا سجلٌّ تجاريٌّ ولا IBAN ولا اسمُ بنك في أيِّ ملفٍّ من ملفات الموقع، لأن صاحبَ المتجر لم يُدخلها بعد — ولن نطبع رقمًا من عندنا. ورقةُ عرضِ السعر تطبع «قيدَ التوثيق» في كلِّ خانةٍ فارغة وتُسقِط قائمةَ الناقص، وهي اليوم: الاسم التجاري، رقم السجل التجاري، الرقم الضريبي، الآيبان، اسم البنك. كلُّ سعرٍ مشتملٌ على ضريبة القيمة المضافة 15٪، والورقةُ تفصل الأساسَ والضريبةَ والإجماليَ في ثلاثة أسطرٍ ليعيدَ القسمُ الماليُّ الحسابَ بنفسه.
+
+## الفهرس
+
+- البريد: qalb@qalb.store
+- العقودُ والترخيصُ والاسترجاع: https://qalb.store/legal
+- الكتالوج: https://qalb.store/templates
+- فاحصُ الجاهزية: https://qalb.store/ats
+- مقاعدُ المؤسسات وقياسُ الدفعة: https://qalb.store/b2b
+- الاستضافة: https://qalb.store/host
+- تتبّعُ طلب: https://qalb.store/track
+- التحققُ من مفتاح: https://qalb.store/licence
+- خريطةُ المسارات: https://qalb.store/sitemap.xml
+- قواعدُ الزحف: https://qalb.store/robots.txt

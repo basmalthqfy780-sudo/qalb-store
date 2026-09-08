@@ -33,6 +33,7 @@ import { ATS_BANDS, ATS_DEMO, ATS_RULES, ATS_TARGET, analyzeAts, atsReport, atsR
 import {
   B2B_TERM_MONTHS,
   B2B_TIERS,
+  COHORT_MAX,
   ORG_CODE_RE,
   SEAT_TEMPLATES,
   addMonths,
@@ -2105,8 +2106,11 @@ for (const c of cases) {
   )
   ok('Netlify keeps the same map in its own tongue', /^\/\*\s+\/index\.html\s+200$/m.test(readSrc('public/_redirects')))
   ok(
-    'the admin path is unlisted: no link, no sitemap entry, one robots line',
-    !readSrc('src/components/Footer.jsx').includes('/admin') && !readSrc('public/sitemap.xml').includes('/admin'),
+    'the admin path is unlisted: no link, no sitemap entry, and disallowed in every robots block',
+    !readSrc('src/components/Footer.jsx').includes('/admin') &&
+      !readSrc('public/sitemap.xml').includes('/admin') &&
+      (readSrc('public/robots.txt').match(/^User-agent:/gm) || []).length ===
+        (readSrc('public/robots.txt').match(/^Disallow: \/admin$/gm) || []).length,
   )
   const bad2 = checks.filter(([, pass]) => !pass)
   if (bad2.length) {
@@ -3844,6 +3848,164 @@ for (const c of cases) {
   } else {
     groups++
     console.log(`✓ delivery · packages · signed links  (${checks.length} assertions)`)
+  }
+}
+
+/* -------- agents · ما يقرؤه الوكيلُ الآلي عنّا: robots.txt و llms.txt -------- */
+{
+  const checks = []
+  const ok = (name, cond, extra = '') => checks.push([cond ? name : `${name} — ${extra}`, !!cond])
+  const read = (f) => readFileSync(new URL(f, import.meta.url), 'utf8')
+  const { buildRobots, buildLlms, AI_AGENTS, PRIVATE_PATHS } = await import('../scripts/agents.mjs')
+  const { COMPANY, isSet } = await import('../src/data/company.js')
+  const nf = new Intl.NumberFormat('en-US')
+  const arNum = (v) => nf.format(v).replace(/\d/g, (d) => String.fromCharCode(0x0660 + Number(d)))
+
+  const robots = read('../public/robots.txt')
+  const siteOf = robots.match(/^Sitemap: (https?:\/\/[^/\n]+)\/sitemap\.xml$/m)
+  const site = siteOf ? siteOf[1] : 'https://qalb.store'
+  const llms = read('../public/llms.txt')
+  const pkg = JSON.parse(read('../package.json'))
+
+  /* ——— الملفان من مولّدٍ واحد، فلا ينجرفان عن الموقع ——— */
+  ok('robots.txt on disk is exactly what the generator emits', robots === buildRobots({ site }))
+  ok('llms.txt on disk is exactly what the generator emits', llms === (await buildLlms({ site })))
+  ok(
+    'both are regenerated before every build, so neither can go stale',
+    /node scripts\/seo\.mjs/.test((pkg.scripts || {}).prebuild || '') && /agents\.mjs/.test(read('../scripts/seo.mjs')),
+    String((pkg.scripts || {}).prebuild),
+  )
+
+  /* ——— robots: وكلاءُ الذكاء الاصطناعي مسموحٌ بهم صراحةً، والخاصُّ ممنوعٌ على الجميع ——— */
+  // سطرٌ بسطر، لا فقرةً بفقرات: التعليقُ فوق أول كتلةٍ لا يلغيها عند أيِّ فاحصٍ يقرأ robots
+  const blocks = []
+  for (const line of robots.split('\n')) {
+    if (/^User-agent:/.test(line)) blocks.push([line.replace(/^User-agent:\s*/, ''), []])
+    else if (blocks.length && /^(Allow|Disallow):/.test(line)) blocks[blocks.length - 1][1].push(line)
+  }
+  const byAgent = new Map(blocks)
+  ok('there is a block per listed agent, plus the wildcard', byAgent.size === AI_AGENTS.length + 1, `${byAgent.size} vs ${AI_AGENTS.length + 1}`)
+  ok(
+    'every AI agent is allowed the public text explicitly, not by silence',
+    AI_AGENTS.every((a) => (byAgent.get(a) || []).includes('Allow: /')),
+    AI_AGENTS.filter((a) => !(byAgent.get(a) || []).includes('Allow: /')).join(','),
+  )
+  ok(
+    'the three named in the brief are among them',
+    ['GPTBot', 'ClaudeBot', 'PerplexityBot'].every((a) => byAgent.has(a)),
+  )
+  ok(
+    'and no block — search crawler or AI — is let past a private route',
+    [...byAgent.values()].every((ls) => PRIVATE_PATHS.every((p) => ls.includes(`Disallow: ${p}`))),
+    [...byAgent.entries()]
+      .filter(([, ls]) => !PRIVATE_PATHS.every((p) => ls.includes(`Disallow: ${p}`)))
+      .map(([k]) => k)
+      .join(','),
+  )
+  ok(
+    'the pages an agent needs to describe the store are not hidden',
+    ['/ats', '/b2b', '/templates', '/host', '/legal', '/licence', '/track'].every((p) => !robots.includes(`Disallow: ${p}`)),
+  )
+  ok('the sitemap is declared inside the file it describes', new RegExp(`^Sitemap: ${site.replace(/\./g, '\\.')}\\/sitemap\\.xml$`, 'm').test(robots))
+  ok('and the header points a reader at llms.txt without inventing a directive', /# .*\/llms\.txt/.test(robots) && !/^LLMS:/m.test(robots))
+
+  /* ——— llms.txt: بنيةُ الملف، ثم صدقُ ما فيه ——— */
+  ok('it opens with the brand and a blockquote a model can quote', /^# Qalb · قالب\n\n> [^\n]{120,}/.test(llms))
+  ok(
+    'the Arabic half is a full mirror, not a trailing sentence',
+    llms.includes('\n---\n') && llms.includes('## ما يُباع') && llms.includes('## الاستضافة الشخصية') && llms.includes('## الفهرس'),
+  )
+  ok(
+    'every template is linked, in both halves, at its catalogue price',
+    templates.every((t) => (llms.match(new RegExp(`/template/${t.slug}`, 'g')) || []).length >= 2) &&
+      templates.every((t) => llms.includes(nf.format(t.price)) || llms.includes(String(t.price))),
+  )
+  ok(
+    'every seat tier is given with seats, money and per-seat, as computed',
+    B2B_TIERS.every(
+      (t) =>
+        llms.includes(`- ${t.seats} seats · SAR ${nf.format(t.price)}`) &&
+        llms.includes(`SAR ${nf.format(perSeat(t))} per seat`) &&
+        llms.includes(`${perSeatVsBundle(t)}%`),
+    ),
+  )
+  const pilotTier = B2B_TIERS.find((t) => t.id === 'pilot') || { price: 0 }
+  ok(
+    'the pilot is named with the credit rule attached',
+    llms.includes(nf.format(pilotTier.price)) &&
+      /credited against the first annual contract/.test(llms) &&
+      /يُخصَم ما دُفع منه|يُخصَم ما دُفع/.test(llms),
+  )
+  ok(
+    'the cohort claim is the cohort code: same cap, same passing line',
+    llms.includes(`up to ${nf.format(COHORT_MAX)} CV texts`) && llms.includes(arNum(COHORT_MAX)) && llms.includes(String(ATS_TARGET.pass)),
+  )
+  ok(
+    'and the page really enforces that cap instead of only advertising it',
+    /parts\.slice\(0, COHORT_MAX\)/.test(read('../src/pages/B2B.jsx')) && dict.ar.b2b.cohortCapped.includes('{n}'),
+  )
+  ok(
+    'the checker is described as a browser tool that stores nothing',
+    /no account, no upload, nothing stored/.test(llms) && /بلا حسابٍ ولا رفعِ ملفٍ ولا تخزين/.test(llms),
+  )
+  ok(
+    'students are written out of it in both languages',
+    /not part of it at any point/.test(llms) && /لا اسمَ طالبٍ ولا بريدَ طالبٍ في أيِّها/.test(llms),
+  )
+
+  /* ——— ما لا سندَ له عندنا لا يُكتب ——— */
+  ok(
+    'no payment gateway, no ZATCA claim — stated, in both languages',
+    /no card gateway/.test(llms) &&
+      /لا بوابةَ دفع/.test(llms) &&
+      /do not issue ZATCA e-invoices/.test(llms) &&
+      /لا نُصدر فاتورةً إلكترونية/.test(llms),
+  )
+  ok(
+    'no line claims money moves or an invoice is issued for us',
+    !/we (send|issue|charge|email) (you|the|an)\b/i.test(llms) && !/نُرسل لكم|نُصدر فاتورةً إلكترونية فورًا/.test(llms),
+  )
+  ok(
+    'and no fiscal identity is invented for the sake of a complete file',
+    isSet(COMPANY.vatNumber)
+      ? true
+      : !/(VAT (registration )?number|الرقم الضريبي|IBAN)[:\s]*[0-9٠-٩]{6,}/i.test(llms) &&
+          llms.includes('pending verification') &&
+          llms.includes('قيدَ التوثيق'),
+    (llms.match(/^.*(VAT number|IBAN).*$/gm) || [''])[0].slice(0, 70),
+  )
+  ok('Etimad is reported as it is', COMPANY.etimad !== 'none' ? true : /not listed there yet/.test(llms) && /لسنا مُدرَجين هناك بعد/.test(llms))
+  ok(
+    'a phone or a booking link appears only because it is configured',
+    Boolean(isSet(COMPANY.phone)) === /Sales phone:/.test(llms) && Boolean(isSet(COMPANY.bookingUrl)) === /book a 20-minute demo/.test(llms),
+    `phone=${String(isSet(COMPANY.phone))} booking=${String(isSet(COMPANY.bookingUrl))}`,
+  )
+
+  /* ——— تُخدَم كما كُتبت ——— */
+  if (existsSync('dist/llms.txt') && existsSync('dist/robots.txt')) {
+    ok(
+      'the built site ships both files at the root, byte for byte',
+      readFileSync('dist/llms.txt', 'utf8') === llms && readFileSync('dist/robots.txt', 'utf8') === robots,
+    )
+  }
+  const vercel = JSON.parse(read('../vercel.json'))
+  ok(
+    'the host is told not to sniff or stale-cache them, and the SPA rewrite still stands',
+    (vercel.headers || []).some((h) => /llms\\?\.txt/.test(h.source) && (h.headers || []).some((x) => x.key === 'Cache-Control')) &&
+      vercel.rewrites?.length === 1,
+    JSON.stringify(vercel).slice(0, 80),
+  )
+  ok('nothing in either file leaks a secret-shaped string', !/(Bearer |sk-|ghp_|ADMIN_PASSWORD=|BEGIN OPENSSH)/.test(llms + robots))
+
+  const badAgents = checks.filter(([, pass]) => !pass)
+  if (badAgents.length) {
+    failed++
+    groups++
+    console.log('✗ agents · robots and llms')
+    badAgents.forEach(([n]) => console.log('   failed: ' + n))
+  } else {
+    groups++
+    console.log(`✓ agents · robots and llms  (${checks.length} assertions)`)
   }
 }
 

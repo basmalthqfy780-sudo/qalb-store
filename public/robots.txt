@@ -1,3 +1,9 @@
+# Qalb · قالب — قواعدُ الزحف
+# النصوصُ العامةُ (القوالبُ والأسعارُ وفاحصُ الجاهزية وصفحةُ المؤسسات) مفتوحةٌ للقراءة،
+# ومن فيها وكلاءُ الذكاء الاصطناعي مسموحٌ بهم صراحةً في أسفله. الممنوعُ ما يخصُّ شخصًا
+# واحدًا أو يكتب بيانات: السلّةُ وإتمامُ الطلب والإيصالُ ولوحةُ الإدارة ومحرّر الطالب.
+# ملخّصٌ بلغةٍ آلية للموقع: /llms.txt · خريطةُ المسارات: /sitemap.xml
+
 User-agent: *
 Allow: /
 Disallow: /checkout
@@ -6,4 +12,150 @@ Disallow: /cart
 Disallow: /admin
 Disallow: /studio
 
+# ——— وكلاءُ الذكاء الاصطناعي: نفسُ العامّ مسموحٌ به، ونفسُ الخاصّ ممنوعٌ به ———
+User-agent: GPTBot
+Allow: /
+Disallow: /checkout
+Disallow: /order
+Disallow: /cart
+Disallow: /admin
+Disallow: /studio
+
+User-agent: OAI-SearchBot
+Allow: /
+Disallow: /checkout
+Disallow: /order
+Disallow: /cart
+Disallow: /admin
+Disallow: /studio
+
+User-agent: ChatGPT-User
+Allow: /
+Disallow: /checkout
+Disallow: /order
+Disallow: /cart
+Disallow: /admin
+Disallow: /studio
+
+User-agent: ClaudeBot
+Allow: /
+Disallow: /checkout
+Disallow: /order
+Disallow: /cart
+Disallow: /admin
+Disallow: /studio
+
+User-agent: Claude-User
+Allow: /
+Disallow: /checkout
+Disallow: /order
+Disallow: /cart
+Disallow: /admin
+Disallow: /studio
+
+User-agent: anthropic-ai
+Allow: /
+Disallow: /checkout
+Disallow: /order
+Disallow: /cart
+Disallow: /admin
+Disallow: /studio
+
+User-agent: PerplexityBot
+Allow: /
+Disallow: /checkout
+Disallow: /order
+Disallow: /cart
+Disallow: /admin
+Disallow: /studio
+
+User-agent: Perplexity-User
+Allow: /
+Disallow: /checkout
+Disallow: /order
+Disallow: /cart
+Disallow: /admin
+Disallow: /studio
+
+User-agent: Google-Extended
+Allow: /
+Disallow: /checkout
+Disallow: /order
+Disallow: /cart
+Disallow: /admin
+Disallow: /studio
+
+User-agent: Applebot-Extended
+Allow: /
+Disallow: /checkout
+Disallow: /order
+Disallow: /cart
+Disallow: /admin
+Disallow: /studio
+
+User-agent: Meta-ExternalAgent
+Allow: /
+Disallow: /checkout
+Disallow: /order
+Disallow: /cart
+Disallow: /admin
+Disallow: /studio
+
+User-agent: Meta-ExternalFetcher
+Allow: /
+Disallow: /checkout
+Disallow: /order
+Disallow: /cart
+Disallow: /admin
+Disallow: /studio
+
+User-agent: CCBot
+Allow: /
+Disallow: /checkout
+Disallow: /order
+Disallow: /cart
+Disallow: /admin
+Disallow: /studio
+
+User-agent: cohere-ai
+Allow: /
+Disallow: /checkout
+Disallow: /order
+Disallow: /cart
+Disallow: /admin
+Disallow: /studio
+
+User-agent: DuckAssistBot
+Allow: /
+Disallow: /checkout
+Disallow: /order
+Disallow: /cart
+Disallow: /admin
+Disallow: /studio
+
+User-agent: MistralAI
+Allow: /
+Disallow: /checkout
+Disallow: /order
+Disallow: /cart
+Disallow: /admin
+Disallow: /studio
+
+User-agent: MistralAI-User
+Allow: /
+Disallow: /checkout
+Disallow: /order
+Disallow: /cart
+Disallow: /admin
+Disallow: /studio
+
+User-agent: Amazonbot
+Allow: /
+Disallow: /checkout
+Disallow: /order
+Disallow: /cart
+Disallow: /admin
+Disallow: /studio
+
 Sitemap: https://qalb.store/sitemap.xml
+
