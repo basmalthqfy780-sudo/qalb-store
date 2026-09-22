@@ -482,7 +482,8 @@ export function Reveal({ children, delay = 0, y = 22, className = '', as: Cmp = 
 }
 
 /* ============================ section heading ============================ */
-export function Head({ kicker, title, sub, align = 'start', right }) {
+export function Head({ kicker, title, sub, align = 'start', right, as = 'h2' }) {
+  const TitleTag = as
   return (
     <div
       className={`flex flex-col gap-4 ${align === 'center' ? 'items-center text-center' : 'items-start'} md:flex-row md:items-end md:justify-between`}
@@ -494,7 +495,7 @@ export function Head({ kicker, title, sub, align = 'start', right }) {
             {kicker}
           </div>
         )}
-        <h2 className="text-3xl leading-[1.15] font-extrabold sm:text-4xl md:text-[2.6rem]">{title}</h2>
+        <TitleTag className="text-3xl leading-[1.15] font-extrabold sm:text-4xl md:text-[2.6rem]">{title}</TitleTag>
         {sub && <p className="mt-3 text-[15px] leading-relaxed text-dim">{sub}</p>}
       </div>
       {right && <div className="shrink-0">{right}</div>}

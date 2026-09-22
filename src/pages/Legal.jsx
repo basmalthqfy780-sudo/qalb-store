@@ -30,7 +30,7 @@ export default function Legal() {
     <div className="relative">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-56 grad-mesh" />
       <div className="page-x relative mx-auto max-w-[820px] py-14">
-        <Head kicker={t('footer.legal')} title={t('legal.title')} sub={t('legal.sub')} />
+        <Head as="h1" kicker={t('footer.legal')} title={t('legal.title')} sub={t('legal.sub')} />
 
         <div className="mt-7 flex flex-wrap items-center gap-x-3 gap-y-2 text-[11.5px] text-dim">
           <span className="inline-flex items-center gap-1.5">

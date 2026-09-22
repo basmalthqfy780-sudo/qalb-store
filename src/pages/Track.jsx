@@ -52,7 +52,7 @@ export default function Track() {
     <div className="relative">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-56 grad-mesh" />
       <div className="page-x relative mx-auto max-w-[1000px] py-14">
-        <Head kicker={t('track.kicker')} title={t('track.title')} sub={t('track.sub')} />
+        <Head as="h1" kicker={t('track.kicker')} title={t('track.title')} sub={t('track.sub')} />
 
         <form onSubmit={ask} className="mt-9 rounded-3xl border border-line bg-panel p-5 sm:p-7">
           <label className="block text-[13px] font-semibold text-dim" htmlFor="co-email">

@@ -24,7 +24,7 @@ export default function Offers() {
 
   return (
     <div className="page-x mx-auto max-w-[1100px] pb-20 pt-12">
-      <Head kicker={t('offers.kicker')} title={t('offers.title')} sub={t('offers.sub')} />
+      <Head as="h1" kicker={t('offers.kicker')} title={t('offers.title')} sub={t('offers.sub')} />
 
       <div className="mt-10 grid gap-5 sm:grid-cols-2">
         {offers.map((o, k) => {

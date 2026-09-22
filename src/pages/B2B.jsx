@@ -153,6 +153,7 @@ export default function B2B() {
       <div className="pointer-events-none absolute inset-x-0 top-0 h-72 grad-mesh" />
       <div className="page-x relative mx-auto max-w-[1240px] py-13 sm:py-16">
         <Head
+          as="h1"
           kicker={t('b2b.kicker')}
           title={t('b2b.title')}
           sub={t('b2b.sub')}

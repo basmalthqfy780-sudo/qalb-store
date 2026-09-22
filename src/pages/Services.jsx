@@ -38,6 +38,7 @@ export default function Services() {
       <div className="pointer-events-none absolute inset-x-0 top-0 h-56 grad-mesh" />
       <div className="page-x relative mx-auto max-w-[1100px] pb-20 pt-12 sm:pt-14">
         <Head
+          as="h1"
           kicker={t('services.kicker')}
           title={t('services.title')}
           sub={t('services.sub')}
