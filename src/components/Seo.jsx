@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
-import { SUPPORT_MAIL } from '../data/contact'
+import { SOCIAL, SUPPORT_MAIL } from '../data/contact'
+import { SITE_URL } from '../data/site'
 
 const setMeta = (attr, key, value) => {
   if (value == null) return
@@ -29,10 +30,25 @@ function setJsonLd(data) {
   el.textContent = JSON.stringify(data)
 }
 
+/** رابط hreflang يُحدَّث لا يُنسَخ — تبديل اللغة في الجلسة يبقي الطاقم مكتملًا */
+function setHreflang(hreflang, href) {
+  let tag = document.head.querySelector(`link[rel="alternate"][hreflang="${hreflang}"]`)
+  if (!tag) {
+    tag = document.createElement('link')
+    tag.rel = 'alternate'
+    tag.setAttribute('hreflang', hreflang)
+    document.head.appendChild(tag)
+  }
+  tag.setAttribute('href', href)
+}
+
 function apply({ title, desc, jsonLd, type = 'website', robots, image }) {
   if (title) document.title = title
   const lang = document.documentElement.lang === 'en' ? 'en' : 'ar'
-  const url = `${window.location.origin}${window.location.pathname}`
+  // canonical وog:url من SITE_URL لا من أصل التصفّح: هكذا يتحد canonical مع
+  // sitemap.xml مهما فُتحت الصفحة من نطاق معاينة أو من نطاق ثانٍ.
+  const path = window.location.pathname
+  const url = `${SITE_URL}${path}`
   setMeta('name', 'description', desc)
   if (robots) setMeta('name', 'robots', robots)
   setMeta('property', 'og:title', title || document.title)
@@ -43,7 +59,7 @@ function apply({ title, desc, jsonLd, type = 'website', robots, image }) {
   setMeta('property', 'og:locale:alternate', lang === 'ar' ? 'en_US' : 'ar_SA')
   // per-page social card; index.html keeps the site cover as the no-JS default
   if (image) {
-    const abs = new URL(image, window.location.origin).href
+    const abs = new URL(image, `${SITE_URL}/`).href
     setMeta('property', 'og:image', abs)
     setMeta('property', 'og:image:width', '1200')
     setMeta('property', 'og:image:height', '630')
@@ -60,6 +76,12 @@ function apply({ title, desc, jsonLd, type = 'website', robots, image }) {
     document.head.appendChild(canonical)
   }
   canonical.setAttribute('href', url)
+
+  // hreflang للنسختين: ar على المسار نفسه (وهي x-default)، وen على ?lang=en —
+  // وQueryParam نفسه تقرأه الواجهة عند الفتح فتُظهر الإنجليزية فعلًا.
+  setHreflang('ar', url)
+  setHreflang('en', `${url}?lang=en`)
+  setHreflang('x-default', url)
 
   setJsonLd(jsonLd)
 }
@@ -83,15 +105,48 @@ export default function Seo({ title, desc, ...extra }) {
 }
 
 /* ---------- builders shared by the routes ---------- */
-export const siteGraph = (t) => ({
+/** طقم JSON-LD واحد: العُقد هنا أفراد، و`graph` تجمعهم في مستند @graph واحد */
+export const graph = (...items) => ({
+  '@context': 'https://schema.org',
+  '@graph': items
+    .flat()
+    .filter(Boolean)
+    .flatMap((x) => x['@graph'] || [x]),
+})
+
+/**
+ * مسار التنقّل — البيع بالتجزئة يقرأه بحث Google لعرض «المسار» في النتيجة،
+ * وهو هنا مطابق لحقيقته: لا خبز مُخترَع فوق صفحة المنتج.
+ */
+export const breadcrumbLd = (items) => ({
+  '@type': 'BreadcrumbList',
+  itemListElement: items.map((it, i) => ({
+    '@type': 'ListItem',
+    position: i + 1,
+    name: it.name,
+    url: `${SITE_URL}${it.path}`,
+  })),
+})
+
+/**
+ * أسئلة الصفحة نفسها حرفيًا — لا نصّ ثانٍ يخالف ما يقرؤه الزائر.
+ * `faqLd` عقدٌ صافٍ يُدمج في أي @graph (الرئيسية مثلًا بجانب Organization).
+ */
+export const faqLd = (pairs) => ({
+  '@type': 'FAQPage',
+  mainEntity: pairs.map(([q, a]) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } })),
+})
+
+export const siteGraph = (t, extraNodes = []) => ({
   '@context': 'https://schema.org',
   '@graph': [
     {
       '@type': 'Organization',
       name: t('brand.name'),
       alternateName: 'Qalb',
-      url: `${window.location.origin}/`,
+      url: `${SITE_URL}/`,
       foundingLocation: { '@type': 'Place', name: 'Jeddah, Saudi Arabia' },
+      sameAs: SOCIAL.map((s) => s.href),
       contactPoint: {
         '@type': 'ContactPoint',
         email: SUPPORT_MAIL,
@@ -102,26 +157,26 @@ export const siteGraph = (t) => ({
     {
       '@type': 'WebSite',
       name: t('brand.name'),
-      url: `${window.location.origin}/`,
+      url: `${SITE_URL}/`,
       inLanguage: ['ar', 'en'],
       potentialAction: {
         '@type': 'SearchAction',
-        target: `${window.location.origin}/templates?q={query}`,
+        target: `${SITE_URL}/templates?q={query}`,
         'query-input': 'required name=query',
       },
     },
+    ...extraNodes.flat(),
   ],
 })
 
 export const itemList = (list) => ({
-  '@context': 'https://schema.org',
   '@type': 'ItemList',
   numberOfItems: list.length,
   itemListElement: list.slice(0, 12).map((x, i) => ({
     '@type': 'ListItem',
     position: i + 1,
     name: x.name?.[document.documentElement.lang === 'en' ? 'en' : 'ar'] || x.name?.ar,
-    url: `${window.location.origin}/template/${x.slug}`,
+    url: `${SITE_URL}/template/${x.slug}`,
   })),
 })
 
@@ -135,7 +190,7 @@ export const toolLd = ({ name, desc, path = '/ats', faq = [] }) => ({
     {
       '@type': 'WebApplication',
       name,
-      url: `${window.location.origin}${path}`,
+      url: `${SITE_URL}${path}`,
       applicationCategory: 'BusinessApplication',
       operatingSystem: 'Any — runs in the browser',
       inLanguage: ['ar', 'en'],
@@ -143,14 +198,7 @@ export const toolLd = ({ name, desc, path = '/ats', faq = [] }) => ({
       description: desc,
       offers: { '@type': 'Offer', price: '0.00', priceCurrency: 'SAR' },
     },
-    ...(faq.length
-      ? [
-          {
-            '@type': 'FAQPage',
-            mainEntity: faq.map(([q, a]) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } })),
-          },
-        ]
-      : []),
+    ...(faq.length ? [faqLd(faq)] : []),
   ],
 })
 
@@ -164,7 +212,7 @@ export const orgLd = ({ tiers, faq = [], lang = 'ar', t }) => ({
     {
       '@type': 'OfferCatalog',
       name: t('b2b.title'),
-      url: `${window.location.origin}/b2b`,
+      url: `${SITE_URL}/b2b`,
       inLanguage: ['ar', 'en'],
       applicationCategory: 'BusinessApplication',
       offers: tiers.map((tier) => ({
@@ -177,27 +225,23 @@ export const orgLd = ({ tiers, faq = [], lang = 'ar', t }) => ({
         description: tier.for[lang] || tier.for.ar,
       })),
     },
-    ...(faq.length
-      ? [
-          {
-            '@type': 'FAQPage',
-            mainEntity: faq.map(([q, a]) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } })),
-          },
-        ]
-      : []),
+    ...(faq.length ? [faqLd(faq)] : []),
   ],
 })
 
+/**
+ * عقد Product صافٍ — يُدمج مع BreadcrumbList عبر `graph` في صفحة المنتج،
+ * والسعر والأرقام من بيانات الرّفّ نفسها فلا يُعلن البحث عن رقمٍ لا تراه الصفحة.
+ */
 export const productLd = (tpl, lang, t) => ({
-  '@context': 'https://schema.org',
   '@type': 'Product',
   name: tpl.name?.[lang] || tpl.name?.ar,
   description: tpl.tagline?.[lang] || tpl.desc?.[lang] || tpl.tagline?.ar,
   sku: tpl.id,
   category: t(`types.${tpl.type}`),
   brand: { '@type': 'Brand', name: t('brand.name') },
-  url: `${window.location.origin}/template/${tpl.slug}`,
-  image: `${window.location.origin}/og/${tpl.slug}.png`,
+  url: `${SITE_URL}/template/${tpl.slug}`,
+  image: `${SITE_URL}/og/${tpl.slug}.png`,
   offers: {
     '@type': 'Offer',
     price: Number(tpl.price).toFixed(2),
@@ -215,4 +259,26 @@ export const productLd = (tpl, lang, t) => ({
         },
       }
     : {}),
+})
+
+/** المدوّنة: فهرس المقالات ومقال واحد — بنفس قاعدة «أرقامٌ من بيانات الرّفّ» */
+export const blogLd = (t) => ({
+  '@type': 'Blog',
+  name: `${t('blog.title')} · ${t('brand.name')}`,
+  url: `${SITE_URL}/blog`,
+  inLanguage: ['ar', 'en'],
+  description: t('meta.blogDesc'),
+})
+
+export const blogPostingLd = (post, lang, t) => ({
+  '@type': 'BlogPosting',
+  headline: post.title?.[lang] || post.title?.ar,
+  description: post.excerpt?.[lang] || post.excerpt?.ar,
+  datePublished: post.date,
+  dateModified: post.date,
+  inLanguage: lang,
+  mainEntityOfPage: `${SITE_URL}/blog/${post.slug}`,
+  articleSection: (post.tags?.[lang] || post.tags?.ar || []).join(', '),
+  author: { '@type': 'Organization', name: t('brand.name') },
+  publisher: { '@type': 'Organization', name: t('brand.name') },
 })

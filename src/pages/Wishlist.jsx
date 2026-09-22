@@ -37,7 +37,7 @@ export default function Wishlist() {
         {list.length ? (
           <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {list.map((tpl, k) => (
-              <Reveal key={tpl.id} delay={(k % 4) * 60}>
+              <Reveal key={tpl.id} delay={(k % 4) * 60} className="h-full">
                 <TemplateCard tpl={tpl} onQuick={setQuick} />
               </Reveal>
             ))}

@@ -25,7 +25,7 @@ export default function TemplateCard({ tpl, onQuick, className = '' }) {
 
   return (
     <article
-      className={`group relative flex flex-col overflow-hidden rounded-2xl border border-line bg-panel p-2.5 transition-all duration-300 hover:-translate-y-1.5 hover:border-brand/35 hover:shadow-lift ${className}`}
+      className={`group relative flex h-full flex-col overflow-hidden rounded-2xl border border-line bg-panel p-2.5 transition-all duration-300 hover:-translate-y-1.5 hover:border-brand/35 hover:shadow-lift ${className}`}
     >
       <div className="pointer-events-none absolute inset-x-2.5 top-2.5 z-20 flex items-start justify-between gap-2">
         <div className="flex flex-wrap gap-1.5">
@@ -66,7 +66,7 @@ export default function TemplateCard({ tpl, onQuick, className = '' }) {
           <Stars value={tpl.rating} size={11} show={false} />
         </div>
 
-        <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+        <div className="mt-2.5 mb-3 flex flex-wrap items-center gap-1.5">
           <span className="inline-flex items-center gap-1 rounded-md border border-line bg-bg/60 px-1.5 py-0.5 text-[10.5px] font-bold text-dim">
             <Icon n={tpl.type === 'cv' ? 'file' : tpl.type === 'bundle' ? 'layers' : 'globe'} className="size-3 text-brand" />
             {lang === 'ar' ? (typeLabel[tpl.type] || typeLabel.portfolio).ar : (typeLabel[tpl.type] || typeLabel.portfolio).en}
@@ -93,7 +93,8 @@ export default function TemplateCard({ tpl, onQuick, className = '' }) {
           </span>
         </div>
 
-        <div className="mt-3.5 flex items-end justify-between gap-2 border-t border-line pt-3">
+        {/* mt-auto: صفُ السعر يلتصق بأسفل البطاقة فيتساوى ارتفاع بطاقات الشبكة */}
+        <div className="mt-auto flex items-end justify-between gap-2 border-t border-line pt-3">
           <div>
             <div className="flex items-baseline gap-1.5">
               <Money v={tpl.price} size="text-[17px]" />

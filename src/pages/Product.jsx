@@ -19,7 +19,7 @@ import { packageIndex } from '../data/deliverable'
 import Preview, { showSite } from '../components/Preview'
 import TemplateCard from '../components/TemplateCard'
 import QuickView from '../components/QuickView'
-import { useSeo, productLd } from '../components/Seo'
+import { useSeo, productLd, breadcrumbLd, graph } from '../components/Seo'
 import { Btn, Head, Icon, Money, Pill, Reveal, Stars } from '../components/ui'
 import { useStore } from '../store/StoreContext'
 import Personalize from '../components/Personalize'
@@ -51,7 +51,20 @@ export default function Product() {
   useSeo(
     tpl ? `${L(tpl.name)} · ${t('brand.name')}` : `${t('catalog.noResults')} · ${t('brand.name')}`,
     tpl ? t('meta.productDesc', { tag: L(tpl.tagline) }) : t('meta.notFoundDesc'),
-    { jsonLd: tpl ? productLd(tpl, lang, t) : null, type: 'product', image: tpl ? `/og/${tpl.slug}.png` : undefined },
+    {
+      jsonLd: tpl
+        ? graph(
+            productLd(tpl, lang, t),
+            breadcrumbLd([
+              { name: t('crumb.home'), path: '/' },
+              { name: t('nav.templates'), path: '/templates' },
+              { name: L(tpl.name), path: `/template/${tpl.slug}` },
+            ]),
+          )
+        : null,
+      type: 'product',
+      image: tpl ? `/og/${tpl.slug}.png` : undefined,
+    },
   )
 
   // "recently viewed" only counts real product views

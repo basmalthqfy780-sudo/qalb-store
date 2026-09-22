@@ -6,7 +6,7 @@ import TemplateCard from '../components/TemplateCard'
 import QuickView from '../components/QuickView'
 import { Btn, Head, Icon, Pill, Reveal } from '../components/ui'
 import RecentlyViewed from '../components/RecentlyViewed'
-import { useSeo, itemList } from '../components/Seo'
+import { useSeo, itemList, breadcrumbLd, graph } from '../components/Seo'
 
 const SORTS = [
   ['pop', 'catalog.sortPop'],
@@ -123,7 +123,13 @@ export default function Catalog() {
   const shown = list.slice(0, per)
 
   useSeo(`${t('catalog.title')} · ${t('brand.name')}`, t('meta.catalogDesc', { n: num(list.length) }), {
-    jsonLd: itemList(list),
+    jsonLd: graph(
+      itemList(list),
+      breadcrumbLd([
+        { name: t('crumb.home'), path: '/' },
+        { name: t('nav.templates'), path: '/templates' },
+      ]),
+    ),
     type: 'website',
   })
   const active = [
@@ -333,7 +339,7 @@ export default function Catalog() {
             <>
               <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
                 {shown.map((tpl, k) => (
-                  <Reveal key={tpl.id} delay={(k % 3) * 70}>
+                  <Reveal key={tpl.id} delay={(k % 3) * 70} className="h-full">
                     <TemplateCard tpl={tpl} onQuick={setQuick} />
                   </Reveal>
                 ))}
@@ -364,15 +370,16 @@ export default function Catalog() {
         </div>
       </div>
 
-      {/* mobile filter sheet */}
-      <div className={`fixed inset-0 z-[80] lg:hidden ${openFilters ? '' : 'pointer-events-none'}`} aria-hidden={!openFilters}>
+      {/* mobile filter sheet — اللوح مخفيٌّ بـvisibility وهو مغلق: لا يتدلّى خارج
+          الشاشة فيجرّ التجاوز الأفقي، ولا يبقى في شجرة قارئات الشاشة ولا مسار Tab */}
+      <div className={`fixed inset-0 z-[80] lg:hidden ${openFilters ? '' : 'pointer-events-none'}`}>
         <div
           className={`absolute inset-0 bg-black/60 transition-opacity duration-300 ${openFilters ? 'opacity-100' : 'opacity-0'}`}
           onClick={() => setOpenFilters(false)}
         />
         <div
-          className={`absolute inset-y-0 start-0 flex w-[min(380px,90vw)] flex-col border-e border-line bg-bg transition-transform duration-300 ${
-            openFilters ? 'translate-x-0' : lang === 'ar' ? 'translate-x-full' : '-translate-x-full'
+          className={`absolute inset-y-0 start-0 flex w-[min(380px,90vw)] flex-col border-e border-line bg-bg transition-[transform,visibility] duration-300 ${
+            openFilters ? 'visible translate-x-0' : `invisible ${lang === 'ar' ? 'translate-x-full' : '-translate-x-full'}`
           }`}
         >
           <div className="flex items-center justify-between border-b border-line px-4 py-3.5">

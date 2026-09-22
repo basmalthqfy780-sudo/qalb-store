@@ -75,6 +75,7 @@ No VAT registration number, commercial-registration number, IBAN or bank name is
 - ATS checker: https://qalb.store/ats
 - Institutional seats and cohort measurement: https://qalb.store/b2b
 - Hosting: https://qalb.store/host
+- Journal (CV and portfolio guides): https://qalb.store/blog
 - Track an order: https://qalb.store/track
 - Verify a licence key: https://qalb.store/licence
 - Sitemap: https://qalb.store/sitemap.xml
@@ -159,6 +160,7 @@ https://qalb.store/ats — بلا حسابٍ ولا رفعِ ملفٍ ولا ت�
 - فاحصُ الجاهزية: https://qalb.store/ats
 - مقاعدُ المؤسسات وقياسُ الدفعة: https://qalb.store/b2b
 - الاستضافة: https://qalb.store/host
+- المدوّنة (أدلة السيرة والمعرض): https://qalb.store/blog
 - تتبّعُ طلب: https://qalb.store/track
 - التحققُ من مفتاح: https://qalb.store/licence
 - خريطةُ المسارات: https://qalb.store/sitemap.xml

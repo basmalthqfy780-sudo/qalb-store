@@ -213,7 +213,7 @@ export async function buildLlms({ site = 'https://qalb.store' } = {}) {
     '',
     '## Index',
     '',
-    `- E-mail: ${SUPPORT_MAIL}\n- Legal, licence and refund terms: ${U('/legal')}\n- Catalogue: ${U('/templates')}\n- ATS checker: ${U('/ats')}\n- Institutional seats and cohort measurement: ${U('/b2b')}\n- Hosting: ${U('/host')}\n- Track an order: ${U(
+    `- E-mail: ${SUPPORT_MAIL}\n- Legal, licence and refund terms: ${U('/legal')}\n- Catalogue: ${U('/templates')}\n- ATS checker: ${U('/ats')}\n- Institutional seats and cohort measurement: ${U('/b2b')}\n- Hosting: ${U('/host')}\n- Journal (CV and portfolio guides): ${U('/blog')}\n- Track an order: ${U(
       '/track',
     )}\n- Verify a licence key: ${U('/licence')}\n- Sitemap: ${U('/sitemap.xml')}\n- Crawling rules: ${U('/robots.txt')}`,
     '',
@@ -294,7 +294,7 @@ export async function buildLlms({ site = 'https://qalb.store' } = {}) {
     '',
     '## الفهرس',
     '',
-    `- البريد: ${SUPPORT_MAIL}\n- العقودُ والترخيصُ والاسترجاع: ${U('/legal')}\n- الكتالوج: ${U('/templates')}\n- فاحصُ الجاهزية: ${U('/ats')}\n- مقاعدُ المؤسسات وقياسُ الدفعة: ${U('/b2b')}\n- الاستضافة: ${U('/host')}\n- تتبّعُ طلب: ${U(
+    `- البريد: ${SUPPORT_MAIL}\n- العقودُ والترخيصُ والاسترجاع: ${U('/legal')}\n- الكتالوج: ${U('/templates')}\n- فاحصُ الجاهزية: ${U('/ats')}\n- مقاعدُ المؤسسات وقياسُ الدفعة: ${U('/b2b')}\n- الاستضافة: ${U('/host')}\n- المدوّنة (أدلة السيرة والمعرض): ${U('/blog')}\n- تتبّعُ طلب: ${U(
       '/track',
     )}\n- التحققُ من مفتاح: ${U('/licence')}\n- خريطةُ المسارات: ${U('/sitemap.xml')}\n- قواعدُ الزحف: ${U('/robots.txt')}`,
     '',
