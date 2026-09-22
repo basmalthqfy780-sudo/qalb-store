@@ -2235,6 +2235,20 @@ for (const c of cases) {
    */
   ok('the html reserves its scrollbar so no reflow can toggle it', /scrollbar-gutter:\s*stable/.test(cssSrc))
   ok('and a sticky navbar stops eating the top of every anchor', /scroll-margin-block-start:\s*5\.5rem/.test(cssSrc))
+  const rootClip = cssSrc.match(/html,\s*body,\s*#root\s*\{[^}]*\}/)
+  ok(
+    'horizontal overflow is clipped on html, body and #root',
+    !!rootClip && /overflow-x:\s*hidden/.test(rootClip[0]) && /overflow-x:\s*clip/.test(rootClip[0]),
+    rootClip?.[0]?.replace(/\s+/g, ' ').slice(0, 180),
+  )
+  ok(
+    'clip wins over hidden so the sticky navbar is not turned into a scroll container',
+    !!rootClip && rootClip[0].lastIndexOf('overflow-x: clip') > rootClip[0].lastIndexOf('overflow-x: hidden'),
+  )
+  ok(
+    'the hero glow pulls in on small screens and only blooms from sm up',
+    /pointer-events-none absolute -inset-4 sm:-inset-10/.test(readFileSync('src/pages/Home.jsx', 'utf8')),
+  )
   const fitBox = cssSrc.slice(cssSrc.indexOf('@utility fitbox'), cssSrc.indexOf('@utility fitscale'))
   const fitScale = cssSrc.slice(cssSrc.indexOf('@utility fitscale'), cssSrc.indexOf('@utility sheet'))
   ok(

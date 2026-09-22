@@ -153,7 +153,18 @@
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
-    /* clip (not hidden) — overflow-x:hidden on <body> would break position:sticky children */
+  }
+
+  /*
+   * منع التجاوز الأفقي على html و body و #root.
+   * hidden يقصّ الزائد، لكن على هذه الحاويات يُحسَب overflow-y: auto فيصنع حاوية
+   * تمرير ويسقط position:sticky (الشريط والأعمدة الجانبية). clip يقصّ الأثر نفسه
+   * بلا حاوية تمرير، فيغلب hidden حيث يُدعم — والاحتياط يبقى لمن لا يعرف clip.
+   */
+  html,
+  body,
+  #root {
+    overflow-x: hidden;
     overflow-x: clip;
   }
 
