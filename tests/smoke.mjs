@@ -58,6 +58,8 @@ import { COMPANY, isSet, quoteMissing, vatSplit } from '../src/data/company.js'
 import { clearLocalLeads, leadCsv, leadMailto, leadRow, normalizeLead, quoteMath, quoteNo, readLocalLeads, saveLocalLead } from '../src/data/leads.js'
 import { zipNames, zipRead } from '../src/data/zip.js'
 import { posts } from '../src/data/posts.js'
+import { offers, offerBySlug, offerPicks, activeOffer, monthsLabel } from '../src/data/offers.js'
+import { UPSELLS, cartUpsells, serviceUpsells, proPlans, addonLine, addonDelivery, upsellPriceTable } from '../src/data/upsells.js'
 import { SITE_URL } from '../src/data/site.js'
 import { claimStaleReload, clearStaleReload, isStaleLoadError } from '../src/lib/load-error.js'
 
@@ -188,7 +190,7 @@ const cases = [
   {
     name: 'institutions',
     url: 'http://localhost/b2b',
-    expect: ['الفرز الآلي', 'ضريبة القيمة المضافة', 'اعتماد', 'اطلبوا عقدًا', 'كم بقي من مقاعدنا؟', '3,900', '15,000', '45,000'],
+    expect: ['الفرز الآلي', 'ضريبة القيمة المضافة', 'اعتماد', 'اطلبوا عقدًا', 'كم بقي من مقاعدنا؟', '7,500', '13,000', '33,000'],
   },
   {
     name: 'institutions / english',
@@ -797,6 +799,248 @@ for (const c of cases) {
   }
 }
 
+/* ---------------- growth v1.5.0 · الإضافات والاشتراك والعروض والخدمات ---------------- */
+{
+  const checks = []
+  const ok = (name, cond, extra = '') => checks.push([cond ? name : `${name} — ${extra}`, !!cond])
+
+  /* ---------- جدول الإضافات: مصدرٌ واحد للسلة والخدمات والفاحص والاشتراك ---------- */
+  ok(
+    'add-on ids are unique and prices are whole positive riyals',
+    new Set(UPSELLS.map((u) => u.id)).size === UPSELLS.length && UPSELLS.every((u) => Number.isInteger(u.price) && u.price > 0),
+    UPSELLS.map((u) => `${u.id}:${u.price}`).join(','),
+  )
+  ok(
+    'every add-on is bilingual and says how it is delivered',
+    UPSELLS.every((u) => u.name?.ar && u.name?.en && u.tagline?.ar && u.tagline?.en && u.desc?.ar && u.desc?.en && (u.sla > 0 || u.period)),
+  )
+  ok(
+    'the cart, services, checker and subscription each offer their own group',
+    ['checkout', 'services', 'ats', 'pro'].every((g) => UPSELLS.some((u) => u.groups.includes(g))),
+  )
+  ok(
+    'the prices the brief approved are the prices in the table',
+    Object.entries(upsellPriceTable())
+      .map(([k, v]) => `${k}:${v}`)
+      .join(',') ===
+      'cover-letter:39,cv-tailor:79,ats-review:149,deploy-setup:249,cv-write:299,brand-identity:899,ats-report:29,pro-month:39,pro-year:349',
+    Object.entries(upsellPriceTable())
+      .map(([k, v]) => `${k}:${v}`)
+      .join(','),
+  )
+  ok(
+    'the deploy service and the cart upsell are one product, one price',
+    cartUpsells().some((u) => u.id === 'deploy-setup') && serviceUpsells().some((u) => u.id === 'deploy-setup'),
+  )
+  ok(
+    'an add-on line carries the table’s price, not a price said to the browser',
+    JSON.stringify(addonLine('ats-report')) === '{"id":"ats-report","price":29}',
+  )
+  ok(
+    'services are delivered by e-mail, subscriptions by activation — never a download',
+    addonDelivery('ats-report')?.kind === 'email' && addonDelivery('pro-year')?.kind === 'activate',
+  )
+
+  /* ---------- الكوبونات: خصم الأصدقاء ورمزا المدرّب ---------- */
+  const { coupons } = await import('../src/data/templates.js')
+  ok(
+    'the growth coupons exist with the approved percentages',
+    coupons.FRIEND20?.pct === 20 && coupons.COACH20?.pct === 20 && coupons.COACH30?.pct === 30,
+    JSON.stringify(Object.keys(coupons)),
+  )
+
+  /* ---------- السلة: الإضافات تُبدّل وتُحسب وتُخزَّن ---------- */
+  {
+    const lines = [{ id: 'nova', qty: 1 }]
+    const g = await render('http://localhost/cart', { 'qalb.cart.v1': JSON.stringify(lines) })
+    const total = () => Number(g.doc.querySelector('[data-total]')?.getAttribute('data-total'))
+    const before = total()
+    ok('the cart offers the add-on shelf', !!g.doc.querySelector('[data-upsells]') && (g.doc.querySelectorAll('[data-upsell]').length || 0) >= 4)
+    g.doc.querySelector('[data-upsell="cover-letter"]')?.click()
+    await g.wait()
+    ok('adding an add-on moves the total by its table price', Math.abs(total() - (before + 39)) < 0.01, `${total()} vs ${before + 39}`)
+    ok('the add-on persists to storage', (g.win.localStorage.getItem('qalb.addons.v1') || '').includes('cover-letter'))
+    g.doc.querySelector('[data-upsell="cover-letter"]')?.click()
+    await g.wait()
+    ok('toggling it off returns the total', Math.abs(total() - before) < 0.01, `${total()} vs ${before}`)
+    g.doc.querySelector('[data-upsell="ats-review"]')?.click()
+    await g.wait()
+    g.doc.querySelector('[data-upsell="deploy-setup"]')?.click()
+    await g.wait()
+    ok('the summary lists every add-on with its price', Math.abs(total() - (before + 149 + 249)) < 0.01, String(total()))
+    g.doc.querySelector('[data-cart-addons] button')?.click()
+    await g.wait()
+    ok('an add-on row can be removed from the summary', Math.abs(total() - (before + 249)) < 0.01, String(total()))
+    g.dom.window.close()
+  }
+
+  /* ---------- سلةٌ من إضافةٍ وحدها: ليست سلةً فارغة ---------- */
+  {
+    const g = await render('http://localhost/cart', { 'qalb.addons.v1': JSON.stringify(['ats-report']) })
+    ok('an add-on-only cart is not the empty state', !/سلتك فارغة|Your cart is empty/.test(g.txt()) && g.txt().includes('29'))
+    ok('it still offers the checkout button', !!g.doc.querySelector('a[href="/checkout"]'))
+    g.dom.window.close()
+  }
+
+  /* ---------- الدفع: المسودة تحمل الإضافات كما تحمل البنود ---------- */
+  {
+    const drive = async (g) => {
+      const setter = Object.getOwnPropertyDescriptor(g.win.HTMLInputElement.prototype, 'value').set
+      const fill = (id, v) => {
+        const el = g.doc.getElementById(id)
+        if (!el) return
+        setter.call(el, v)
+        el.dispatchEvent(new g.win.Event('input', { bubbles: true }))
+      }
+      fill('co-email', 'sarah@example.com')
+      fill('co-name', 'Sarah Al-Otaibi')
+      await g.wait()
+      ;(g.btn(/Continue|متابعة/) || {}).click?.()
+      await g.wait()
+      fill('co-card', '4111111111111111')
+      fill('co-exp', '12/29')
+      fill('co-cvv', '123')
+      await g.wait()
+      ;(g.btn(/Continue|متابعة/) || {}).click?.()
+      await g.wait()
+      const agree = g.doc.querySelector('form input[type="checkbox"]:not(#invoice)')
+      if (agree && !agree.checked) agree.click()
+      await g.wait()
+      ;(g.btn(/Place order|تأكيد الطلب والدفع/) || {}).click?.()
+      await new Promise((r) => setTimeout(r, 1100))
+      await g.wait()
+    }
+    const g = await render('http://localhost/checkout', {
+      'qalb.cart.v1': JSON.stringify([{ id: 'nova', qty: 1 }]),
+      'qalb.addons.v1': JSON.stringify(['cv-tailor', 'ats-review']),
+    })
+    await drive(g)
+    const order = JSON.parse(g.win.localStorage.getItem('qalb.lastOrder') || 'null')
+    ok(
+      'the local order keeps templates and add-ons side by side',
+      !!order && Array.isArray(order.lines) && order.lines.length === 1 && (order.addons || []).map((a) => a.id).join(',') === 'cv-tailor,ats-review',
+      JSON.stringify(order?.addons),
+    )
+    ok('and its total is the sum of both tables', Math.abs(order.total - (byId('nova').price + 79 + 149)) < 0.01, String(order?.total))
+    g.dom.window.close()
+  }
+
+  /* ---------- الرئيسية: اشتراك Pro موازيًا للشراء لمرة واحدة ---------- */
+  {
+    const g = await render('http://localhost/')
+    const pro = g.doc.querySelector('[data-pro]')
+    ok('the subscription section renders beside the one-time bundles', !!pro && !!g.doc.querySelector('#bundles'))
+    const prices = [...(pro?.querySelectorAll('[data-pro-plan]') || [])].map((el) => el.getAttribute('data-pro-plan'))
+    ok('both plans are on the page, month and year', prices.join(',') === 'month,year', prices.join(','))
+    const [m, y] = proPlans()
+    ok('their prices are read from the add-on table, 39 and 349', m.price === 39 && y.price === 349)
+    ok('the yearly saving shown is arithmetic, not a slogan', g.txt().includes('119'), `month×12 − year = ${m.price * 12 - y.price}`)
+    pro?.querySelector('[data-pro-plan="month"] button')?.click()
+    await g.wait()
+    ok('choosing a plan puts it in the cart storage', (g.win.localStorage.getItem('qalb.addons.v1') || '').includes('pro-month'))
+    g.dom.window.close()
+  }
+
+  /* ---------- الفاحص: التقرير المدفوع بعد المجاني ---------- */
+  {
+    const g = await render('http://localhost/ats')
+    g.btn(/جرّب نموذجًا|Try a sample/)?.click()
+    await g.wait(4)
+    const paid = g.doc.querySelector('[data-ats-paid]')
+    ok('a scored check reveals the paid report card', !!paid && g.txt().includes('29'))
+    const before = g.win.localStorage.getItem('qalb.addons.v1')
+    g.doc.querySelector('[data-ats-paid-add]')?.click()
+    await g.wait()
+    ok(
+      'its button adds the report to the cart',
+      (g.win.localStorage.getItem('qalb.addons.v1') || '') !== (before || '') &&
+        (g.win.localStorage.getItem('qalb.addons.v1') || '').includes('ats-report'),
+    )
+    const fieldBtn = [...(g.doc.querySelectorAll('[data-ats-fields] button') || [])].find((b) => /برمجة|Engineering/.test(b.textContent || ''))
+    fieldBtn?.click()
+    await g.wait(2)
+    ok(
+      'picking a field recommends that field’s own templates',
+      (g.doc.querySelector('[data-ats-field-picks]')?.textContent || '').includes('أطلس') ||
+        (g.doc.querySelector('[data-ats-field-picks]')?.textContent || '').includes('Atlas'),
+    )
+    g.dom.window.close()
+  }
+
+  /* ---------- صفحة الخدمات: أسعارها من الجدول نفسه ---------- */
+  {
+    const g = await render('http://localhost/services')
+    ok(
+      'the services page renders its three done-for-you services',
+      serviceUpsells().every((s) => (g.doc.querySelector(`[data-service="${s.id}"]`) ? true : false)),
+    )
+    ok(
+      'and prints each price from the add-on table',
+      serviceUpsells().every((s) => g.txt().includes(String(s.price))),
+      serviceUpsells()
+        .map((s) => s.price)
+        .join(','),
+    )
+    g.doc.querySelector('[data-service-add="cv-write"]')?.click()
+    await g.wait()
+    ok('a service is added to the cart from its own page', (g.win.localStorage.getItem('qalb.addons.v1') || '').includes('cv-write'))
+    g.dom.window.close()
+  }
+
+  /* ---------- العروض الموسمية: أربعة مواسم، منتجاتها حقيقية ---------- */
+  ok(
+    'four seasons, unique slugs, real catalogue picks, valid months',
+    offers.length === 4 &&
+      new Set(offers.map((o) => o.slug)).size === 4 &&
+      offers.every((o) => offerPicks(o).length === 3 && offerPicks(o).length === o.picks.length) &&
+      offers.every((o) => o.months.every((m) => m >= 1 && m <= 12)),
+    offers.map((o) => `${o.slug}:${o.picks.join('+')}`).join(' '),
+  )
+  ok(
+    'the current season is derived from the calendar, not typed in',
+    activeOffer(new Date('2026-06-15T00:00:00Z'))?.slug === 'coop' &&
+      activeOffer(new Date('2026-10-15T00:00:00Z'))?.slug === 'work-year' &&
+      monthsLabel(offerBySlug('coop'), 'ar').includes('مايو'),
+  )
+  {
+    const g = await render('http://localhost/offers')
+    ok(
+      'the offers index lists every season',
+      offers.every((o) => !!g.doc.querySelector(`[data-offer="${o.slug}"]`)),
+    )
+    ok('and names the coupon it honours', g.txt().includes('FRIEND20'))
+    g.dom.window.close()
+  }
+  {
+    const g = await render('http://localhost/offers/coop')
+    ok(
+      'a season page shows its picks as real cards',
+      offerPicks(offerBySlug('coop')).every((p) => !!g.doc.querySelector(`a[href="/template/${p.slug}"]`)),
+    )
+    ok(
+      'and its add-all button seeds the whole bundle',
+      (() => {
+        g.btn(/أضف المجموعة|Add the bundle/)?.click()
+        return true
+      })(),
+    )
+    await g.wait()
+    ok('the bundle landed in the cart storage', (g.win.localStorage.getItem('qalb.cart.v1') || '').includes('gradbundle'))
+    g.dom.window.close()
+  }
+
+  const bad = checks.filter(([, c]) => !c).map(([n]) => n)
+  if (bad.length) {
+    failed++
+    groups++
+    console.log('✗ growth v1.5.0 · add-ons, subscription, offers, services')
+    bad.forEach((n) => console.log('   failed: ' + n))
+  } else {
+    groups++
+    console.log(`✓ growth v1.5.0 · add-ons, subscription, offers, services  (${checks.length} assertions)`)
+  }
+}
+
 /* ---------------- themes · structured data · transports ---------------- */
 {
   const checks = []
@@ -1222,9 +1466,9 @@ for (const c of cases) {
       `missing=${notInMap.join(',') || '—'} of ${publicRoutes.length}`,
     )
     ok(
-      'the sitemap length is what the generator should write: pages + products + posts',
-      (map.match(/<loc>/g) || []).length === publicRoutes.length + templates.length + posts.length,
-      `${(map.match(/<loc>/g) || []).length} vs ${publicRoutes.length + templates.length + posts.length}`,
+      'the sitemap length is what the generator should write: pages + products + posts + seasonal offers',
+      (map.match(/<loc>/g) || []).length === publicRoutes.length + templates.length + posts.length + offers.length,
+      `${(map.match(/<loc>/g) || []).length} vs ${publicRoutes.length + templates.length + posts.length + offers.length}`,
     )
     ok(
       'and every URL in the map declares its ar/en/x-default alternates',
@@ -1529,7 +1773,7 @@ for (const c of cases) {
   click(g, /الكل/)
   await g.wait()
   ok('the hidden row stays visible to the admin, with a way back', /نوفا/.test(g.txt()) && /إظهار/.test(g.txt()))
-  ok('the buyable price table drops it', /14\D*\/\D*15/.test(g.txt()), (g.txt().match(/الأسعار[^\n]{0,40}/) || [''])[0])
+  ok('the buyable price table drops it', /19\D*\/\D*20/.test(g.txt()), (g.txt().match(/الأسعار[^\n]{0,40}/) || [''])[0])
   /* --- كل منتج مربوط بتسليمه من تلقاء نفسه: لا شيء يُكتب باليد في اللوحة --- */
   {
     const rows = [...g.doc.querySelectorAll('[data-admin] tbody tr')]
@@ -1537,8 +1781,8 @@ for (const c of cases) {
     const paths = badged.map(
       (r) => ((r.querySelector('[title*="/download/"]') || {}).getAttribute?.('title') || '').match(/\/download\/[a-z0-9-]+/)?.[0] || '',
     )
-    ok('every product row carries its own signed delivery badge', badged.length === 15 && rows.length === 15, `${badged.length}/${rows.length}`)
-    ok('the badge names that product, not a shared link', new Set(paths).size === 15 && paths.every(Boolean), paths.slice(0, 3).join(','))
+    ok('every product row carries its own signed delivery badge', badged.length === 20 && rows.length === 20, `${badged.length}/${rows.length}`)
+    ok('the badge names that product, not a shared link', new Set(paths).size === 20 && paths.every(Boolean), paths.slice(0, 3).join(','))
     ok(
       'the table no longer says "لا رابط بعد" for any catalogue product',
       !/لا رابط بعد/.test((g.doc.querySelector('[data-admin]') || {}).textContent || ''),
@@ -1624,7 +1868,7 @@ for (const c of cases) {
   /* --- طلباتُ الجهات: التبويبُ المحلي لا يدّعي دفترًا --- */
   g.win.localStorage.setItem(
     'qalb.leads.v1',
-    JSON.stringify([{ quote: 'QALB-Q-2026-TT1', org: 'جامعةُ الفحص', email: 'a@b.sa', tier: 'pilot', seats: 25 }]),
+    JSON.stringify([{ quote: 'QALB-Q-2026-TT1', org: 'جامعةُ الفحص', email: 'a@b.sa', tier: 'cohort', seats: 50 }]),
   )
   click(g, /طلباتُ الجهات/)
   await g.wait(6)
@@ -1670,7 +1914,12 @@ for (const c of cases) {
   }
   const cart = await render('http://localhost/cart', seeded)
   const cartMain = cart.doc.getElementById('main')?.textContent || ''
-  ok('the cart charges the price set in the panel', /199/.test(cartMain) && !/249/.test(cartMain), cartMain.replace(/\s+/g, ' ').slice(0, 70))
+  const itemText = [...(cart.doc.querySelectorAll('ul li a[href^="/template/"]') || [])].map((a) => a.closest('li')?.textContent || '').join(' ')
+  ok(
+    'the cart charges the price set in the panel',
+    /199/.test(cartMain) && !/249/.test(itemText) && !/249/.test(String(cart.doc.querySelector('[data-total]')?.getAttribute('data-total'))),
+    itemText.replace(/\s+/g, ' ').slice(0, 70),
+  )
   cart.dom.window.close()
 
   const stranded = await render('http://localhost/cart', {
@@ -2668,14 +2917,11 @@ for (const c of cases) {
 
   /* ---------- العقد نفسه ---------- */
   ok(
-    'five tiers, seats and prices both ascending',
-    B2B_TIERS.length === 5 && B2B_TIERS.every((t, i) => !i || (t.seats > B2B_TIERS[i - 1].seats && t.price > B2B_TIERS[i - 1].price)),
+    'three university tiers, seats and prices both ascending',
+    B2B_TIERS.length === 3 && B2B_TIERS.every((t, i) => !i || (t.seats > B2B_TIERS[i - 1].seats && t.price > B2B_TIERS[i - 1].price)),
     B2B_TIERS.map((t) => `${t.seats}/${t.price}`).join(' '),
   )
-  ok(
-    'the approved numbers are the ones on the shelf',
-    B2B_TIERS.map((t) => `${t.seats}/${t.price}`).join(' ') === '25/3900 50/15000 150/24000 300/33000 500/45000',
-  )
+  ok('the approved numbers are the ones on the shelf', B2B_TIERS.map((t) => `${t.seats}/${t.price}`).join(' ') === '50/7500 100/13000 300/33000')
   ok('a term is one year, never auto-renewed', B2B_TERM_MONTHS === 12 && addMonths('2026-09-05', B2B_TERM_MONTHS) === '2027-09-05')
   ok(
     'per-seat price is divided, not marketed',
@@ -2684,7 +2930,7 @@ for (const c of cases) {
   )
   ok(
     'a seat opens only templates that carry a CV',
-    SEAT_TEMPLATES.length === 7 && SEAT_TEMPLATES.every((t) => t.ats != null && t.kind !== 'site'),
+    SEAT_TEMPLATES.length === 10 && SEAT_TEMPLATES.every((t) => t.ats != null && t.kind !== 'site'),
     SEAT_TEMPLATES.map((t) => t.id).join(','),
   )
   ok(
@@ -2695,16 +2941,19 @@ for (const c of cases) {
 
   const rec0 = makeOrg({ org: 'جامعة', email: 'careers@u.edu.sa', tier: 'campus', issued: '2026-09-05' })
   /* ---------- باقةُ الدخول، والحسبةُ التي يعملها موظفُ المشتريات ---- */
-  const pilot = B2B_TIERS.find((t) => t.id === 'pilot')
-  ok('a pilot tier exists and is the entry point', !!pilot && B2B_TIERS[0].id === 'pilot' && pilot.seats === 25 && pilot.price === 3900)
-  ok('its per-seat figure is arithmetic, not a pitch', perSeat(pilot) === 156)
+  const pilot = B2B_TIERS.find((t) => t.id === 'cohort')
+  ok('a cohort tier exists and is the entry point', !!pilot && B2B_TIERS[0].id === 'cohort' && pilot.seats === 50 && pilot.price === 7500)
+  ok('its per-seat figure is arithmetic, not a pitch', perSeat(pilot) === 150)
   const sBundle = seatBundle()
   ok('the comparison names a real product at its real price', !!sBundle && sBundle.id === 'mirrorbundle' && Number(sBundle.price) === 449)
   ok(
     'and every saving on the page is computed from that price',
     B2B_TIERS.every((t) => perSeatVsBundle(t) === Math.max(0, Math.round((1 - perSeat(t) / Number(sBundle.price)) * 100))),
   )
-  ok('the department tier reads 33% under the bundle — the buyer’s own division', perSeatVsBundle(B2B_TIERS.find((t) => t.id === 'campus')) === 33)
+  ok(
+    'the campus tier reads 76% under the bundle — the career centre’s own division',
+    perSeatVsBundle(B2B_TIERS.find((t) => t.id === 'campus')) === 76,
+  )
   ok(
     'the range quoted is the shelf’s own, counted not recited',
     (() => {
@@ -2712,11 +2961,11 @@ for (const c of cases) {
       return b.count === SEAT_TEMPLATES.length && b.min === cheapestSeatRetail() && b.max === priciestSeatRetail()
     })(),
   )
-  ok('a seat count no tier matches rounds up, and says by how much', tierForSeats(60).tier.id === 'institute' && tierForSeats(60).over === 90)
-  ok('past the largest tier we admit two contracts are needed', tierForSeats(900).tier.id === 'employment' && tierForSeats(900).under === 400)
+  ok('a seat count no tier matches rounds up, and says by how much', tierForSeats(60).tier.id === 'college' && tierForSeats(60).over === 40)
+  ok('past the largest tier we admit two contracts are needed', tierForSeats(900).tier.id === 'campus' && tierForSeats(900).under === 600)
   ok(
     'a credit can be recorded on a contract, rounded and never negative',
-    makeOrg({ tier: 'pilot', credit: '3900.7' }).credit === 3901 && makeOrg({ credit: -5 }).credit === 0,
+    makeOrg({ tier: 'cohort', credit: '3900.7' }).credit === 3901 && makeOrg({ credit: -5 }).credit === 0,
   )
   ok(
     'the credit reaches the staff row and the export header',
@@ -2732,17 +2981,17 @@ for (const c of cases) {
       org: 'جامعة الملك عبدالعزيز',
       email: 'careers@kau.edu.sa',
       phone: '0555 123 456',
-      seats: '25',
+      seats: '50',
       slots: 'الأحد ١١ص',
       note: 'فاتورة باسم الإدارة المالية',
       etimad: true,
-      tier: 'pilot',
+      tier: 'cohort',
     },
     { tiers: B2B_TIERS, now: new Date('2026-09-05T09:00:00Z') },
   )
   ok(
     'a complete request is accepted with every field kept',
-    lead.ok && lead.value.org.includes('جامعة') && lead.value.phone === '0555 123 456' && lead.value.seats === 25,
+    lead.ok && lead.value.org.includes('جامعة') && lead.value.phone === '0555 123 456' && lead.value.seats === 50,
   )
   ok(
     'a missing organisation or a bad e-mail is refused by name',
@@ -2759,7 +3008,7 @@ for (const c of cases) {
   const lm = quoteMath(lead.value, pilot)
   ok(
     'the quotation splits VAT out of the inclusive price and still adds up',
-    Math.round((lm.base + lm.vat) * 100) / 100 === lm.total && lm.total === 3900 && lm.vat === 508.7 && lm.base === 3391.3,
+    Math.round((lm.base + lm.vat) * 100) / 100 === lm.total && lm.total === 7500 && lm.vat === 978.26 && lm.base === 6521.74,
     JSON.stringify(lm),
   )
   ok('vatSplit is the same function the sheet uses', vatSplit(3900).vat === 508.7 && vatSplit(0).total === 0)
@@ -2772,12 +3021,12 @@ for (const c of cases) {
   )
   ok(
     'and it carries the number and the money, so nothing is asked twice',
-    lbody.includes(lead.value.quote) && lbody.includes('3900') && lbody.includes('ضريبة القيمة المضافة'),
+    lbody.includes(lead.value.quote) && lbody.includes('7500') && lbody.includes('ضريبة القيمة المضافة'),
   )
   ok('the Etimad condition travels in the body, not in a footnote', lbody.includes('اعتماد'))
   ok(
     'a lead row and its CSV agree on the same twelve columns',
-    leadRow(lead.value).total === 3900 && leadCsv([lead.value]).split('\n')[0].split(',').length === 12,
+    leadRow(lead.value).total === 7500 && leadCsv([lead.value]).split('\n')[0].split(',').length === 12,
   )
   ok(
     'the local ledger writes, reads and erases — and is not called a server',
@@ -2828,7 +3077,7 @@ for (const c of cases) {
     normalizeCode(' qalb-s5qa-2c4b ') === 'QALB-S5QA-2C4B' && normalizeCode('QALB_S5QA_2C4B') === 'QALB-S5QA-2C4B',
   )
   ok('an ambiguous code is refused before it reaches the ledger', !ORG_CODE_RE.test(normalizeCode('QALB-IOIO-0000')))
-  const rec = makeOrg({ code: makeOrgCode(() => 0.5), org: 'جامعة', email: 'careers@u.edu.sa', tier: 'campus', issued: '2026-09-05' })
+  const rec = makeOrg({ code: makeOrgCode(() => 0.5), org: 'جامعة', email: 'careers@u.edu.sa', tier: 'cohort', issued: '2026-09-05' })
   ok(
     'a contract record starts full and dated',
     rec.seats === 50 && rec.used === 0 && rec.expires === '2027-09-05' && rec.status === 'active' && seatLeft(rec) === 50,
@@ -2884,9 +3133,9 @@ for (const c of cases) {
   ok('the institution’s own contact is the only address in it', orgCsv([orgRowForStaff(spent)]).includes('careers@u.edu.sa'))
 
   /* ---------- الطلب البشري ---------- */
-  const emp = B2B_TIERS.find((t) => t.id === 'employment')
+  const emp = B2B_TIERS.find((t) => t.id === 'campus')
   const leadEmp = normalizeLead(
-    { org: 'مكتب العمل', email: 'a@b.gov.sa', seats: '700', note: 'أربع مناطق', tier: 'employment' },
+    { org: 'مكتب العمل', email: 'a@b.gov.sa', seats: '700', note: 'أربع مناطق، وعقدٌ ثانٍ للزائد', tier: 'campus' },
     { tiers: B2B_TIERS },
   )
   const mail = leadMailto(leadEmp.value, quoteMath(leadEmp.value, emp))
@@ -2911,12 +3160,13 @@ for (const c of cases) {
   )
   ok(
     'per-seat figures are computed in the page, not hardcoded',
-    g.txt().includes(String(perSeat(B2B_TIERS[3]))) && g.txt().includes(String(cheapestSeatRetail())),
+    g.txt().includes(String(perSeat(B2B_TIERS[2]))) && g.txt().includes(String(cheapestSeatRetail())),
   )
   ok('the term appears as the constant says it', g.txt().includes(String(B2B_TERM_MONTHS)))
   ok('the page states the tax in the reader’s language, not only in a mail body', g.txt().includes('ضريبة القيمة المضافة') && g.txt().includes('١٥٪'))
-  ok('the entry offer is on the page with its real number', g.txt().includes(nf.format(3900)))
-  ok('the seat arithmetic is shown against the bundle it unlocks', g.txt().includes('449') && g.txt().includes('33%'))
+  ok('the entry offer is on the page with its real number', g.txt().includes(nf.format(7500)))
+  ok('the seat arithmetic is shown against the bundle it unlocks', g.txt().includes('449') && g.txt().includes('76%'))
+  ok('the university ladder names its two additions — coach panel and workshop', /لوحةُ المدرّب|لوحة المدرّب/.test(g.txt()) && /ورشة/.test(g.txt()))
   ok(
     'a quotation sheet is rendered, with the verification block on it',
     !!g.doc.querySelector('[data-b2b-quote]') && !!g.doc.querySelector('[data-b2b-quote-co]'),
@@ -3034,7 +3284,7 @@ for (const c of cases) {
   const cat = ld['@graph']?.find((x) => x['@type'] === 'OfferCatalog')
   ok(
     'the structured prices are the contract prices',
-    cat?.offers?.length === 5 && cat.offers.every((o, i) => o.price === B2B_TIERS[i].price.toFixed(2) && o.priceCurrency === 'SAR'),
+    cat?.offers?.length === 3 && cat.offers.every((o, i) => o.price === B2B_TIERS[i].price.toFixed(2) && o.priceCurrency === 'SAR'),
     JSON.stringify(cat?.offers || []).slice(0, 90),
   )
   ok(
@@ -3064,7 +3314,7 @@ for (const c of cases) {
   await g.wait(4)
   ok(
     'choosing a tier rewrites the request the mail will carry',
-    decodeURIComponent(g.doc.querySelector('[data-b2b-request] a[href^="mailto:"]')?.href || '').includes('45000'),
+    decodeURIComponent(g.doc.querySelector('[data-b2b-request] a[href^="mailto:"]')?.href || '').includes('33000'),
     String(pick?.textContent),
   )
   const name = g.doc.getElementById('b2b-org')
@@ -3959,12 +4209,13 @@ for (const c of cases) {
         llms.includes(`${perSeatVsBundle(t)}%`),
     ),
   )
-  const pilotTier = B2B_TIERS.find((t) => t.id === 'pilot') || { price: 0 }
   ok(
-    'the pilot is named with the credit rule attached',
-    llms.includes(nf.format(pilotTier.price)) &&
-      /credited against the first annual contract/.test(llms) &&
-      /يُخصَم ما دُفع منه|يُخصَم ما دُفع/.test(llms),
+    'the university ladder is named with its two additions — coach panel and workshop',
+    /coach panel/.test(llms) && /workshop/.test(llms) && /لوحةِ المدرّب|لوحة المدرّب/.test(llms) && /ورشة/.test(llms),
+  )
+  ok(
+    'services, subscriptions, seasonal offers and coupons are in llms.txt',
+    /Done-for-you services/.test(llms) && /Qalb Pro/.test(llms) && /Seasonal offer pages/.test(llms) && /FRIEND20/.test(llms) && /COACH30/.test(llms),
   )
   ok(
     'the cohort claim is the cohort code: same cap, same passing line',

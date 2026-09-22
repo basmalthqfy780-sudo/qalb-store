@@ -166,7 +166,6 @@ export function createOrgsApi({ dir, env = process.env, admin = null, makeOrder 
           email,
           name,
           lines: [{ id: picked.id, slug: picked.slug, qty: 1 }],
-          couponPct: 100,
           coupon: `ORG ${rec.code}`,
           total: 0,
           method: 'institution',
@@ -177,7 +176,7 @@ export function createOrgsApi({ dir, env = process.env, admin = null, makeOrder 
           vatNo: null,
           personalize: sanitizePersonal(b.personalize),
         },
-        { org: { code: rec.code, org: rec.org, tier: rec.tier } },
+        { org: { code: rec.code, org: rec.org, tier: rec.tier }, couponPct: 100 },
       )
       rec.used = (Number(rec.used) || 0) + 1
       rec.redemptions = [...(rec.redemptions || []), { email, template: picked.id, at: new Date().toISOString().slice(0, 10), order: order.id }]

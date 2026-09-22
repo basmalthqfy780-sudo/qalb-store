@@ -66,7 +66,7 @@ export default function B2B() {
   const missing = quoteMissing()
 
   const faq = [
-    [t('b2b.q1'), t('b2b.a1')],
+    [t('b2b.q1'), t('b2b.a1', { n: num(SEAT_TEMPLATES.length) })],
     [t('b2b.q2'), t('b2b.a2')],
     [t('b2b.q3'), t('b2b.a3')],
     [t('b2b.q4'), t('b2b.a4')],
@@ -165,7 +165,7 @@ export default function B2B() {
         />
 
         {/* ---------------- الباقات ---------------- */}
-        <div className="mt-9 grid gap-4 sm:grid-cols-2 xl:grid-cols-4" data-b2b-tiers data-no-print>
+        <div className="mt-9 grid gap-4 sm:grid-cols-2 lg:grid-cols-3" data-b2b-tiers data-no-print>
           {B2B_TIERS.map((x) => {
             const on = x.id === picked
             const save = perSeatVsBundle(x)
@@ -668,7 +668,7 @@ export default function B2B() {
                       </option>
                     ))}
                   </select>
-                  <p className="mt-1.5 text-[11.5px] text-dim">{t('b2b.templateNote')}</p>
+                  <p className="mt-1.5 text-[11.5px] text-dim">{t('b2b.templateNote', { n: num(SEAT_TEMPLATES.length) })}</p>
                 </div>
                 {redState.phase === 'bad' && <Err text={redState.why === 'email' ? t('b2b.errEmail') : t('b2b.errName')} />}
                 {redState.phase === 'error' && <Err text={errText(t, redState.why)} />}

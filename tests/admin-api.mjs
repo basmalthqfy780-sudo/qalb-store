@@ -312,6 +312,75 @@ try {
     csv.text.slice(0, 60),
   )
 
+  /* --- v1.5.0 · الإضافات: يُسعّرها الخادم من الجدول لا من المتصفح --- */
+  const reportOnly = await call('POST', '/orders', {
+    body: { email: 'a@b.co', name: 'A', total: 29, lines: [], addons: [{ id: 'ats-report', price: 29 }] },
+    header: false,
+  })
+  ok(
+    'an add-on-only order (the paid ATS report) is accepted',
+    reportOnly.status === 201 && reportOnly.json.total === 29 && reportOnly.json.addons?.[0]?.price === 29,
+    JSON.stringify({ st: reportOnly.status, total: reportOnly.json?.total, addons: reportOnly.json?.addons }),
+  )
+  ok('and the empty template list stays empty, the add-on is not smuggled into lines', (reportOnly.json.lines || []).length === 0)
+
+  const tampered = await call('POST', '/orders', {
+    body: { email: 'a@b.co', name: 'A', total: 49, lines: [{ id: 'nova', qty: 1 }], addons: [{ id: 'ats-report', price: 1 }] },
+    header: false,
+  })
+  ok(
+    'a price said to the browser does not buy the add-on at it',
+    tampered.status === 400 && /total mismatch/.test(tampered.json?.error || ''),
+    JSON.stringify(tampered.json),
+  )
+  const honest = await call('POST', '/orders', {
+    body: { email: 'a@b.co', name: 'A', total: 89 + 29, lines: [{ id: 'nova', qty: 1 }], addons: [{ id: 'ats-report', price: 1 }] },
+    header: false,
+  })
+  ok(
+    'the server re-stamps the add-on at the table price whatever was sent',
+    honest.status === 201 && honest.json.addons?.[0]?.price === 29 && honest.json.total === 118,
+    JSON.stringify({ st: honest.status, addons: honest.json?.addons, total: honest.json?.total }),
+  )
+  const ghost = await call('POST', '/orders', {
+    body: { email: 'a@b.co', name: 'A', total: 89, lines: [{ id: 'nova', qty: 1 }], addons: [{ id: 'free-money', price: 0 }] },
+    header: false,
+  })
+  ok(
+    'an unknown add-on is refused like an unknown template',
+    ghost.status === 400 && /unknown add-on/.test(ghost.json?.error || ''),
+    JSON.stringify(ghost.json),
+  )
+
+  /* --- v1.5.0 · الكوبون: نسبته من الجدول لا من العميل --- */
+  const lying = await call('POST', '/orders', {
+    body: { email: 'a@b.co', name: 'A', total: 89 * 0.1, coupon: 'COACH30', couponPct: 90, lines: [{ id: 'nova', qty: 1 }] },
+    header: false,
+  })
+  ok(
+    'a real code with an invented percentage is not honoured',
+    lying.status === 400 && /total mismatch/.test(lying.json?.error || ''),
+    JSON.stringify(lying.json),
+  )
+  const coach = await call('POST', '/orders', {
+    body: { email: 'a@b.co', name: 'A', total: 89 * 0.7, coupon: 'COACH30', couponPct: 30, lines: [{ id: 'nova', qty: 1 }] },
+    header: false,
+  })
+  ok(
+    'a coach coupon takes its table percentage and is stamped on the order',
+    coach.status === 201 && coach.json.total === 62.3 && /COACH30 30%/.test(coach.json.coupon || ''),
+    JSON.stringify({ st: coach.status, total: coach.json?.total, coupon: coach.json?.coupon }),
+  )
+  const fake = await call('POST', '/orders', {
+    body: { email: 'a@b.co', name: 'A', total: 89, coupon: 'FRIEND99', couponPct: 0, lines: [{ id: 'nova', qty: 1 }] },
+    header: false,
+  })
+  ok(
+    'a coupon the store never issued is refused by name',
+    fake.status === 400 && /unknown coupon/.test(fake.json?.error || ''),
+    JSON.stringify(fake.json),
+  )
+
   /* --- التسليم المحمي: رابط لكل طلب، موقّع وأحادي الاستعمال --- */
   const dlGet = async (path) => {
     const res = await fetch(BASE + path, { redirect: 'manual' })
@@ -885,14 +954,14 @@ try {
     const RED = 'sara@student.qalb.test'
     const codeOf = async () => {
       const made = await call('POST', '/admin/orgs', {
-        body: { org: 'جامعة الملك عبدالعزيز', email: 'careers@kau.edu.sa', tier: 'campus' },
+        body: { org: 'جامعة الملك عبدالعزيز', email: 'careers@kau.edu.sa', tier: 'cohort' },
         token: TOKEN,
       })
       return made.json.org
     }
     const noStaff = await call('GET', '/admin/orgs', { header: false })
     ok('orgs: the seat registry is not public', noStaff.status === 401, JSON.stringify(noStaff.json))
-    const sloppy = await call('POST', '/admin/orgs', { body: { org: ' ', email: 'nope', tier: 'campus' }, token: TOKEN })
+    const sloppy = await call('POST', '/admin/orgs', { body: { org: ' ', email: 'nope', tier: 'cohort' }, token: TOKEN })
     ok('orgs: a contract needs a real name and a real mailbox', sloppy.status === 400, JSON.stringify(sloppy.json))
 
     const made = await codeOf()
@@ -1116,8 +1185,8 @@ try {
     const PILOT = {
       org: 'جامعةُ الملك عبدالعزيز',
       email: 'careers@kau.edu.sa',
-      tier: 'pilot',
-      seats: '25',
+      tier: 'cohort',
+      seats: '50',
       phone: '0555 123 456',
       contact: 'د. رفعة',
       slots: 'الأحد ١١ص',
@@ -1133,7 +1202,7 @@ try {
     ok(
       'leads: the ledger keeps the money the quotation sheet prints, VAT split out',
       first.json.money &&
-        first.json.money.total === 3900 &&
+        first.json.money.total === 7500 &&
         Math.round((first.json.money.base + first.json.money.vat) * 100) / 100 === first.json.money.total,
       JSON.stringify(first.json.money),
     )
@@ -1168,8 +1237,8 @@ try {
         ...PILOT,
         org: 'معهدُ الجوزات',
         email: 'it@jozaat.sa',
-        tier: 'institute',
-        seats: '150',
+        tier: 'college',
+        seats: '100',
         note: '',
         students: ['sara@student.kau.edu.sa'],
       },
@@ -1207,10 +1276,10 @@ try {
     ok('leads: only a status the ledger knows is accepted', bogus.status === 400, JSON.stringify(bogus.json))
     const ghost = await call('PATCH', '/admin/leads/QALB-Q-2020-0000', { token: TOKEN, body: { status: 'won' } })
     ok('leads: patching a number nobody asked for is a 404', ghost.status === 404, JSON.stringify(ghost.json))
-    const credit = await call('PATCH', '/admin/leads/' + QUOTE, { token: TOKEN, body: { credit: 3900, staffNote: 'أُرسلت العقود للبريد' } })
+    const credit = await call('PATCH', '/admin/leads/' + QUOTE, { token: TOKEN, body: { credit: 7500, staffNote: 'أُرسلت العقود للبريد' } })
     ok(
-      'leads: the pilot credit is applied by a person, in a number',
-      credit.status === 200 && credit.json.lead.creditApplied === 3900 && credit.json.lead.staffNote.includes('العقود'),
+      'leads: the cohort credit is applied by a person, in a number',
+      credit.status === 200 && credit.json.lead.creditApplied === 7500 && credit.json.lead.staffNote.includes('العقود'),
       JSON.stringify(credit.json.lead).slice(0, 130),
     )
     const over = await call('PATCH', '/admin/leads/' + QUOTE, { token: TOKEN, body: { credit: 5000000 } })
@@ -1220,7 +1289,7 @@ try {
     ok('leads: the note is for staff only — the buyer’s row keeps no trace of it', after.status === 200, JSON.stringify(after.json).slice(0, 60))
 
     const thin = await call('POST', '/leads', {
-      body: { org: 'جامعةُ الملك عبدالعزيز', email: 'careers@kau.edu.sa', tier: 'pilot', seats: '25' },
+      body: { org: 'جامعةُ الملك عبدالعزيز', email: 'careers@kau.edu.sa', tier: 'cohort', seats: '50' },
       header: false,
     })
     ok(
@@ -1238,7 +1307,7 @@ try {
           String(r.note).includes('الإدارة') &&
           r.etimad === true &&
           r.status === 'quoted' &&
-          r.creditApplied === 3900 &&
+          r.creditApplied === 7500 &&
           String(r.staffNote).includes('العقود')
         )
       })(),
@@ -1284,7 +1353,7 @@ try {
   console.log(e)
 } finally {
   srv.kill('SIGKILL')
-  rmSync(DATA, { recursive: true, force: true }) // the temp dir is ours; server/ was never touched
+  if (!process.env.KEEP_DATA) rmSync(DATA, { recursive: true, force: true }) // the temp dir is ours; server/ was never touched
   console.log(`\n${pass} passed, ${fails.length} failed`)
   if (fails.length) console.log('failed:\n - ' + fails.join('\n - '))
   if (log) console.log('\n--- server log ---\n' + log.trim())

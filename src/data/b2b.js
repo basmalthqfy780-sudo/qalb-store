@@ -11,93 +11,68 @@ import { templates } from './templates.js'
 
 export const B2B_TIERS = [
   {
-    // بوابةُ الدخول: لا لجنةَ مشتريات ولا منافسة — توقيعُ عميدٍ واحد، ثم تُخصَم في العقد السنوي
-    id: 'pilot',
-    seats: 25,
-    price: 3900,
-    name: { ar: 'فصل دراسي واحد — تجريبي', en: 'One cohort — pilot' },
-    for: { ar: 'فوجٌ واحد يُقاس قبل أن يوقّع العقد السنوي', en: 'A single cohort, measured before the annual contract' },
+    // بوابةُ الدخول الجامعية: فوجٌ واحد بمقعدٍ لكل طالب — لا لجنةَ مشتريات، توقيعُ عميدٍ واحد
+    id: 'cohort',
+    seats: 50,
+    price: 7500,
+    name: { ar: 'فوج — ٥٠ مقعدًا', en: 'A cohort — 50 seats' },
+    for: { ar: 'دفعةُ تخرجٍ واحدة أو شعبة تدريب تعاوني', en: 'One graduating cohort or one co-op section' },
     includes: {
       ar: [
-        '٢٥ مقعدًا في السنة — مقعدٌ لكل طالبٍ في الفوج',
+        '٥٠ مقعدًا في السنة — مقعدٌ لكل طالبٍ في الفوج',
         'رمزٌ واحد يُوزَّع على الطلاب، ويُستهلك المقعد عند الاستبدال',
         'قالب سيرة + موقع لكل مقعد، ونفس سكربت فحص ATS في الحزمة',
-        'يُثبّت الموظف ما دُفع منها خصمًا في العقد السنوي — لا شيء يُخصم آليًا بلا بوابة دفع',
+        'تقريرُ استخدامٍ نكتبه من دفتر الاستهلاك في آخر السنة',
       ],
       en: [
-        '25 seats for a year — one per student in the cohort',
+        '50 seats for a year — one per student in the cohort',
         'One code handed out; a seat is spent only on redemption',
         'A CV and a site per seat, with the same ATS script shipped in the package',
-        'A staff member credits what was paid against the annual contract — nothing auto-credits without a payment gateway',
-      ],
-    },
-  },
-  {
-    id: 'campus',
-    seats: 50,
-    price: 15000,
-    name: { ar: 'قسم أو كلية', en: 'A department' },
-    for: { ar: 'دفعة واحدة أو برنامج انتقالي', en: 'One cohort or a bridge programme' },
-    includes: {
-      ar: ['٥٠ مقعدًا في السنة', 'رمز واحد يُوزَّع على الطلاب', 'قالب سيرة + موقع لكل مقعد', 'تقريرُ استخدامٍ نكتبه من دفتر الاستهلاك في آخر السنة'],
-      en: [
-        '50 seats for a year',
-        'One code handed to students',
-        'A CV and a site per seat',
         'A year-end usage report we write out of the redemption ledger',
       ],
     },
   },
   {
-    id: 'institute',
-    seats: 150,
-    price: 24000,
-    name: { ar: 'معهد تدريب', en: 'A training institute' },
-    for: { ar: 'برامج متقطعة ومسارات توظيف', en: 'Short programmes and employment tracks' },
+    id: 'college',
+    seats: 100,
+    price: 13000,
+    name: { ar: 'كلية — ١٠٠ مقعد مع لوحة المدرّب', en: 'A college — 100 seats + the coach panel' },
+    for: { ar: 'أقسامٌ عدة أو برنامج توظيف بمرشدٍ يقوده', en: 'Several departments, or a placement programme led by a coach' },
     includes: {
       ar: [
-        '١٥٠ مقعدًا تُستهلك عند الحاجة',
-        'لا يُشترى المقعد إلا عند الاستبدال',
-        'إضافة قوالب مخصصة عند الطلب',
+        '١٠٠ مقعد في السنة، وعدةُ رموز لأفواجٍ مختلفة',
+        'لوحةُ المدرّب: صفحةُ رمز الفوج تعرض للمدرّب ما استُهلك وما بقي — بلا أسماء طلاب',
+        'قالب سيرة + موقع لكل مقعد، وسكربت فحص ATS نفسه مرفوعٌ معه',
         'تقريرُ منتصفِ سنةٍ من دفتر الاستهلاك، يدويًا وبلا وعدٍ آلي',
       ],
       en: [
-        '150 seats drawn as needed',
-        'A seat is only spent on redemption',
-        'Custom template on request',
+        '100 seats for a year, several codes for several cohorts',
+        'The coach panel: the cohort code’s page shows a coach what was spent and what is left — no student names',
+        'A CV and a site per seat, with the same ATS script shipped in the package',
         'A mid-year report, written by hand from the ledger',
       ],
     },
   },
   {
-    id: 'academy',
+    id: 'campus',
     seats: 300,
     price: 33000,
-    name: { ar: 'جامعة أو أكاديمية', en: 'A university or academy' },
-    for: { ar: 'مركز مهنة يخدم كل الخريجين', en: 'A career centre serving all graduates' },
+    name: { ar: 'جامعة — ٣٠٠ مقعد وورشة عمل', en: 'A campus — 300 seats + a workshop' },
+    for: { ar: 'مركزُ مهنةٍ يخدم كل الكليات والخريجين', en: 'A career centre serving every college and its graduates' },
     includes: {
-      ar: ['٣٠٠ مقعد', 'عدة رموز لأفواج مختلفة', 'رمزٌ مستقل لكل فوج على نموذج الاستبدال نفسه', 'تقريرُ نهاية السنة من دفتر الاستهلاك'],
-      en: [
-        '300 seats',
-        'Several codes for several cohorts',
-        'Its own code per cohort on the same redemption form',
-        'A year-end report from the ledger',
+      ar: [
+        '٣٠٠ مقعد في السنة، ورمزٌ مستقلٌّ لكل فوج على نموذج الاستبدال نفسه',
+        'ورشةُ عملٍ واحدة (حضورية أو عن بُعد) يقدمها فريقنا لفوجكم — تُنسَّق مواعيدها بعد التوقيع',
+        'لوحةُ المدرّب لكل رمز فوج، وتقاريرُ استهلاكٍ عند طلبها',
+        'تقريرُ نهاية السنة من دفتر الاستهلاك، وقبل منه وبعده يقيس الفاحصُ نفسُه',
+        'أكثر من ٣٠٠ طالب؟ بعقدٍ ثانٍ تُضاف المقاعد — نقولها كما هي',
       ],
-    },
-  },
-  {
-    id: 'employment',
-    seats: 500,
-    price: 45000,
-    name: { ar: 'مكتب توظيف أو برنامج وطني', en: 'An employment office or national programme' },
-    for: { ar: 'مستفيدون مسجَّلون بمئات الآلاف', en: 'Beneficiaries counted in the tens of thousands' },
-    includes: {
-      ar: ['٥٠٠ مقعد', 'توزيع الرموز على الفروع', 'نُعلمك بالقالب الجديد عند صدوره', 'تقريرٌ فصليّ بعدد المقاعد المستهلكة لكل رمز، من الدفتر'],
       en: [
-        '500 seats',
-        'Codes distributed across branches',
-        'We tell you first when a new template ships',
-        'Half-yearly count of seats spent per code, read out of the ledger',
+        '300 seats for a year, its own code per cohort on the same redemption form',
+        'One workshop (on site or remote) led by our team for your cohort — scheduled after signing',
+        'The coach panel on every cohort code, and consumption reports on request',
+        'A year-end report from the ledger, and the same checker measures before and after the term',
+        'More than 300 students? A second contract adds the seats — we say it as it is',
       ],
     },
   },
@@ -160,7 +135,7 @@ export const COHORT_MAX = 500
 
 /**
  * عددُ مقاعدَ يطلبه الطرفُ الآخر ← أقربُ باقةٍ تسعه. لا سعرٌ لكل مقعد يُخترع في المتصفح:
- * من طلب ٦٠ يأخذ «معهد تدريب» (١٥٠) ويحصل على الزائد بلا مقابل، لأن ما تحتها لا يسعه.
+ * من طلب ٦٠ يأخذ «كلية» (١٠٠) ويحصل على الزائد بلا مقابل، لأن ما تحتها لا يسعه.
  */
 export function tierForSeats(seats) {
   const n = Math.max(1, Math.round(Number(seats) || 0))

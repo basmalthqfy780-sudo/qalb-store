@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
 import { fetchOrder, deliveryHref, deliveryAllHref, apiMode } from '../api'
-import { useI18n, dec } from '../i18n'
+import { useI18n, num, dec } from '../i18n'
 import { byId, templates } from '../data/templates'
+import { upsellById, addonDelivery } from '../data/upsells'
 import { bundleZip, isProtectedDownload, kindOf, packageFiles, packageIndex, packageZip, packageName, readmeText } from '../data/deliverable'
 import { SUPPORT_MAIL } from '../data/contact'
 import { Btn, Icon, Money, Pill } from '../components/ui'
@@ -103,6 +104,20 @@ export default function Success() {
   const zipped = rows.filter((r) => r.local) // ما يُبنى داخل المتصفح في وضع التجربة المحلي
   const hasCv = rows.some(({ tpl }) => kindOf(tpl) !== 'site')
   const allHref = rows.length > 1 ? deliveryAllHref(order) : null
+  // إضافاتُ الطلب كما دُفعت: الاسم من جدول upsells، والسعر كما خُتم على الطلب
+  const addonRows = (order.addons || [])
+    .map((a) => {
+      const u = upsellById(a.id)
+      if (!u) return null
+      return {
+        id: a.id,
+        name: lang === 'ar' ? u.name.ar : u.name.en,
+        icon: u.icon,
+        price: a.price ?? u.price,
+        delivery: addonDelivery(a.id),
+      }
+    })
+    .filter(Boolean)
 
   const saveZip = (filename, bytes) => {
     const url = URL.createObjectURL(new Blob([bytes], { type: 'application/zip' }))
@@ -333,6 +348,28 @@ export default function Success() {
                     </li>
                   )
                 })}
+              </ul>
+            )}
+            {/* الإضافات: ليست ملفات تُنزَّل — تُسلَّم بالبريد خلال مهلتها أو تُفعَّل بعد الدفع، فيُقال ذلك بلا زر تحميل */}
+            {addonRows.length > 0 && (
+              <ul data-order-addons className="mt-3 flex flex-col gap-2">
+                {addonRows.map((a) => (
+                  <li
+                    key={a.id}
+                    className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gold/30 bg-gold/[0.06] px-4 py-3"
+                  >
+                    <span className="flex min-w-0 items-center gap-2.5">
+                      <Icon n={a.icon || 'spark'} className="size-4 shrink-0 text-gold" />
+                      <span className="truncate text-[13px] font-bold">{a.name}</span>
+                    </span>
+                    <span className="flex shrink-0 items-center gap-3">
+                      <span className="num text-[12.5px] font-bold">{dec(a.price)}</span>
+                      <span className="num text-[11px] font-semibold text-dim">
+                        {a.delivery?.kind === 'email' ? t('success.addonSla', { h: num(a.delivery.hours) }) : t('success.addonActivate')}
+                      </span>
+                    </span>
+                  </li>
+                ))}
               </ul>
             )}
             <p className="mt-3 text-[12px] leading-relaxed text-dim">{t('success.licenceNote')}</p>

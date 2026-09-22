@@ -87,6 +87,8 @@ export default function Navbar() {
 
   const links = [
     { to: '/templates', label: t('nav.templates') },
+    { to: '/services', label: t('nav.services') },
+    { to: '/offers', label: t('nav.offers') },
     { to: '/#bundles', label: t('nav.pricing') },
     { to: '/#guide', label: t('nav.guide') },
     { to: '/#faq', label: t('nav.support') },
@@ -270,7 +272,7 @@ export default function Navbar() {
 
             <Link
               to="/ats"
-              className="hidden items-center gap-1.5 rounded-xl px-2.5 py-2 text-[13px] font-bold text-ink/80 transition hover:bg-panel2 hover:text-brand lg:inline-flex"
+              className="hidden items-center gap-1.5 rounded-xl px-2.5 py-2 text-[13px] font-bold text-ink/80 transition hover:bg-panel2 hover:text-brand xl:inline-flex"
             >
               <Icon n="scan" className="size-4 text-brand" />
               {t('nav.ats')}
@@ -278,7 +280,7 @@ export default function Navbar() {
 
             <Link
               to="/host"
-              className="hidden items-center gap-1.5 rounded-xl px-2.5 py-2 text-[13px] font-bold text-ink/80 transition hover:bg-panel2 hover:text-brand lg:inline-flex"
+              className="hidden items-center gap-1.5 rounded-xl px-2.5 py-2 text-[13px] font-bold text-ink/80 transition hover:bg-panel2 hover:text-brand xl:inline-flex"
             >
               <Icon n="globe" className="size-4 text-brand" />
               {t('nav.host')}

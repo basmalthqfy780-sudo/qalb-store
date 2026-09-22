@@ -82,6 +82,24 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://qalb.store/services</loc>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://qalb.store/services"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://qalb.store/services?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://qalb.store/services"/>
+    <lastmod>2026-09-22</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://qalb.store/offers</loc>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://qalb.store/offers"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://qalb.store/offers?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://qalb.store/offers"/>
+    <lastmod>2026-09-22</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://qalb.store/blog</loc>
     <xhtml:link rel="alternate" hreflang="ar" href="https://qalb.store/blog"/>
     <xhtml:link rel="alternate" hreflang="en" href="https://qalb.store/blog?lang=en"/>
@@ -226,6 +244,51 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://qalb.store/template/linkedin-kit</loc>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://qalb.store/template/linkedin-kit"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://qalb.store/template/linkedin-kit?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://qalb.store/template/linkedin-kit"/>
+    <lastmod>2026-09-22</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://qalb.store/template/cover-letter-pack</loc>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://qalb.store/template/cover-letter-pack"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://qalb.store/template/cover-letter-pack?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://qalb.store/template/cover-letter-pack"/>
+    <lastmod>2026-09-22</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://qalb.store/template/freelancer-kit</loc>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://qalb.store/template/freelancer-kit"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://qalb.store/template/freelancer-kit?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://qalb.store/template/freelancer-kit"/>
+    <lastmod>2026-09-22</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://qalb.store/template/med-cv</loc>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://qalb.store/template/med-cv"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://qalb.store/template/med-cv?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://qalb.store/template/med-cv"/>
+    <lastmod>2026-09-22</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://qalb.store/template/legal-cv</loc>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://qalb.store/template/legal-cv"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://qalb.store/template/legal-cv?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://qalb.store/template/legal-cv"/>
+    <lastmod>2026-09-22</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://qalb.store/blog/seven-ats-rules</loc>
     <xhtml:link rel="alternate" hreflang="ar" href="https://qalb.store/blog/seven-ats-rules"/>
     <xhtml:link rel="alternate" hreflang="en" href="https://qalb.store/blog/seven-ats-rules?lang=en"/>
@@ -248,6 +311,42 @@
     <xhtml:link rel="alternate" hreflang="ar" href="https://qalb.store/blog/publish-in-ten-minutes"/>
     <xhtml:link rel="alternate" hreflang="en" href="https://qalb.store/blog/publish-in-ten-minutes?lang=en"/>
     <xhtml:link rel="alternate" hreflang="x-default" href="https://qalb.store/blog/publish-in-ten-minutes"/>
+    <lastmod>2026-09-22</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://qalb.store/offers/coop</loc>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://qalb.store/offers/coop"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://qalb.store/offers/coop?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://qalb.store/offers/coop"/>
+    <lastmod>2026-09-22</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://qalb.store/offers/career-day</loc>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://qalb.store/offers/career-day"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://qalb.store/offers/career-day?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://qalb.store/offers/career-day"/>
+    <lastmod>2026-09-22</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://qalb.store/offers/graduation</loc>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://qalb.store/offers/graduation"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://qalb.store/offers/graduation?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://qalb.store/offers/graduation"/>
+    <lastmod>2026-09-22</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://qalb.store/offers/work-year</loc>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://qalb.store/offers/work-year"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://qalb.store/offers/work-year?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://qalb.store/offers/work-year"/>
     <lastmod>2026-09-22</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
