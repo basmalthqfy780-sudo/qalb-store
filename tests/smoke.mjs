@@ -62,6 +62,15 @@ import { offers, offerBySlug, offerPicks, activeOffer, monthsLabel } from '../sr
 import { UPSELLS, cartUpsells, serviceUpsells, proPlans, addonLine, addonDelivery, upsellPriceTable } from '../src/data/upsells.js'
 import { SITE_URL } from '../src/data/site.js'
 import { claimStaleReload, clearStaleReload, isStaleLoadError } from '../src/lib/load-error.js'
+import { MATCH_DEMO_JOB, editPoints, fieldOf, matchCv, matchReport, pickTemplates, termsOf } from '../src/data/match.js'
+import { KIT_MIN_CV, KIT_MIN_JOB, buildKit, kitCredit, kitCredits, kitText, rankBullets } from '../src/data/kit.js'
+import { LINK_PLANS, countryName, countryOf, demoEvents, linkUrl, recordEvent, sanitizeLink, summarize } from '../src/data/qalblink.js'
+import { demoTalent, filterTalent, talentEntry } from '../src/data/talent.js'
+import { MARKET_MIN, aggregate, marketCsv, marketReport, marketRows, normalizeSignal, saveSignal, signalHas } from '../src/data/market.js'
+import { EMBED_TIERS, embedMailto, embedQuota, embedSnippet, embedTier, embedUsage } from '../src/data/embed.js'
+import { LINKEDIN_SAMPLE, handleFrom, missingOf, parseLinkedin, toPersonal } from '../src/data/linkedin.js'
+import { badgeHtml, badgeState, withBadge } from '../src/data/badge.js'
+import { couponFor, cardSvg, shareText } from '../src/data/share.js'
 
 const out = 'tests/build/app.js'
 mkdirSync('tests/build', { recursive: true })
@@ -125,6 +134,10 @@ const cases = [
       '449',
       'SALE25',
       'qalb@qalb.store',
+      // منظومة التوظيف: ستُّ أدواتٍ بعد القالب، تُرى من الصفحة الأولى
+      'منظومةُ التوظيف',
+      'طابق سيرتك مع الإعلان',
+      'دليل المواهب',
     ],
   },
   {
@@ -209,6 +222,39 @@ const cases = [
     lang: 'en',
     expect: ['Can a machine read your CV', 'Browser-only', 'Try a sample', 'Plain text only'],
   },
+  {
+    name: 'cv-to-posting match',
+    url: 'http://localhost/match',
+    expect: ['طابق سيرتك مع إعلان الوظيفة', 'بانتظار النصّين', 'لا يُرسل نصّك إلى أيّ مكان', 'سيرة نموذجية', 'إعلان نموذجي'],
+  },
+  {
+    name: 'cv-to-posting match / english',
+    url: 'http://localhost/match',
+    lang: 'en',
+    expect: ['Match your CV to the job posting', 'Waiting for both texts', 'Sample posting'],
+  },
+  {
+    name: 'application kit',
+    url: 'http://localhost/kit',
+    expect: ['مولّد ملف التقديم', 'رصيدُ التوليدات', 'ولّد الملف', 'ملفُّ تقديم — ١٠ توليدات', '49'],
+  },
+  {
+    name: 'talent directory',
+    url: 'http://localhost/talent',
+    expect: ['دليل المواهب', 'نورة الحربي', 'الجاهزية', 'نموذج', 'وصولُ الشركات'],
+  },
+  {
+    name: 'market report',
+    url: 'http://localhost/market',
+    expect: ['تقرير السوق', 'النسبة', 'أجب أنت أيضًا', 'للجامعات ومراكز المهنة'],
+  },
+  { name: 'embed (b2b checker)', url: 'http://localhost/embed', expect: ['مضمّن في موقعكم', '199', '499', 'iframe', 'جامعات'] },
+  {
+    name: 'professional link (sample)',
+    url: 'http://localhost/u/noura-alharbi',
+    expect: ['نورة الحربي', 'مهندسة واجهات أمامية', 'نموذج', 'فتحات'],
+  },
+  { name: 'professional link missing', url: 'http://localhost/u/no-such-person', expect: ['لا رابطَ بهذا الاسم', 'أنشئ رابطك'] },
   { name: 'wishlist', url: 'http://localhost/wishlist', wish: '["nova","aether"]', expect: ['المفضلة', 'أيثر'] },
   { name: 'blog', url: 'http://localhost/blog', expect: ['مقالات', 'اقرأ المقال', 'دقائق قراءة'] },
   {
@@ -812,7 +858,17 @@ for (const c of cases) {
   )
   ok(
     'every add-on is bilingual and says how it is delivered',
-    UPSELLS.every((u) => u.name?.ar && u.name?.en && u.tagline?.ar && u.tagline?.en && u.desc?.ar && u.desc?.en && (u.sla > 0 || u.period)),
+    UPSELLS.every(
+      (u) =>
+        u.name?.ar &&
+        u.name?.en &&
+        u.tagline?.ar &&
+        u.tagline?.en &&
+        u.desc?.ar &&
+        u.desc?.en &&
+        // ثلاثُ طُرُقِ تسليم: مهلةُ بريد، أو اشتراك يُفعَّل، أو فوريٌّ في المتصفح
+        (u.sla > 0 || u.period || u.instant === true),
+    ),
   )
   ok(
     'the cart, services, checker and subscription each offer their own group',
@@ -823,7 +879,10 @@ for (const c of cases) {
     Object.entries(upsellPriceTable())
       .map(([k, v]) => `${k}:${v}`)
       .join(',') ===
-      'cover-letter:39,cv-tailor:79,ats-review:149,deploy-setup:249,cv-write:299,brand-identity:899,ats-report:29,pro-month:39,pro-year:349',
+      'cover-letter:39,cv-tailor:79,ats-review:149,deploy-setup:249,cv-write:299,brand-identity:899,ats-report:29,pro-month:39,pro-year:349,' +
+        // منظومةُ التوظيف: مطابقة ٢٩ وباقة الخمسة ٧٩، ملف التقديم ٤٩، البطاقة الموثّقة ١٩،
+        // الرابط بلس ٢٩ شهريًا، إبراز الدليل ٢٩ شهريًا، استيراد LinkedIn ٣٩، إزالة الشارة ١٩
+        'match-report:29,match-5:79,kit-10:49,share-verified:19,link-plus:29,talent-spot:29,linkedin-import:39,badge-off:19',
     Object.entries(upsellPriceTable())
       .map(([k, v]) => `${k}:${v}`)
       .join(','),
@@ -839,6 +898,10 @@ for (const c of cases) {
   ok(
     'services are delivered by e-mail, subscriptions by activation — never a download',
     addonDelivery('ats-report')?.kind === 'email' && addonDelivery('pro-year')?.kind === 'activate',
+  )
+  ok(
+    'and what opens in the browser on its own is marked instant, not given a mail slot',
+    addonDelivery('kit-10')?.kind === 'instant' && addonDelivery('link-plus')?.kind === 'activate',
   )
 
   /* ---------- الكوبونات: خصم الأصدقاء ورمزا المدرّب ---------- */
@@ -3578,9 +3641,11 @@ for (const c of cases) {
   setVal('علي مهندس\nعملت في شركة على مشاريع كثيرة وحسّنت الأداء بشكل عام، وأحب التعلم المستمر في فريق منتِج.\n'.repeat(9))
   await g.wait(4)
   const dirty = analyzeAts(area.value)
+  // المقصودُ لوحةُ الدرجة لا كلُّ حرفٍ في الصفحة: بطاقةُ المشاركة تحت اللوحة تكتب
+  // «من 100» بوصفها مقياسًا، فلو قِسنا الصفحةَ كلّها لما عاد الفحصُ يقيس شيئًا.
   ok(
     'the panel follows what you typed, not what we hope',
-    !!g.doc.querySelector('[data-ats-rules]') && !g.txt().includes('100'),
+    !!g.doc.querySelector('[data-ats-rules]') && !g.doc.querySelector('[data-ats-score]')?.textContent.includes('100'),
     g.doc.querySelector('[data-ats-score]')?.textContent.slice(0, 50),
   )
   ok(
@@ -4452,6 +4517,282 @@ for (const c of cases) {
   } else {
     groups++
     console.log(`✓ seo · raw links, robots, product data and card alignment  (${checks.length} assertions)`)
+  }
+}
+
+/* ================= منظومة التوظيف v1.6 · المطابقة والملف والرابط والدليل والسوق والفاحص المضمّن ================= */
+{
+  const checks = []
+  const ok = (name, cond, extra = '') => checks.push([cond ? name : `${name} — ${extra}`, !!cond])
+
+  /* مخزنٌ في الذاكرة: وحداتُ المتصفح التي تقرأ localStorage تُختبر هنا بلا متصفح */
+  const mem = new Map()
+  const before = globalThis.localStorage
+  globalThis.localStorage = {
+    getItem: (k) => (mem.has(k) ? mem.get(k) : null),
+    setItem: (k, v) => mem.set(k, String(v)),
+    removeItem: (k) => mem.delete(k),
+    clear: () => mem.clear(),
+  }
+
+  /* ——— ١. المطابقة: نفسُ المحرّك الذي يخدم /match و/kit و/embed ——— */
+  const { ATS_DEMO } = await import('../src/data/ats.js')
+  const cvDemo = matchCv(ATS_DEMO, MATCH_DEMO_JOB)
+  const other = matchCv(
+    'مدير مالي: إعداد الميزانيات والتقارير الشهرية، وإدارة فريق من ٤ أشخاص، وخفض التكاليف ١٢٪ في عامين. مهارات:Excel محاسبة تقارير.',
+    MATCH_DEMO_JOB,
+  )
+  ok('a frontend CV matches the frontend posting', cvDemo.score >= 80, `${cvDemo.score}`)
+  ok('and a finance CV does not', other.score < cvDemo.score - 20, `${other.score} vs ${cvDemo.score}`)
+  ok('the gap list is what the report sells', other.missing.length > 0 && other.missing.every((m) => typeof m.term === 'string' && m.term.length > 1))
+  ok(
+    'an edit point never claims you know the tool — it asks first',
+    editPoints(other, { lang: 'ar', n: 6 })
+      .filter((e) => e.where === 'قسم المهارات')
+      .every((e) => /إن كنت/.test(e.text)),
+  )
+  ok('the field is read off the posting, not guessed at the shelf', fieldOf(MATCH_DEMO_JOB) === 'dev', fieldOf(MATCH_DEMO_JOB))
+  ok(
+    'and the recommendation is real catalogue items',
+    pickTemplates(MATCH_DEMO_JOB, { n: 3 }).every((t) => !!t.slug && t.price > 0),
+  )
+  ok('the report quotes the same score the page shows', matchReport(cvDemo, { lang: 'ar' }).includes(`${cvDemo.score}٪`))
+  ok('a posting too short to read says so instead of scoring it', matchReport(matchCv(ATS_DEMO, 'مطلوب مهندس'), { lang: 'ar' }).includes('أقصر'))
+  ok('company and city are not counted as requirements', termsOf(MATCH_DEMO_JOB).length > 0 && termsOf('').length === 0)
+
+  /* ——— ٤. ملف التقديم: ما لا يجده لا يخترعه ——— */
+  const plain =
+    'منى العلي\nمصممة واجهات · الرياض\nالملخص المهني\nمصممة واجهات أعمل على تصميم التطبيقات.\nالخبرة المهنية\nمصممة — شركة أفق\n2020 — 2022\n- صممت تطبيقًا للتوصيل.\nالمهارات\nFigma · تصميم واجهات'
+  const kit = buildKit({ cv: plain, job: MATCH_DEMO_JOB, lang: 'ar' })
+  ok('the kit is built by the same match engine', kit.match.score === matchCv(plain, MATCH_DEMO_JOB).score)
+  ok('it addresses the letter to the company named in the posting', kit.cover.includes('نماء'), kit.company)
+  ok('it signs with the name on the CV', kit.cover.includes('منى العلي'))
+  ok('and it invents no figure the CV never carried', kit.ranked.every((b) => b.top === 0) && !kit.cover.includes('في آخر عملٍ لي بلغ الأثر'))
+  ok('what it cannot find is handed back as a task, not filled in', kit.todo.length > 0)
+  ok(
+    'bullets are ranked by the posting’s words, not by position',
+    rankBullets('نقطة أولى بلا مفردات من الإعلان.\n- بنيت واجهات بـ React فانخفض زمن التحميل ٤٠٪.', cvDemo, { n: 2 })[0].hits >= 1,
+  )
+  ok(
+    'the whole kit exports as one text with all four parts',
+    ['نقاط', 'خطاب التقديم', 'LinkedIn', 'إيميل'].every((h) => kitText(kit, { lang: 'ar' }).includes(h)),
+  )
+  ok(
+    'credits go down when spent and never below zero',
+    (() => {
+      mem.clear()
+      kitCredit(10, { add: true })
+      const mid = kitCredits().left
+      kitCredit(1)
+      const after = kitCredits().left
+      kitCredit(99)
+      return mid === 10 && after === 9 && kitCredits().left === 0
+    })(),
+  )
+  ok('and a short input is refused rather than half-generated', plain.length >= KIT_MIN_CV && MATCH_DEMO_JOB.length >= KIT_MIN_JOB)
+
+  /* ——— ٣. الرابط المهني: رابطٌ من الاسم، وتحليلاتٌ من هذا الجهاز ——— */
+  const link = sanitizeLink({
+    name: 'نورة الحربي',
+    role: 'مهندسة واجهات',
+    city: 'الرياض',
+    email: 'noura@example.com',
+    bio: 'نبذة <script>alert(1)</script>',
+  })
+  ok('an Arabic name becomes a readable latin handle', link.handle === 'noura-alhrbi', link.handle)
+  ok(
+    'and markup is refused whole, not half-cleaned',
+    link.bio === undefined && !Object.values(link).some((v) => String(v).includes('script')),
+    JSON.stringify(link.bio),
+  )
+  ok('a broken e-mail is dropped, not stored', sanitizeLink({ name: 'سارة', email: 'nope' }).email === undefined)
+  ok('the link is built from the one published domain', linkUrl('ahmed').endsWith('/u/ahmed'))
+  ok(
+    'a view is one event, and only counted kinds are stored',
+    (() => {
+      mem.clear()
+      recordEvent('noura-alharbi', 'view')
+      recordEvent('noura-alharbi', 'cv')
+      recordEvent('noura-alharbi', 'invented-kind')
+      const sum = summarize(JSON.parse(mem.get('qalb.linkevents.v1') || '[]'), { handle: 'noura-alharbi', days: 7 })
+      return sum.views === 1 && sum.cv === 1 && sum.total === 2
+    })(),
+  )
+  ok(
+    'the country is inferred from a time zone, never from an address',
+    countryOf('Asia/Riyadh') === 'SA' && countryOf('') === '' && countryName('SA', 'ar') === 'السعودية',
+  )
+  ok(
+    'a sample link says its numbers are illustrative',
+    (() => {
+      const s = summarize(demoEvents('x'), { handle: 'x', days: 30 })
+      return s.total > 0 && s.countries.length > 0
+    })(),
+  )
+  ok('the free plan counts; countries come with the paid one', LINK_PLANS.free.geo === false && LINK_PLANS.plus.geo === true)
+
+  /* ——— ٧. دليل المواهب: إذنٌ صريح، ورقمٌ مقيس ——— */
+  const dirRows = demoTalent()
+  ok('the seeded directory is labelled as samples', dirRows.length === 4 && dirRows.every((r) => r.demo === true))
+  ok(
+    'every readiness score is a measured number, not an opinion',
+    dirRows.every((r) => Number.isInteger(r.ats) && r.ats >= 0 && r.ats <= 100),
+  )
+  ok(
+    'filtering by field and readiness returns the narrower set',
+    filterTalent(dirRows, { field: 'dev' }).length === 1 && filterTalent(dirRows, { minAts: 95 }).length <= dirRows.length,
+  )
+  ok(
+    'a profile keeps no markup from its owner: the whole field is refused',
+    talentEntry({ handle: 'x', name: 'y<script>z', role: 'r', field: 'general' }).name === '',
+  )
+
+  /* ——— ٨. تقرير السوق: أربعةُ حقول، ونسبةٌ بلا سند لا تُنشر ——— */
+  ok(
+    'an answer keeps only what it knows',
+    (() => {
+      const a = normalizeSignal({ field: 'dev', city: 'riyadh', interview: true, template: 'nova', months: '4' })
+      const b = normalizeSignal({ field: 'not-a-field', interview: 'maybe', months: '99' })
+      return a.field === 'dev' && a.interview === 1 && a.months === 4 && b.field === '' && b.interview === null
+    })(),
+  )
+  ok('an empty answer is not counted', signalHas(normalizeSignal({})) === false && signalHas(normalizeSignal({ interview: false })) === true)
+  ok(
+    'one answer a day per question: a repeat does not inflate the rate',
+    (() => {
+      mem.clear()
+      saveSignal({ field: 'dev', interview: true })
+      const first = JSON.parse(mem.get('qalb.market.v1') || '[]').length
+      saveSignal({ field: 'dev', interview: true })
+      return first === 1 && JSON.parse(mem.get('qalb.market.v1') || '[]').length === 1
+    })(),
+  )
+  ok(
+    'no rate is published before the minimum, and the report says so',
+    (() => {
+      const agg = aggregate([{ at: new Date().toISOString(), field: 'dev', interview: 1, city: 'riyadh', template: 'nova', months: 3 }])
+      return agg.enough === false && agg.min === MARKET_MIN && marketReport(agg, { lang: 'ar' }).includes(`${MARKET_MIN}`)
+    })(),
+  )
+  ok(
+    'a full sample aggregates to rows a university could buy',
+    (() => {
+      const rows = Array.from({ length: 6 }, (_, i) => ({
+        at: new Date(Date.now() - i * 86400000).toISOString(),
+        field: 'dev',
+        city: 'riyadh',
+        template: 'nova',
+        months: 3,
+        interview: i < 3 ? 1 : 0,
+      }))
+      const agg = aggregate(rows)
+      return agg.enough === true && agg.rate === 50 && marketRows(agg).length === 1 && marketCsv(marketRows(agg)).startsWith('field,answers')
+    })(),
+  )
+
+  /* ——— ٥. الفاحص المضمّن: موضعٌ يُباع، لا بياناتُ طلاب ——— */
+  ok('an unknown tier falls back to the first, never to a blank page', embedTier('nope').id === EMBED_TIERS[0].id)
+  ok(
+    'the tiers are the prices on the page',
+    EMBED_TIERS[0].price === 199 && EMBED_TIERS[0].checks === 500 && EMBED_TIERS[1].price === 499 && EMBED_TIERS[1].checks === 2000,
+  )
+  ok('and the university one carries no invented figure', EMBED_TIERS[2].price === null && EMBED_TIERS[2].uni === true)
+  const snip = embedSnippet({ org: 'ksu-careers', theme: 'light', lang: 'ar' })
+  ok('the snippet is one iframe pointed at the same checker', /<iframe/.test(snip) && snip.includes('/ats?embed=1') && snip.includes('ksu-careers'))
+  ok(
+    'usage is counted per month and overrun is called overrun',
+    (() => {
+      mem.clear()
+      const q0 = embedQuota('embed-500', 0)
+      const q1 = embedQuota('embed-500', 500)
+      const q2 = embedQuota('embed-500', 620)
+      return q0.left === 500 && q1.left === 0 && q1.over === 0 && q2.over === 120 && embedUsage('ksu').used === 0
+    })(),
+  )
+  ok(
+    'the request mail carries the organisation and the plan, not a template',
+    decodeURIComponent(embedMailto({ org: 'جامعة الملك سعود', tier: 'embed-500' }, { lang: 'ar', mail: 'qalb@qalb.store' })).includes(
+      'جامعة الملك سعود',
+    ),
+  )
+
+  /* ——— ٦. الاستيراد من LinkedIn: لصقٌ لا وصول، وما لا يُفهم يُترك ——— */
+  const draft = parseLinkedin(LINKEDIN_SAMPLE)
+  ok('a pasted profile is read into fields', draft.name === 'نورة الحربي' && draft.role.includes('مهندسة') && draft.jobs.length >= 2)
+  ok('skills are collected once, not duplicated', draft.skills.length > 3 && new Set(draft.skills).size === draft.skills.length)
+  ok('the handle comes from the URL, never from an account', handleFrom('https://www.linkedin.com/in/noura-harbi') === 'noura-harbi')
+  ok('what it cannot read is named, not invented', missingOf({}).length === 7 && missingOf(draft).length < 7)
+  ok('and the draft maps onto the template’s own fields', toPersonal(draft).name === 'نورة الحربي' && toPersonal(draft).on === true)
+
+  /* ——— ٢. البطاقة القابلة للمشاركة: رقمٌ واحد في صورتين ——— */
+  const svg = cardSvg({
+    title: 'جاهز',
+    scoreLabel: '92/100',
+    bandLabel: 'جاهز للفرز الآلي',
+    byLabel: 'بُنيَ بقالب',
+    url: 'https://qalb.store/ats',
+    coupon: 'QALB-ABCDE',
+    couponLabel: 'كوبون',
+    verified: false,
+    rtl: true,
+    stats: [{ k: 'كلمات', v: '512' }],
+  })
+  ok('the card is an SVG with the score on it', svg.startsWith('<svg') && svg.includes('92/100') && svg.includes('جاهز للفرز الآلي'))
+  ok('and a hostile string is escaped, not injected', !cardSvg({ title: '</text><script>x</script>' }).includes('<script>'))
+  ok(
+    'the coupon is derived, so the same card earns the same code',
+    couponFor('a|92|v') === couponFor('a|92|v') && couponFor('a|92|v') !== couponFor('b|92|v'),
+  )
+  ok(
+    'the shared text carries the link back',
+    shareText({ title: 't', scoreLabel: '92/100', bandLabel: 'b', url: 'https://qalb.store/ats', lang: 'ar' }).includes('https://qalb.store/ats'),
+  )
+
+  /* ——— ٩. الشارة: تُطبع، وتُشترى إزالتها ——— */
+  ok(
+    'the badge is a link back to us and nothing else',
+    badgeHtml({ lang: 'ar' }).includes('href="https://qalb.store"') && badgeHtml({ lang: 'ar' }).includes('بُنيَ بقالب'),
+  )
+  ok(
+    'it shows by default, and two honest ways take it off',
+    badgeState({}).shown === true && badgeState({ addons: ['badge-off'] }).shown === false && badgeState({ plan: 'pro' }).shown === false,
+  )
+  ok(
+    'and the reason is recorded, so nobody is charged twice',
+    badgeState({ plan: 'pro' }).reason === 'plan' && badgeState({ addons: ['badge-off'] }).reason === 'paid',
+  )
+  ok(
+    'the printer hides it as it hides our bar',
+    withBadge('<html></html>', { shown: true }).includes('qalb-badge') && withBadge('<html></html>', { shown: false }) === '<html></html>',
+  )
+
+  /* ——— نفسُ الشارة في الملف المُسلَّم، تُسقطها الإضافة المشتراة ——— */
+  const { byId } = await import('../src/data/templates.js')
+  const { packageFiles } = await import('../src/data/deliverable.js')
+  const tpl = byId('aether')
+  const filesWith = Object.fromEntries(packageFiles(tpl, { id: 'Q1', key: 'K1' }).map((f) => [f.path, f.body]))
+  const filesWithout = Object.fromEntries(packageFiles(tpl, { id: 'Q1', key: 'K1', addons: [{ id: 'badge-off' }] }).map((f) => [f.path, f.body]))
+  ok('every published template carries the badge in its footer', filesWith['index.html'].includes('qalb-badge'))
+  ok('and buying the removal takes it off the delivered files', !filesWithout['index.html'].includes('qalb-badge'))
+  const { siteHtml } = await import('../src/data/deliverable.js')
+  const { profileOf } = await import('../src/data/hosting.js')
+  const freeRec = { slug: 'noura-alhrbi', plan: 'free', site: { name: 'نورة الحربي', template: 'aether' } }
+  const proRec = { ...freeRec, plan: 'pro' }
+  ok(
+    'the hosted page obeys the plan: Qalb Plus prints no badge',
+    siteHtml(tpl, profileOf(freeRec)).includes('qalb-badge') && !siteHtml(tpl, profileOf(proRec)).includes('qalb-badge'),
+  )
+
+  globalThis.localStorage = before
+  const bad = checks.filter(([, pass]) => !pass)
+  if (bad.length) {
+    failed++
+    groups++
+    console.log('✗ hiring suite · match, kit, link, directory, market, embed, linkedin, badge')
+    bad.forEach(([n]) => console.log('   failed: ' + n))
+  } else {
+    groups++
+    console.log(`✓ hiring suite · match, kit, link, directory, market, embed, linkedin, badge  (${checks.length} assertions)`)
   }
 }
 

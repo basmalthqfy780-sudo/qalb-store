@@ -11,6 +11,7 @@
 import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { B2B_TIERS } from '../src/data/b2b.js'
+import { EMBED_TIERS } from '../src/data/embed.js'
 import { LEAD_STATUSES, leadCsv, normalizeLead } from '../src/data/leads.js'
 import { PRIVATE, writePrivateJson } from './seal.js'
 
@@ -101,7 +102,8 @@ export function createLeadsApi({ dir, env = process.env, admin = null } = {}) {
       const [b, tooBig] = await readBody(req)
       if (tooBig) return (json(res, 413, { error: 'body too large' }), true)
       if (!b) return (json(res, 400, { error: 'json body required' }), true)
-      const r = normalizeLead({ ...b, source: 'b2b' }, { tiers: B2B_TIERS, now: new Date() })
+      // مقاعدُ الطلاب أو حصصُ الفاحص المضمّن: باقتان من منتجين، ودفترُ الطلبات واحد
+      const r = normalizeLead({ ...b, source: 'b2b' }, { tiers: [...B2B_TIERS, ...EMBED_TIERS], now: new Date() })
       if (!r.ok) return (json(res, 400, { error: 'fields missing', fields: Object.keys(r.errors) }), true)
       const map = all()
       const prev = map[r.value.quote]

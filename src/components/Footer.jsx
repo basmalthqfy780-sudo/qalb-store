@@ -37,6 +37,17 @@ export default function Footer() {
       ],
     },
     {
+      head: t('footer.careers'),
+      links: [
+        { to: '/match', label: t('footer.match') },
+        { to: '/kit', label: t('footer.kit') },
+        { to: '/talent', label: t('footer.talent') },
+        { to: '/market', label: t('footer.market') },
+        { to: '/embed', label: t('footer.embed') },
+        { to: '/b2b', label: t('footer.b2b') },
+      ],
+    },
+    {
       head: t('footer.company'),
       links: [
         { to: '/#story', label: t('footer.about') },

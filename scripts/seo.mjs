@@ -49,6 +49,13 @@ const urls = [
   { loc: '/legal', pri: '0.3', freq: 'yearly' },
   { loc: '/host', pri: '0.8', freq: 'weekly' },
   { loc: '/ats', pri: '0.9', freq: 'weekly' },
+  // منظومةُ التوظيف: مطابقةُ الإعلان، ملفُّ التقديم، الرابط المهني (صفحةٌ واحدة لكلِّ
+  // رابط، تُكتشف من صفحة الدليل لا من الخريطة)، دليل المواهب، تقرير السوق، والفاحص المضمّن
+  { loc: '/match', pri: '0.9', freq: 'weekly' },
+  { loc: '/kit', pri: '0.8', freq: 'weekly' },
+  { loc: '/talent', pri: '0.7', freq: 'weekly' },
+  { loc: '/market', pri: '0.6', freq: 'monthly' },
+  { loc: '/embed', pri: '0.8', freq: 'monthly' },
   { loc: '/b2b', pri: '0.8', freq: 'monthly' },
   { loc: '/services', pri: '0.8', freq: 'monthly' },
   { loc: '/offers', pri: '0.8', freq: 'weekly' },

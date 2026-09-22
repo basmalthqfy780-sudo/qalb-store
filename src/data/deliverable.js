@@ -17,6 +17,7 @@ import { PALETTE, byId, demoFor, siteFor, accentHex, fontCss } from './templates
 import { ATS_LINKS, ATS_TARGET, atsRuleTable } from './ats-table.js'
 import { zipStore } from './zip.js'
 import { SUPPORT_MAIL } from './contact.js'
+import { badgeHtml } from './badge.js'
 
 export const PROTECTED_PATH_RE = /^\/download\/[a-z0-9][a-z0-9-]{1,38}$/
 /** مسار تنزيل محمي يقدّمه الخادم بعد التحقق من الطلب — يُقبل في حقل `download` بدل رابط عام يمكن مشاركته */
@@ -223,7 +224,9 @@ export const profileFor = (tpl, k, personal = null) => {
   const demo = k !== 'site' ? demoFor(tpl) : null
   const base = site || demo || {}
   const prof = {
-    qalb: { template: tpl.id, slug: tpl.slug || null, kind: k, seats: 1, price: tpl.price },
+    // الشارة: تُطبع في فوتر كلِّ قالب إلا أن تُشترى إزالتها (`badge-off`) أو تكون
+    // خطةُ الاستضافة «بلس» — القرارُ في badgeState، والطباعةُ هنا.
+    qalb: { template: tpl.id, slug: tpl.slug || null, kind: k, seats: 1, price: tpl.price, badge: true },
     lang: 'ar',
     dir: 'rtl',
     name: { ar: pick(base.name, 'ar') || 'اسمك هنا', en: pick(base.name, 'en') || 'Your name' },
@@ -603,6 +606,9 @@ if (score < TARGET.pass) console.log('fix: اجعل كل نقطة تبدأ بف�
 process.exit(score < TARGET.pass ? 1 : 0)
 `
 
+/** شارةُ الفوتر: سطرٌ واحد، ولا تُطبع لمن أسقطها بخطةٍ أعلى أو بإضافةٍ مشتراة */
+const badgeMark = (p) => (p?.qalb?.badge === false ? '' : badgeHtml({ lang: p?.lang === 'en' ? 'en' : 'ar' }))
+
 export const siteHtml = (tpl, p) => {
   const nav = p.nav.en.length ? p.nav.en : ['Work', 'About', 'Services', 'Contact']
   const navAr = p.nav.ar.length ? p.nav.ar : nav
@@ -695,7 +701,7 @@ ${services || '          <li>عدّل <code>content/profile.json → services</c
     <footer class="site">
       <div class="wrap foot">
         <span>© <span class="num" id="yr">2026</span> <span data-brand>${esc(p.name.ar)}</span></span>
-        <span data-bi data-bi-ar="قالب · قالب — قالب مُرخّص" data-bi-en="Qalb — licensed template">قالب · Qalb — قالب مُرخّص</span>
+        <span data-bi data-bi-ar="قالب · قالب — قالب مُرخّص" data-bi-en="Qalb — licensed template">${badgeMark(p)}</span>
       </div>
     </footer>
     <script src="assets/content.js" defer></script>
@@ -761,6 +767,7 @@ ${skills}
 ${jobs}
 ${layout === 'side' ? aside : tail}
     </article>
+    <footer class="site"><div class="wrap foot">${badgeMark(p)}</div></footer>
     <script src="assets/content.js" defer></script>
   </body>
 </html>
@@ -916,6 +923,7 @@ const t = (o) => (o && (o[lang] || o.ar)) || ''
 `
   const next = `// app/page.jsx — نفس البيانات، بلا خطوات بناء إضافية
 import data from '../content/profile.json'
+import { badgeHtml } from './badge.js'
 
 const t = (o, lang) => (o && (o[lang] || o.ar)) || ''
 
@@ -1022,6 +1030,9 @@ export function packageFiles(tpl, ctx = {}) {
   const hasCv = k !== 'site'
   const personal = sanitizePersonal(ctx.personalize)
   const p = profileFor(tpl, k, personal)
+  // إزالةُ الشارة تُشترى: إن كانت في إضافات الطلب (أو الخطةُ «بلس») سقطت من الملف
+  const bought = (Array.isArray(ctx.addons) ? ctx.addons : []).map((a) => (typeof a === 'string' ? a : a && a.id)).filter(Boolean)
+  if (bought.includes('badge-off') || ctx.plan === 'pro' || ctx.plan === 'plus') p.qalb.badge = false
   const mark = markOf(order)
   const out = [{ path: 'LICENSE.txt', body: licenceText(tpl, order) }]
   const add = (path, body) => out.push({ path, body: commentFor(path, mark) + body })

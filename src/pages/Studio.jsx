@@ -7,6 +7,7 @@ import { TYPES, templates } from '../data/templates'
 import { SUPPORT_MAIL } from '../data/contact'
 import { useSeo } from '../components/Seo'
 import { Btn, Head, Icon, Pill } from '../components/ui'
+import StudioTools from '../components/StudioTools'
 
 /**
  * استوديو التحرير: يقرأ سجلّ الموقع ويعيد نفس مولّدات الحزمة في iframe، فكل
@@ -665,6 +666,8 @@ export default function Studio() {
             </p>
           )}
         </section>
+
+        <StudioTools rec={rec} form={form} set={set} />
 
         <section className="rounded-3xl border border-line bg-bg/50 p-5">
           <h2 className="font-display text-[15.5px] font-extrabold">{t('studio.data.title')}</h2>
