@@ -57,7 +57,7 @@ export default function TemplateCard({ tpl, onQuick, className = '' }) {
         </span>
       </Link>
 
-      <div className="flex flex-1 flex-col px-1.5 pt-3">
+      <div className="flex flex-1 flex-col justify-between px-1.5 pt-3">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <h3 className="truncate font-display text-[16.5px] font-extrabold leading-tight">{L(tpl.name)}</h3>

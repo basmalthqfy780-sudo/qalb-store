@@ -4290,6 +4290,157 @@ for (const c of cases) {
   }
 }
 
+/* -------- seo · روابط خام بلا Markdown · robots صريح · Product كامل · اصطفاف البطاقات -------- */
+{
+  const checks = []
+  const ok = (name, cond, extra = '') => checks.push([cond ? name : `${name} — ${extra}`, !!cond])
+  const read = (f) => readFileSync(new URL(f, import.meta.url), 'utf8')
+  const { rawUrl, rawSite, rawText, hasMarkdownLink, markdownLines } = await import('../src/data/links.js')
+
+  /* ——— البنّاءُ نفسه: أيُّ صيغة Markdown تُنزَع قبل أن تصير رابطًا ——— */
+  const md = '[https://qalb-store.vercel.app/templates](https://qalb-store.vercel.app/templates)'
+  ok('a Markdown-pasted domain is unwrapped, not written into the tag', rawSite(md) === 'https://qalb-store.vercel.app', rawSite(md))
+  ok('rawUrl returns the address alone', rawUrl(md) === 'https://qalb-store.vercel.app/templates', rawUrl(md))
+  ok(
+    'and a path joins the site without doubling the slash',
+    rawUrl('/templates', 'https://x.app/') === 'https://x.app/templates' && rawUrl('templates', 'https://x.app') === 'https://x.app/templates',
+  )
+  ok('rawText keeps the words and drops the link syntax', !hasMarkdownLink(rawText(`اقرأ ${md} الآن`)) && !hasMarkdownLink(rawUrl(md)))
+  ok(
+    'no Markdown converter is wired into any builder',
+    !/from\s+['"]marked['"]|require\(\s*['"]marked|import\s*\(\s*['"]marked/.test(
+      read('../scripts/seo.mjs') + read('../scripts/agents.mjs') + read('../src/components/Seo.jsx') + read('../src/data/links.js'),
+    ),
+  )
+
+  /* ——— الـHTML الخام: الوسومُ تحمل العنوانَ ونصُّه وحده ——— */
+  const html = read('../index.html')
+  const head = html.slice(html.indexOf('seo:generated:start'), html.indexOf('seo:generated:end'))
+  const rawOnly = (x) => /^https?:\/\/[^\s[\]()*]+$/.test(x)
+  ok('the generated head block holds no Markdown link syntax', markdownLines(head).length === 0, markdownLines(head)[0] || '')
+  const canonical = (html.match(/<link rel="canonical" href="([^"]+)"/) || [])[1]
+  ok('canonical is a raw absolute address', rawOnly(canonical), canonical)
+  const cover = (html.match(/<meta property="og:image" content="([^"]+)"/) || [])[1]
+  ok('og:image is a raw absolute address', rawOnly(cover), cover)
+  ok(
+    'the hreflang trio is raw and the English one keeps the language param',
+    ['ar', 'en', 'x-default'].every((h) => rawOnly((html.match(new RegExp(`hreflang="${h}" href="([^"]+)"`)) || [])[1])) &&
+      /hreflang="en" href="https:\/\/[^"]+\?lang=en"/.test(html),
+  )
+  ok('every page declares robots explicitly in the static head', /<meta name="robots" content="index, follow" \/>/.test(head))
+
+  /* ——— sitemap.xml وllms.txt على القرص ——— */
+  const site = (read('../public/robots.txt').match(/^Sitemap: (https?:\/\/[^/\n]+)\/sitemap\.xml$/m) || [])[1]
+  const map = read('../public/sitemap.xml')
+  ok(
+    'every sitemap loc is a raw address, and none is wrapped as a link',
+    markdownLines(map).length === 0 && (map.match(/<loc>/g) || []).length === (map.match(/<loc>https?:\/\/[^<\s]+<\/loc>/g) || []).length,
+  )
+  const llms = read('../public/llms.txt')
+  ok('llms.txt carries no Markdown link syntax at all', markdownLines(llms).length === 0, markdownLines(llms)[0] || '')
+  ok(
+    'each template is listed by its raw URL in both halves',
+    !!site && templates.every((t) => (llms.match(new RegExp(`${site}/template/${t.slug}`, 'g')) || []).length >= 2),
+  )
+  if (existsSync('dist/index.html')) {
+    const dist = readFileSync('dist/index.html', 'utf8')
+    ok(
+      'the built HTML ships the same clean head',
+      markdownLines(dist.slice(dist.indexOf('seo:generated:start'), dist.indexOf('seo:generated:end'))).length === 0,
+    )
+  }
+
+  /* ——— ما يراه محرّك البحث فعلًا: robots ثم Product في صفحة القوالب والمنتج ——— */
+  const productShape = (p, tpl) =>
+    p &&
+    p['@type'] === 'Product' &&
+    !!p.name &&
+    !!p.description &&
+    p.image === `${SITE_URL}/og/${tpl.slug}.png` &&
+    Number(p.offers?.price) === tpl.price &&
+    p.offers?.priceCurrency === 'SAR' &&
+    p.offers?.availability === 'https://schema.org/InStock'
+
+  const cat = await render('http://localhost/templates')
+  ok(
+    'a public route asks to be indexed instead of staying silent',
+    cat.doc.head.querySelector('meta[name="robots"]')?.getAttribute('content') === 'index, follow',
+    String(cat.doc.head.querySelector('meta[name="robots"]')?.getAttribute('content')),
+  )
+  const catLd = JSON.parse(cat.doc.getElementById('qalb-jsonld')?.textContent || '{}')
+  const listNode = (catLd['@graph'] || []).find((x) => x['@type'] === 'ItemList')
+  const listed = (listNode?.itemListElement || []).map((x) => x.item).filter(Boolean)
+  ok(
+    'the templates page lists Product nodes, not names and links only',
+    listed.length >= 12 && listed.every((x) => x['@type'] === 'Product'),
+    `${listed.length}`,
+  )
+  const listedTpls = listed.map((x) => templates.find((t) => x.url.endsWith(`/template/${t.slug}`)))
+  const firstTpl = listedTpls[0]
+  ok('every listed Product maps to a real shelf item', listed.length > 0 && listedTpls.every(Boolean))
+  ok(
+    'every listed Product has name, image, description and an InStock SAR offer',
+    listed.every((x, i) => productShape(x, listedTpls[i])),
+  )
+  ok(
+    'and the advertised price is the one on the shelf',
+    !!firstTpl && Number(listed[0].offers.price) === firstTpl.price,
+    `${listed[0]?.offers?.price} vs ${firstTpl?.price}`,
+  )
+  ok('the catalogue canonical is raw as well', !hasMarkdownLink(cat.doc.head.querySelector('link[rel="canonical"]')?.getAttribute('href') || ''))
+  cat.dom.window.close()
+
+  const one = await render('http://localhost/template/atlas-cv')
+  const atlas = templates.find((t) => t.slug === 'atlas-cv')
+  const prod = JSON.parse(one.doc.getElementById('qalb-jsonld').textContent)['@graph'].find((x) => x['@type'] === 'Product')
+  ok('the product page ships the same four fields, plus the offer', productShape(prod, atlas))
+  ok(
+    'its canonical, og:image and hreflang are raw too',
+    [
+      one.doc.head.querySelector('link[rel="canonical"]')?.getAttribute('href'),
+      one.doc.head.querySelector('meta[property="og:image"]')?.getAttribute('content'),
+      one.doc.head.querySelector('link[rel="alternate"][hreflang="en"]')?.getAttribute('href'),
+    ].every((x) => rawOnly(x)),
+  )
+  one.dom.window.close()
+
+  /* ——— اصطفاف البطاقات: الغلافُ والبطاقةُ يتمدّدان، والصفُّ السفلي يُدفَع للأسفل ——— */
+  const card = read('../src/components/TemplateCard.jsx')
+  ok(
+    'the template card stretches and pushes its price row to the floor',
+    /flex h-full flex-col/.test(card) && /flex flex-1 flex-col justify-between/.test(card) && /mt-auto/.test(card),
+  )
+  const services = read('../src/pages/Services.jsx')
+  ok(
+    'service cards do the same, and their Reveal wrapper passes the height down',
+    /flex h-full flex-col justify-between/.test(services) && /Reveal key=\{s\.id\}[^>]*className="h-full"/.test(services),
+  )
+  const offers = read('../src/pages/Offers.jsx')
+  ok('seasonal offer cards too', /flex h-full flex-col justify-between/.test(offers) && /Reveal key=\{o\.slug\}[^>]*className="h-full"/.test(offers))
+  const home = read('../src/pages/Home.jsx')
+  ok(
+    'the home grids let their cards stretch instead of pinning them to the top',
+    !/grid items-start gap-5/.test(home) &&
+      /Reveal key=\{p\.key\} delay=\{k \* 90\} className="h-full"/.test(home) &&
+      /Reveal key=\{p\.id\} delay=\{k \* 90\} className="h-full"/.test(home),
+  )
+  ok(
+    'the related grid on the product page is full height as well',
+    /Reveal key=\{r\.id\} delay=\{k \* 70\} className="h-full"/.test(read('../src/pages/Product.jsx')),
+  )
+
+  const bad = checks.filter(([, pass]) => !pass)
+  if (bad.length) {
+    failed++
+    groups++
+    console.log('✗ seo · raw links, robots, product data and card alignment')
+    bad.forEach(([n]) => console.log('   failed: ' + n))
+  } else {
+    groups++
+    console.log(`✓ seo · raw links, robots, product data and card alignment  (${checks.length} assertions)`)
+  }
+}
+
 console.log(
   failed
     ? `\n${failed} of ${groups} check groups failed`

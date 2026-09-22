@@ -1,6 +1,19 @@
 import { useEffect } from 'react'
 import { SOCIAL, SUPPORT_MAIL } from '../data/contact'
 import { SITE_URL } from '../data/site'
+import { rawText, rawUrl } from '../data/links'
+
+/**
+ * كلُّ رابطٍ يخرج من هذه الوحدة يمرّ ببناءٍ واحد: `rawUrl` من `data/links.js`.
+ * لا مُحوِّل Markdown هنا ولا في أي مكان، والناتجُ سلسلةٌ خامٌ كما تُكتب في
+ * الوسم حرفًا بحرف: `https://qalb-store.vercel.app/templates` — لا
+ * `[https://…](https://…)`. والفحص في `tests/smoke.mjs` يقرأ الـhead بعد الرسم
+ * ويرفض أيّ قوسٍ أو نجمةٍ في canonical وog:image وhreflang.
+ */
+const abs = (path) => rawUrl(path, SITE_URL)
+
+/** الصفحاتُ العامة تُفهرَس صراحةً: غيابُ الوسم كان يُترك للظنّ، فنكتبه فعلًا. */
+export const DEFAULT_ROBOTS = 'index, follow'
 
 const setMeta = (attr, key, value) => {
   if (value == null) return
@@ -43,31 +56,34 @@ function setHreflang(hreflang, href) {
 }
 
 function apply({ title, desc, jsonLd, type = 'website', robots, image }) {
-  if (title) document.title = title
+  if (title) document.title = rawText(title)
   const lang = document.documentElement.lang === 'en' ? 'en' : 'ar'
   // canonical وog:url من SITE_URL لا من أصل التصفّح: هكذا يتحد canonical مع
   // sitemap.xml مهما فُتحت الصفحة من نطاق معاينة أو من نطاق ثانٍ.
   const path = window.location.pathname
-  const url = `${SITE_URL}${path}`
-  setMeta('name', 'description', desc)
-  if (robots) setMeta('name', 'robots', robots)
-  setMeta('property', 'og:title', title || document.title)
-  setMeta('property', 'og:description', desc)
+  const url = abs(path || '/')
+  const plain = desc == null ? desc : rawText(desc)
+  setMeta('name', 'description', plain)
+  // الوسم موجودٌ في كل صفحة: عامّةً index, follow، وإلا فما تطلبه الصفحة صراحةً
+  // (سلّة/دفع/إدارة) — فلا تبقى قيمةُ الصفحة السابقة معلّقةً بعد تنقّلٍ داخلي.
+  setMeta('name', 'robots', robots || DEFAULT_ROBOTS)
+  setMeta('property', 'og:title', rawText(title) || document.title)
+  setMeta('property', 'og:description', plain)
   setMeta('property', 'og:type', type)
   setMeta('property', 'og:url', url)
   setMeta('property', 'og:locale', lang === 'ar' ? 'ar_SA' : 'en_US')
   setMeta('property', 'og:locale:alternate', lang === 'ar' ? 'en_US' : 'ar_SA')
   // per-page social card; index.html keeps the site cover as the no-JS default
   if (image) {
-    const abs = new URL(image, `${SITE_URL}/`).href
-    setMeta('property', 'og:image', abs)
+    const href = abs(image)
+    setMeta('property', 'og:image', href)
     setMeta('property', 'og:image:width', '1200')
     setMeta('property', 'og:image:height', '630')
-    setMeta('name', 'twitter:image', abs)
+    setMeta('name', 'twitter:image', href)
     setMeta('name', 'twitter:card', 'summary_large_image')
   }
-  setMeta('name', 'twitter:title', title || document.title)
-  setMeta('name', 'twitter:description', desc)
+  setMeta('name', 'twitter:title', rawText(title) || document.title)
+  setMeta('name', 'twitter:description', plain)
 
   let canonical = document.head.querySelector('link[rel="canonical"]')
   if (!canonical) {
@@ -124,7 +140,7 @@ export const breadcrumbLd = (items) => ({
     '@type': 'ListItem',
     position: i + 1,
     name: it.name,
-    url: `${SITE_URL}${it.path}`,
+    url: abs(it.path),
   })),
 })
 
@@ -144,7 +160,7 @@ export const siteGraph = (t, extraNodes = []) => ({
       '@type': 'Organization',
       name: t('brand.name'),
       alternateName: 'Qalb',
-      url: `${SITE_URL}/`,
+      url: abs('/'),
       foundingLocation: { '@type': 'Place', name: 'Jeddah, Saudi Arabia' },
       sameAs: SOCIAL.map((s) => s.href),
       contactPoint: {
@@ -157,11 +173,11 @@ export const siteGraph = (t, extraNodes = []) => ({
     {
       '@type': 'WebSite',
       name: t('brand.name'),
-      url: `${SITE_URL}/`,
+      url: abs('/'),
       inLanguage: ['ar', 'en'],
       potentialAction: {
         '@type': 'SearchAction',
-        target: `${SITE_URL}/templates?q={query}`,
+        target: `${abs('/templates')}?q={query}`,
         'query-input': 'required name=query',
       },
     },
@@ -176,7 +192,25 @@ export const itemList = (list) => ({
     '@type': 'ListItem',
     position: i + 1,
     name: x.name?.[document.documentElement.lang === 'en' ? 'en' : 'ar'] || x.name?.ar,
-    url: `${SITE_URL}/template/${x.slug}`,
+    url: abs(`/template/${x.slug}`),
+  })),
+})
+
+/**
+ * قائمةُ الكتالوج `/templates`: عناصرُها عُقَد Product كاملة (اسمٌ وصورةٌ ووصفٌ
+ * وعرضٌ بسعرٍ بالريال وحالةِ توفّر InStock) لا أسماءً وروابطَ فقط — فالعنصرُ
+ * الناقصُ عرضًا لا يُنتج نتيجةً غنيّة، والقائمةُ هنا تُغني صفحةَ القوالب كما
+ * تُغنيها صفحةُ المنتج. السعرُ من بيانات الرّفّ نفسها، فلا يُعلن البحث رقمًا
+ * لا تراه الصفحة.
+ */
+export const productItemList = (list, lang, t) => ({
+  '@type': 'ItemList',
+  name: t('catalog.title'),
+  numberOfItems: list.length,
+  itemListElement: list.slice(0, 24).map((x, i) => ({
+    '@type': 'ListItem',
+    position: i + 1,
+    item: productLd(x, lang, t),
   })),
 })
 
@@ -190,7 +224,7 @@ export const toolLd = ({ name, desc, path = '/ats', faq = [] }) => ({
     {
       '@type': 'WebApplication',
       name,
-      url: `${SITE_URL}${path}`,
+      url: abs(path),
       applicationCategory: 'BusinessApplication',
       operatingSystem: 'Any — runs in the browser',
       inLanguage: ['ar', 'en'],
@@ -212,7 +246,7 @@ export const orgLd = ({ tiers, faq = [], lang = 'ar', t }) => ({
     {
       '@type': 'OfferCatalog',
       name: t('b2b.title'),
-      url: `${SITE_URL}/b2b`,
+      url: abs('/b2b'),
       inLanguage: ['ar', 'en'],
       applicationCategory: 'BusinessApplication',
       offers: tiers.map((tier) => ({
@@ -230,42 +264,59 @@ export const orgLd = ({ tiers, faq = [], lang = 'ar', t }) => ({
 })
 
 /**
- * عقد Product صافٍ — يُدمج مع BreadcrumbList عبر `graph` في صفحة المنتج،
- * والسعر والأرقام من بيانات الرّفّ نفسها فلا يُعلن البحث عن رقمٍ لا تراه الصفحة.
+ * عقد Product كامل — يُدمج مع BreadcrumbList عبر `graph` في صفحة المنتج،
+ * وتُستدعى نفسُه من كل عنصرٍ في قائمة `/templates`:
+ *
+ *   name · image · description        الحقولُ الثلاثة المطلوبة، ولا واحدَ منها فارغ
+ *   offers.price / priceCurrency      السعرُ والريال، من بيانات الرّفّ نفسها
+ *   offers.availability               InStock — لا رقمٌ يُعلَن عن منتجٍ لا يُباع
+ *
+ * والوصفُ والصورةُ يمرّان بـ`rawText`/`rawUrl` كسائر ما يُكتب في الرأس.
  */
-export const productLd = (tpl, lang, t) => ({
-  '@type': 'Product',
-  name: tpl.name?.[lang] || tpl.name?.ar,
-  description: tpl.tagline?.[lang] || tpl.desc?.[lang] || tpl.tagline?.ar,
-  sku: tpl.id,
-  category: t(`types.${tpl.type}`),
-  brand: { '@type': 'Brand', name: t('brand.name') },
-  url: `${SITE_URL}/template/${tpl.slug}`,
-  image: `${SITE_URL}/og/${tpl.slug}.png`,
-  offers: {
-    '@type': 'Offer',
-    price: Number(tpl.price).toFixed(2),
-    priceCurrency: 'SAR',
-    availability: 'https://schema.org/InStock',
-    priceValidUntil: `${new Date().getFullYear() + 1}-12-31`,
-  },
-  ...(tpl.rating
-    ? {
-        aggregateRating: {
-          '@type': 'AggregateRating',
-          ratingValue: tpl.rating,
-          reviewCount: tpl.reviews,
-          bestRating: 5,
-        },
-      }
-    : {}),
-})
+export const productLd = (tpl, lang, t) => {
+  const url = abs(`/template/${tpl.slug}`)
+  // بطاقةُ og الخاصة بالمنتج تُرسم في كل بناء (public/og/<slug>.png)، فلا
+  // يُعلن البحث صورةً لا ملفَّ لها.
+  const image = abs(`/og/${tpl.slug}.png`)
+  const description = tpl.tagline?.[lang] || tpl.desc?.[lang] || tpl.tagline?.ar || tpl.desc?.ar || tpl.name?.[lang] || tpl.name?.ar || ''
+  const available = tpl.price != null && Number(tpl.price) >= 0
+  return {
+    '@type': 'Product',
+    name: rawText(tpl.name?.[lang] || tpl.name?.ar),
+    image,
+    description: rawText(description),
+    sku: tpl.id,
+    category: t(`types.${tpl.type}`),
+    brand: { '@type': 'Brand', name: t('brand.name') },
+    url,
+    offers: {
+      '@type': 'Offer',
+      url,
+      price: Number(tpl.price).toFixed(2),
+      priceCurrency: 'SAR',
+      availability: available ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+      itemCondition: 'https://schema.org/NewCondition',
+      priceValidUntil: `${new Date().getFullYear() + 1}-12-31`,
+      seller: { '@type': 'Organization', name: t('brand.name') },
+    },
+    ...(tpl.rating
+      ? {
+          aggregateRating: {
+            '@type': 'AggregateRating',
+            ratingValue: tpl.rating,
+            reviewCount: tpl.reviews,
+            bestRating: 5,
+          },
+        }
+      : {}),
+  }
+}
 
 /** المدوّنة: فهرس المقالات ومقال واحد — بنفس قاعدة «أرقامٌ من بيانات الرّفّ» */
 export const blogLd = (t) => ({
   '@type': 'Blog',
   name: `${t('blog.title')} · ${t('brand.name')}`,
-  url: `${SITE_URL}/blog`,
+  url: abs('/blog'),
   inLanguage: ['ar', 'en'],
   description: t('meta.blogDesc'),
 })
@@ -277,7 +328,7 @@ export const blogPostingLd = (post, lang, t) => ({
   datePublished: post.date,
   dateModified: post.date,
   inLanguage: lang,
-  mainEntityOfPage: `${SITE_URL}/blog/${post.slug}`,
+  mainEntityOfPage: abs(`/blog/${post.slug}`),
   articleSection: (post.tags?.[lang] || post.tags?.ar || []).join(', '),
   author: { '@type': 'Organization', name: t('brand.name') },
   publisher: { '@type': 'Organization', name: t('brand.name') },

@@ -2,31 +2,33 @@
 
 > Qalb sells a CV and a site that a recruiter’s parser can actually read, gives away the measurement tool that proves it, and licenses that tool to whole graduating cohorts. Arabic-first RTL interface with a complete English mirror; prices in Saudi riyals, VAT 15% included. Every page here is a client-rendered React app, so this file — not a crawl of the DOM — is the plain-text authority for what the site is.
 
+Every address below is written raw (`https://qalb.store/template/nova-cv`), never as a Markdown link, so a reader that does not render Markdown still sees the URL itself.
+
 ## What is sold
 
 20 published templates, SAR 49–449 each. 10 of them also produce an ATS-readable CV, and that subset is what an institutional seat unlocks: a seat buys a machine-readable document, not decoration.
 
 ### Templates
-- [Aether](https://qalb.store/template/aether-portfolio): Dark-mode portfolio for designers — SAR 249, site only
-- [Atelier](https://qalb.store/template/atelier-photography): For photographers: images lead — SAR 279, site only
-- [Nexus](https://qalb.store/template/nexus-engineer): Engineers: numbers over images — SAR 219, site only
-- [Folio](https://qalb.store/template/folio-minimal): The simplest honest start — SAR 149, site only
-- [Reel](https://qalb.store/template/reel-motion): Motion and video, unstuttered — SAR 299, site only
-- [Quill](https://qalb.store/template/quill-writer): For writers: reading first — SAR 179, site only
-- [Vertex](https://qalb.store/template/vertex-3d): 3D that loads instantly — SAR 349, site only
-- [Studio](https://qalb.store/template/studio-team): For teams of 2–6 — SAR 399, site only
-- [Mirror Pro](https://qalb.store/template/mirror-pro-bundle): Site + CV, one identity — SAR 449, ships an ATS-readable CV as well as the site
-- [DevPack](https://qalb.store/template/devpack-bundle): Engineers: site + ATS CV — SAR 379, ships an ATS-readable CV as well as the site
-- [First Step](https://qalb.store/template/firststep-bundle): Graduate site + CV — SAR 199, ships an ATS-readable CV as well as the site
-- [Nova](https://qalb.store/template/nova-cv): Single-column ATS CV — SAR 89, ships an ATS-readable CV as well as the site
-- [Atlas](https://qalb.store/template/atlas-cv): The engineer’s CV — SAR 99, ships an ATS-readable CV as well as the site
-- [Apex](https://qalb.store/template/apex-cv): Executive CV in serif — SAR 129, ships an ATS-readable CV as well as the site
-- [Echo](https://qalb.store/template/echo-cv): For grads, no record needed — SAR 59, ships an ATS-readable CV as well as the site
-- [LinkedIn Kit](https://qalb.store/template/linkedin-kit): The profile a recruiter reads before your CV — SAR 119, site only
-- [Cover Letter Pack](https://qalb.store/template/cover-letter-pack): Twelve letters for every application moment — SAR 49, site only
-- [Freelancer Kit](https://qalb.store/template/freelancer-kit): Site, CV, contracts, rates — a whole shop — SAR 279, ships an ATS-readable CV as well as the site
-- [The Medical CV](https://qalb.store/template/med-cv): From internship to residency, in boards’ language — SAR 119, ships an ATS-readable CV as well as the site
-- [The Legal CV](https://qalb.store/template/legal-cv): Cases and briefs in numbers, not adjectives — SAR 109, ships an ATS-readable CV as well as the site
+- Aether — https://qalb.store/template/aether-portfolio — Dark-mode portfolio for designers — SAR 249, site only
+- Atelier — https://qalb.store/template/atelier-photography — For photographers: images lead — SAR 279, site only
+- Nexus — https://qalb.store/template/nexus-engineer — Engineers: numbers over images — SAR 219, site only
+- Folio — https://qalb.store/template/folio-minimal — The simplest honest start — SAR 149, site only
+- Reel — https://qalb.store/template/reel-motion — Motion and video, unstuttered — SAR 299, site only
+- Quill — https://qalb.store/template/quill-writer — For writers: reading first — SAR 179, site only
+- Vertex — https://qalb.store/template/vertex-3d — 3D that loads instantly — SAR 349, site only
+- Studio — https://qalb.store/template/studio-team — For teams of 2–6 — SAR 399, site only
+- Mirror Pro — https://qalb.store/template/mirror-pro-bundle — Site + CV, one identity — SAR 449, ships an ATS-readable CV as well as the site
+- DevPack — https://qalb.store/template/devpack-bundle — Engineers: site + ATS CV — SAR 379, ships an ATS-readable CV as well as the site
+- First Step — https://qalb.store/template/firststep-bundle — Graduate site + CV — SAR 199, ships an ATS-readable CV as well as the site
+- Nova — https://qalb.store/template/nova-cv — Single-column ATS CV — SAR 89, ships an ATS-readable CV as well as the site
+- Atlas — https://qalb.store/template/atlas-cv — The engineer’s CV — SAR 99, ships an ATS-readable CV as well as the site
+- Apex — https://qalb.store/template/apex-cv — Executive CV in serif — SAR 129, ships an ATS-readable CV as well as the site
+- Echo — https://qalb.store/template/echo-cv — For grads, no record needed — SAR 59, ships an ATS-readable CV as well as the site
+- LinkedIn Kit — https://qalb.store/template/linkedin-kit — The profile a recruiter reads before your CV — SAR 119, site only
+- Cover Letter Pack — https://qalb.store/template/cover-letter-pack — Twelve letters for every application moment — SAR 49, site only
+- Freelancer Kit — https://qalb.store/template/freelancer-kit — Site, CV, contracts, rates — a whole shop — SAR 279, ships an ATS-readable CV as well as the site
+- The Medical CV — https://qalb.store/template/med-cv — From internship to residency, in boards’ language — SAR 119, ships an ATS-readable CV as well as the site
+- The Legal CV — https://qalb.store/template/legal-cv — Cases and briefs in numbers, not adjectives — SAR 109, ships an ATS-readable CV as well as the site
 
 ## Free tool: ATS readiness checker
 
@@ -100,31 +102,33 @@ No VAT registration number, commercial-registration number, IBAN or bank name is
 
 > قالبُ واحدٌ وسيرةٌ ذاتيةٌ واحدة: موقعٌ وسيرةٌ يقرؤهما فرزُ الشركات الآلي فعلًا، وأداةُ قياسٍ مجانيةٌ تُثبت ذلك، وعقودُ مقاعد سنوية للجامعات والمعاهد ومكاتب التوظيف تقيس بها جاهزيةَ دفعةٍ كاملة. الواجهةُ عربيةٌ من اليمين إلى اليسار بنسخةٍ إنجليزيةٍ كاملة، والأسعارُ بالريال السعودي مشتملةً على ضريبة القيمة المضافة 15٪. كلُّ صفحةٍ هنا تطبيقُ React يُبنى في المتصفح، فهذا الملفُّ هو المرجعُ المسطّحُ لما لا يستطيع الفاحصُ تنفيذَه.
 
+كلُّ رابطٍ في هذا الملف مكتوبٌ خامًا (`https://qalb.store/template/nova-cv`) لا بصيغة رابط Markdown، فمَن يقرؤه بلا مُحوِّل Markdown يرى العنوانَ نفسَه.
+
 ## ما يُباع
 
 20 قالبًا منشورًا من ٤٩ إلى ٤٤٩ ريالًا؛ 10 منها يُخرِج مع الموقع سيرةً ذاتيةً بمعايير الفرز الآلي، وهذا الجزءُ وحدَه هو ما تفتحه المقاعدُ المؤسسية: المقعدُ يشتري وثيقةً تقرؤها الآلة، لا زينةً.
 
 ### القوالب
-- [أيثر](https://qalb.store/template/aether-portfolio): بورتفوليو المصممين بنمط داكن — ٢٤٩ ريالًا · موقعٌ فقط
-- [أتيلييه](https://qalb.store/template/atelier-photography): للمصوّرين: الصور تتكلّم أولًا — ٢٧٩ ريالًا · موقعٌ فقط
-- [نِكسَس](https://qalb.store/template/nexus-engineer): موقع المهندسين: أرقام قبل صور — ٢١٩ ريالًا · موقعٌ فقط
-- [فوليو](https://qalb.store/template/folio-minimal): أبسط بداية لمعرض أعمال — ١٤٩ ريالًا · موقعٌ فقط
-- [ريل](https://qalb.store/template/reel-motion): موشن وفديو بدون تقطيع — ٢٩٩ ريالًا · موقعٌ فقط
-- [كوِل](https://qalb.store/template/quill-writer): للكتّاب: قراءة قبل زخرفة — ١٧٩ ريالًا · موقعٌ فقط
-- [فِرتِكس](https://qalb.store/template/vertex-3d): ثلاثي الأبعاد دون انتظار تحميل — ٣٤٩ ريالًا · موقعٌ فقط
-- [ستوديو](https://qalb.store/template/studio-team): لاستوديوهات من ٢ إلى ٦ أشخاص — ٣٩٩ ريالًا · موقعٌ فقط
-- [مِرآة برو](https://qalb.store/template/mirror-pro-bundle): موقع + سيرة بهوية واحدة — ٤٤٩ ريالًا · يُخرِج سيرةً ذاتية يقرؤها الفرزُ الآلي مع الموقع
-- [دِب باك](https://qalb.store/template/devpack-bundle): للمهندسين: موقع + ATS — ٣٧٩ ريالًا · يُخرِج سيرةً ذاتية يقرؤها الفرزُ الآلي مع الموقع
-- [فِست ستيب](https://qalb.store/template/firststep-bundle): للخريج: موقع وسيرة معًا — ١٩٩ ريالًا · يُخرِج سيرةً ذاتية يقرؤها الفرزُ الآلي مع الموقع
-- [نوفا](https://qalb.store/template/nova-cv): سيرة ATS بعمود واحد — ٨٩ ريالًا · يُخرِج سيرةً ذاتية يقرؤها الفرزُ الآلي مع الموقع
-- [أطلس](https://qalb.store/template/atlas-cv): سيرة المهندسين والتقنيين — ٩٩ ريالًا · يُخرِج سيرةً ذاتية يقرؤها الفرزُ الآلي مع الموقع
-- [أبيكس](https://qalb.store/template/apex-cv): سيرة تنفيذية بخط serif — ١٢٩ ريالًا · يُخرِج سيرةً ذاتية يقرؤها الفرزُ الآلي مع الموقع
-- [إيكو](https://qalb.store/template/echo-cv): لخريج بلا خبرة طويلة — ٥٩ ريالًا · يُخرِج سيرةً ذاتية يقرؤها الفرزُ الآلي مع الموقع
-- [حزمة LinkedIn](https://qalb.store/template/linkedin-kit): ملفك المهني يقرؤه المستشغل قبل سيرتك — ١١٩ ريالًا · موقعٌ فقط
-- [قوالب خطاب التقديم](https://qalb.store/template/cover-letter-pack): اثنا عشر خطابًا لمواقف التقديم كلها — ٤٩ ريالًا · موقعٌ فقط
-- [حزمة المستقلين](https://qalb.store/template/freelancer-kit): موقع وسيرة وعقود وأسعار — دكانٌ كامل — ٢٧٩ ريالًا · يُخرِج سيرةً ذاتية يقرؤها الفرزُ الآلي مع الموقع
-- [سيرة التخصص الطبي](https://qalb.store/template/med-cv): من الامتياز إلى الإقامة بلغة اللجان — ١١٩ ريالًا · يُخرِج سيرةً ذاتية يقرؤها الفرزُ الآلي مع الموقع
-- [سيرة القانونيين](https://qalb.store/template/legal-cv): قضايا ومذكرات بأرقامها، لا صفاتٍ عامة — ١٠٩ ريالًا · يُخرِج سيرةً ذاتية يقرؤها الفرزُ الآلي مع الموقع
+- أيثر — https://qalb.store/template/aether-portfolio — بورتفوليو المصممين بنمط داكن — ٢٤٩ ريالًا · موقعٌ فقط
+- أتيلييه — https://qalb.store/template/atelier-photography — للمصوّرين: الصور تتكلّم أولًا — ٢٧٩ ريالًا · موقعٌ فقط
+- نِكسَس — https://qalb.store/template/nexus-engineer — موقع المهندسين: أرقام قبل صور — ٢١٩ ريالًا · موقعٌ فقط
+- فوليو — https://qalb.store/template/folio-minimal — أبسط بداية لمعرض أعمال — ١٤٩ ريالًا · موقعٌ فقط
+- ريل — https://qalb.store/template/reel-motion — موشن وفديو بدون تقطيع — ٢٩٩ ريالًا · موقعٌ فقط
+- كوِل — https://qalb.store/template/quill-writer — للكتّاب: قراءة قبل زخرفة — ١٧٩ ريالًا · موقعٌ فقط
+- فِرتِكس — https://qalb.store/template/vertex-3d — ثلاثي الأبعاد دون انتظار تحميل — ٣٤٩ ريالًا · موقعٌ فقط
+- ستوديو — https://qalb.store/template/studio-team — لاستوديوهات من ٢ إلى ٦ أشخاص — ٣٩٩ ريالًا · موقعٌ فقط
+- مِرآة برو — https://qalb.store/template/mirror-pro-bundle — موقع + سيرة بهوية واحدة — ٤٤٩ ريالًا · يُخرِج سيرةً ذاتية يقرؤها الفرزُ الآلي مع الموقع
+- دِب باك — https://qalb.store/template/devpack-bundle — للمهندسين: موقع + ATS — ٣٧٩ ريالًا · يُخرِج سيرةً ذاتية يقرؤها الفرزُ الآلي مع الموقع
+- فِست ستيب — https://qalb.store/template/firststep-bundle — للخريج: موقع وسيرة معًا — ١٩٩ ريالًا · يُخرِج سيرةً ذاتية يقرؤها الفرزُ الآلي مع الموقع
+- نوفا — https://qalb.store/template/nova-cv — سيرة ATS بعمود واحد — ٨٩ ريالًا · يُخرِج سيرةً ذاتية يقرؤها الفرزُ الآلي مع الموقع
+- أطلس — https://qalb.store/template/atlas-cv — سيرة المهندسين والتقنيين — ٩٩ ريالًا · يُخرِج سيرةً ذاتية يقرؤها الفرزُ الآلي مع الموقع
+- أبيكس — https://qalb.store/template/apex-cv — سيرة تنفيذية بخط serif — ١٢٩ ريالًا · يُخرِج سيرةً ذاتية يقرؤها الفرزُ الآلي مع الموقع
+- إيكو — https://qalb.store/template/echo-cv — لخريج بلا خبرة طويلة — ٥٩ ريالًا · يُخرِج سيرةً ذاتية يقرؤها الفرزُ الآلي مع الموقع
+- حزمة LinkedIn — https://qalb.store/template/linkedin-kit — ملفك المهني يقرؤه المستشغل قبل سيرتك — ١١٩ ريالًا · موقعٌ فقط
+- قوالب خطاب التقديم — https://qalb.store/template/cover-letter-pack — اثنا عشر خطابًا لمواقف التقديم كلها — ٤٩ ريالًا · موقعٌ فقط
+- حزمة المستقلين — https://qalb.store/template/freelancer-kit — موقع وسيرة وعقود وأسعار — دكانٌ كامل — ٢٧٩ ريالًا · يُخرِج سيرةً ذاتية يقرؤها الفرزُ الآلي مع الموقع
+- سيرة التخصص الطبي — https://qalb.store/template/med-cv — من الامتياز إلى الإقامة بلغة اللجان — ١١٩ ريالًا · يُخرِج سيرةً ذاتية يقرؤها الفرزُ الآلي مع الموقع
+- سيرة القانونيين — https://qalb.store/template/legal-cv — قضايا ومذكرات بأرقامها، لا صفاتٍ عامة — ١٠٩ ريالًا · يُخرِج سيرةً ذاتية يقرؤها الفرزُ الآلي مع الموقع
 
 ## الأداةُ المجانية: فاحصُ جاهزية الفرز الآلي
 

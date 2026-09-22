@@ -263,7 +263,7 @@ function Categories() {
           const count = templates.filter((x) => x.cats.includes(c.id)).length
           if (!count) return null
           return (
-            <Reveal key={c.id} delay={k * 45}>
+            <Reveal key={c.id} delay={k * 45} className="h-full">
               <Link
                 to={`/templates?cat=${c.id}`}
                 className="group relative flex h-full items-center gap-4 overflow-hidden rounded-2xl border border-line bg-panel p-4 transition-all duration-300 hover:-translate-y-1 hover:border-brand/40 hover:shadow-lift"
@@ -447,7 +447,7 @@ function HowItWorks() {
         <div className="relative mt-12 grid gap-6 md:grid-cols-3">
           <div className="pointer-events-none absolute inset-x-10 top-[46px] hidden h-px bg-[repeating-linear-gradient(to_right,var(--c-line)_0_10px,transparent_10px_18px)] md:block" />
           {steps.map((s, k) => (
-            <Reveal key={s.k} delay={k * 100}>
+            <Reveal key={s.k} delay={k * 100} className="h-full">
               <div className="relative flex h-full flex-col items-start rounded-2xl border border-line bg-panel p-6">
                 <span className="relative grid size-[52px] place-items-center rounded-2xl bg-bg text-brand ring-1 ring-line">
                   <Icon n={s.icon} className="size-6" />
@@ -676,7 +676,7 @@ function Features() {
       </Reveal>
       <div className="mt-12 grid gap-px overflow-hidden rounded-3xl border border-line bg-line sm:grid-cols-2 lg:grid-cols-3">
         {items.map((f, k) => (
-          <Reveal key={f.title} delay={k * 55}>
+          <Reveal key={f.title} delay={k * 55} className="h-full">
             <div className="group h-full bg-panel p-7 transition-colors hover:bg-panel2">
               <span className="grid size-11 place-items-center rounded-xl border border-line bg-bg text-brand transition-transform duration-300 group-hover:-translate-y-0.5">
                 <Icon n={f.icon} className="size-5" />
@@ -715,9 +715,9 @@ function Bundles() {
         <Reveal>
           <Head title={t('pricing.title')} sub={t('pricing.sub')} align="center" />
         </Reveal>
-        <div className="mt-12 grid items-start gap-5 lg:grid-cols-3">
+        <div className="mt-12 grid gap-5 lg:grid-cols-3">
           {plans.map((p, k) => (
-            <Reveal key={p.key} delay={k * 90}>
+            <Reveal key={p.key} delay={k * 90} className="h-full">
               <div
                 className={`relative flex h-full flex-col rounded-3xl border p-7 transition-all duration-300 ${
                   p.pop ? 'border-brand/45 bg-panel shadow-lift lg:-mt-4 lg:pb-9 lg:pt-9' : 'border-line bg-panel/60 hover:-translate-y-1'
@@ -788,11 +788,11 @@ function ProBand() {
       <Reveal>
         <Head title={t('pro.title')} sub={t('pro.sub')} align="center" />
       </Reveal>
-      <div className="mt-12 grid items-start gap-5 lg:grid-cols-2">
+      <div className="mt-12 grid gap-5 lg:grid-cols-2">
         {[month, year].filter(Boolean).map((p, k) => {
           const on = hasAddon(p.id)
           return (
-            <Reveal key={p.id} delay={k * 90}>
+            <Reveal key={p.id} delay={k * 90} className="h-full">
               <div
                 data-pro-plan={p.period}
                 className={`relative flex h-full flex-col rounded-3xl border p-7 transition-all duration-300 ${
@@ -868,7 +868,7 @@ function Testimonials() {
       </Reveal>
       <div className="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
         {testimonials.map((x, k) => (
-          <Reveal key={x.id} delay={k * 70}>
+          <Reveal key={x.id} delay={k * 70} className="h-full">
             <figure className="relative flex h-full flex-col rounded-2xl border border-line bg-panel p-6 transition-all duration-300 hover:-translate-y-1 hover:border-brand/30 hover:shadow-soft">
               <Icon n="quote" className="absolute end-5 top-5 size-8 text-line" fill sw={0} />
               <Stars value={x.stars} size={13} show={false} />

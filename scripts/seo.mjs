@@ -10,13 +10,20 @@ import { loadDotEnv } from './dotenv.mjs'
 import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
+// بناءُ الروابط الخام: الدالةُ نفسها التي تستعملها الواجهة (src/data/links.js)
+// — فلا يخرج من هنا قوسُ Markdown في sitemap ولا في canonical ولا في og:image.
+import { rawUrl, rawSite, markdownLines } from '../src/data/links.js'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const PUB = path.join(ROOT, 'public')
 
 loadDotEnv(ROOT) // النطاق والمفاتيح من .env إن وُجد (node لا يقرأه وحده)
 
-const SITE = (process.env.SITE_URL || 'https://qalb.store').replace(/\/+$/, '')
+// `rawSite` ينزع صيغة Markdown ويضيف https إن غابت ويحذف الشرطة الأخيرة — فقيمةُ
+// `SITE_URL` الملصوقة من محرّر Markdown (`[https://x](https://x)`) تُصلَّح مرةً واحدة.
+const SITE = rawSite(process.env.SITE_URL || 'https://qalb.store')
+/** كلُّ رابطٍ في هذا الملف: مسارٌ نسبي ← رابطٌ مطلق خام. */
+const abs = (loc) => rawUrl(loc, SITE)
 const { templates, PALETTE } = await import(path.join(ROOT, 'src/data/templates.js'))
 const dict = (await import(path.join(ROOT, 'src/i18n/translations.js'))).default
 
@@ -24,8 +31,10 @@ mkdirSync(PUB, { recursive: true })
 
 /* ---------------- robots.txt و llms.txt: أصولُ القراءة الآلية ---------------- */
 const agents = await import(path.join(ROOT, 'scripts/agents.mjs'))
-writeFileSync(path.join(PUB, 'robots.txt'), agents.buildRobots({ site: SITE }))
-writeFileSync(path.join(PUB, 'llms.txt'), await agents.buildLlms({ site: SITE }))
+const robotsTxt = agents.buildRobots({ site: SITE })
+const llmsTxt = await agents.buildLlms({ site: SITE })
+writeFileSync(path.join(PUB, 'robots.txt'), robotsTxt)
+writeFileSync(path.join(PUB, 'llms.txt'), llmsTxt)
 
 /* ---------------- sitemap.xml ---------------- */
 const { posts } = await import(path.join(ROOT, 'src/data/posts.js'))
@@ -54,14 +63,14 @@ const urls = [
 const alternates = (loc) =>
   [
     `    <xhtml:link rel="alternate" hreflang="ar" href="${loc}"/>`,
-    `    <xhtml:link rel="alternate" hreflang="en" href="${loc}?lang=en"/>`,
+    `    <xhtml:link rel="alternate" hreflang="en" href="${abs(`${loc}?lang=en`)}"/>`,
     `    <xhtml:link rel="alternate" hreflang="x-default" href="${loc}"/>`,
   ].join('\n')
 const xml = [
   '<?xml version="1.0" encoding="UTF-8"?>',
   '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">',
   ...urls.map((u) => {
-    const loc = `${SITE}${u.loc}`
+    const loc = abs(u.loc)
     return `  <url>\n    <loc>${loc}</loc>\n${alternates(loc)}\n    <lastmod>${today}</lastmod>\n    <changefreq>${u.freq}</changefreq>\n    <priority>${u.pri}</priority>\n  </url>`
   }),
   '</urlset>',
@@ -105,19 +114,22 @@ if (cards.status !== 0) console.warn('og/ بطاقات: تخطّي —', (cards.
 // og:image وcanonical وhreflang دفعةً واحدة بدل أن تبقى أقدم قيمة كُتبت يومًا.
 const htmlPath = path.join(ROOT, 'index.html')
 let html = readFileSync(htmlPath, 'utf8')
+const home = abs('/')
+const cover = abs('/og-cover.png')
 const block = [
   `    <!-- seo:generated:start — يجدّده scripts/seo.mjs مع كل بناء (SITE_URL)، لا تكتب هنا يدويًا -->`,
+  `    <meta name="robots" content="index, follow" />`,
   `    <meta property="og:type" content="website" />`,
   `    <meta property="og:site_name" content="Qalb · قالب" />`,
-  `    <meta property="og:url" content="${SITE}/" />`,
-  `    <meta property="og:image" content="${SITE}/og-cover.png" />`,
+  `    <meta property="og:url" content="${home}" />`,
+  `    <meta property="og:image" content="${cover}" />`,
   `    <meta property="og:image:width" content="1200" />`,
   `    <meta property="og:image:height" content="630" />`,
-  `    <meta name="twitter:image" content="${SITE}/og-cover.png" />`,
-  `    <link rel="canonical" href="${SITE}/" />`,
-  `    <link rel="alternate" hreflang="ar" href="${SITE}/" />`,
-  `    <link rel="alternate" hreflang="en" href="${SITE}/?lang=en" />`,
-  `    <link rel="alternate" hreflang="x-default" href="${SITE}/" />`,
+  `    <meta name="twitter:image" content="${cover}" />`,
+  `    <link rel="canonical" href="${home}" />`,
+  `    <link rel="alternate" hreflang="ar" href="${home}" />`,
+  `    <link rel="alternate" hreflang="en" href="${abs('/?lang=en')}" />`,
+  `    <link rel="alternate" hreflang="x-default" href="${home}" />`,
   `    <!-- seo:generated:end -->`,
 ].join('\n')
 const genRe = /[ \t]*<!-- seo:generated:start[\s\S]*?<!-- seo:generated:end -->/
@@ -125,6 +137,22 @@ if (genRe.test(html)) html = html.replace(genRe, block)
 else html = html.replace(/(\n\s*<link\s*\n\s*rel="icon")/, `\n${block}$1`) // أول تهيئة فقط
 writeFileSync(htmlPath, html)
 
+/* ---------------- حاجزُ الصيغة: لا Markdown في ملفٍّ مولَّد ---------------- */
+// نفسُ فكرة «لا رقمَ بلا سند»: لا ملفَّ ظهورٍ يحمل `[نص](رابط)` — لأن الوسمَ
+// يقرأه محرّك بحث لا محرّر Markdown. أيُّ تسرّبٍ يوقف البناء ويقول مكانه بالضبط.
+for (const [name, text] of [
+  ['sitemap.xml', xml],
+  ['llms.txt', llmsTxt],
+  ['robots.txt', robotsTxt],
+  ['index.html', html],
+]) {
+  const bad = markdownLines(text)
+  if (bad.length) {
+    console.error(`✗ ${name}: صيغةُ Markdown في ${bad.length} سطرًا — أولها:\n   ${bad[0].trim().slice(0, 120)}`)
+    process.exit(1)
+  }
+}
+
 console.log(
-  `seo: ${urls.length} urls in sitemap · robots.txt (${agents.AI_AGENTS.length} AI agents allowed) · llms.txt · og-cover.png=${rasterized ? 'ok' : 'skipped (no pillow)'} · public/og=${ogCount} بطاقات`,
+  `seo: ${urls.length} urls in sitemap · robots.txt (${agents.AI_AGENTS.length} AI agents allowed) · llms.txt · روابطُ خام بلا Markdown · og-cover.png=${rasterized ? 'ok' : 'skipped (no pillow)'} · public/og=${ogCount} بطاقات`,
 )

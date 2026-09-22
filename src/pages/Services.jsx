@@ -55,10 +55,10 @@ export default function Services() {
             const on = hasAddon(s.id)
             const delivery = addonDelivery(s.id)
             return (
-              <Reveal key={s.id} delay={k * 80}>
+              <Reveal key={s.id} delay={k * 80} className="h-full">
                 <article
                   data-service={s.id}
-                  className={`flex h-full flex-col rounded-3xl border p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-lift ${
+                  className={`flex h-full flex-col justify-between rounded-3xl border p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-lift ${
                     k === 0 ? 'border-brand/40 bg-panel' : 'border-line bg-panel/60 hover:border-brand/30'
                   }`}
                 >
