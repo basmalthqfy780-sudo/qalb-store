@@ -36,7 +36,7 @@ export default function Licence() {
     <div className="relative">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-56 grad-mesh" />
       <div className="page-x relative mx-auto max-w-[820px] py-14">
-        <Head kicker={t('licence.kicker')} title={t('licence.title')} sub={t('licence.sub')} />
+        <Head as="h1" kicker={t('licence.kicker')} title={t('licence.title')} sub={t('licence.sub')} />
 
         <form onSubmit={ask} className="mt-9 rounded-3xl border border-line bg-panel p-5 sm:p-7">
           <label className="block text-[13px] font-semibold text-dim" htmlFor="lc-key">

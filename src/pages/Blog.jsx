@@ -20,7 +20,7 @@ export default function Blog() {
 
   return (
     <div className="page-x mx-auto max-w-[1100px] pb-20 pt-12">
-      <Head kicker={t('blog.kicker')} title={t('blog.title')} sub={t('blog.sub')} />
+      <Head as="h1" kicker={t('blog.kicker')} title={t('blog.title')} sub={t('blog.sub')} />
 
       <div className="mt-10 grid gap-5">
         {posts.map((p, k) => (

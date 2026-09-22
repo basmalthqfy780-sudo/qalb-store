@@ -265,7 +265,7 @@ export default function Catalog() {
     <div className="relative">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-64 grad-mesh" />
       <div className="page-x relative mx-auto max-w-[1400px] pb-4 pt-12">
-        <Head kicker={t('nav.templates')} title={t('catalog.title')} sub={t('catalog.sub', { n: num(templates.length) })} />
+        <Head as="h1" kicker={t('nav.templates')} title={t('catalog.title')} sub={t('catalog.sub', { n: num(templates.length) })} />
       </div>
 
       <div className="page-x mx-auto grid max-w-[1400px] items-start gap-8 pb-20 lg:grid-cols-[268px_minmax(0,1fr)]">

@@ -21,6 +21,7 @@ export default function Wishlist() {
       <div className="pointer-events-none absolute inset-x-0 top-0 h-60 grad-mesh" />
       <div className="page-x relative mx-auto max-w-[1400px] py-14">
         <Head
+          as="h1"
           kicker={t('nav.wishlist')}
           title={t('wishlist.title')}
           sub={list.length ? t('wishlist.count', { n: num(list.length) }) : t('wishlist.emptyHint')}

@@ -126,6 +126,7 @@ export default function Host() {
       <div className="pointer-events-none absolute inset-x-0 top-0 h-64 grad-mesh" />
       <div className="page-x relative mx-auto max-w-[1200px] py-14">
         <Head
+          as="h1"
           kicker={t('host.kicker')}
           title={t('host.title')}
           sub={t('host.sub')}

@@ -55,6 +55,7 @@ export default function Offer() {
 
       <div className="mt-6">
         <Head
+          as="h1"
           kicker={monthsLabel(offer, lang)}
           title={L(offer.title)}
           sub={L(offer.sub)}

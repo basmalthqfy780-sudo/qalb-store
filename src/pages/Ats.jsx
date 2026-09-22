@@ -120,6 +120,7 @@ export default function Ats() {
       <div className="pointer-events-none absolute inset-x-0 top-0 h-64 grad-mesh" />
       <div className="page-x relative mx-auto max-w-[1120px] py-13 sm:py-16">
         <Head
+          as="h1"
           kicker={t('ats.kicker')}
           title={t('ats.title')}
           sub={t('ats.sub')}
