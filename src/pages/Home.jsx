@@ -149,7 +149,7 @@ function Hero({ onQuick }) {
         {/* fanned product previews */}
         <Reveal delay={140} className="relative mx-auto w-full max-w-[560px]">
           <div className="relative" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
-            <div className="pointer-events-none absolute -inset-10 -z-10 rounded-[40px] bg-brand/10 blur-3xl" />
+            <div className="pointer-events-none absolute -inset-4 sm:-inset-10 -z-10 rounded-[40px] bg-brand/10 blur-3xl" />
             {order.map((idx, slot) => {
               const tpl = heroSet[idx]
               return (
