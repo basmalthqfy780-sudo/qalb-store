@@ -7,7 +7,7 @@
 **التقنيات**: React 18 + Vite 6 + Tailwind CSS v4 (بدون مكتبة UI جاهزة) + React Router. ثنائي اللغة
 `ar ⇄ en` مع تبديل `RTL/LTR` لحظيًا.
 
-**النسخة**: `1.3.0` · موسومة `v1.3.0`. ما في كل نسخة مُثبَّت سطرًا سطرًا في [`CHANGELOG.md`](CHANGELOG.md) —
+**النسخة**: `1.4.0` · موسومة `v1.4.0`. ما في كل نسخة مُثبَّت سطرًا سطرًا في [`CHANGELOG.md`](CHANGELOG.md) —
 مصدره مخرجات `npm test` والوسوم، لا وصف مكتوب من الذاكرة.
 
 ---
@@ -335,7 +335,7 @@ vercel.json (إعادة كتابة SPA) · eslint.config.js · .prettierrc.json 
 
 - **المستودع**: `github.com/basmalthqfy780-sudo/qalb-store` — ومساره مكتوب أيضًا في `package.json`
   (`repository.url`)، فلا يضيع إذا فُقد `.git/config` كما يقع في بيئات العمل المؤقتة.
-- **الوسوم**: كل نسخة موثومة (`v1.0.0` … `v1.3.0`)، والوسم مشروح (`git tag -n1`) — والـCHANGELOG
+- **الوسوم**: كل نسخة موثومة (`v1.0.0` … `v1.4.0`)، والوسم مشروح (`git tag -n1`) — والـCHANGELOG
   مكتوبٌ من مخرجات الأدوات لا من ذاكرة كاتبه.
 - **بوابة الجودة**: `.github/workflows/ci.yml` يشغّل `npm ci` ثم `build` ثم `test` (حزمة jsdom في
   jsdom + خادم فعلي في `tests/admin-api.mjs`)، و`build` قبل `test` لأن فحص طبقات CSS يقرأ

@@ -13,8 +13,22 @@ const read = (k, fb) => {
   }
 }
 
+/**
+ * اللغة عند أول فتح: ?lang=en/ar أولًا (وهو ما تشير إليه hreflang فتفتح النسخة
+ * الموعودة فعلًا)، ثم ما حُفظ في الجهاز، ثم العربية.
+ */
+const initialLang = () => {
+  try {
+    const p = typeof location !== 'undefined' ? new URLSearchParams(location.search).get('lang') : null
+    if (p === 'en' || p === 'ar') return p
+  } catch {
+    /* location غير متاح (بيئة اختبار) — نرجع للمخزَّن */
+  }
+  return read(STORE, 'ar')
+}
+
 export function LangProvider({ children }) {
-  const [lang, setLangState] = useState(() => read(STORE, 'ar'))
+  const [lang, setLangState] = useState(initialLang)
   // The pre-paint script in index.html resolves the effective theme (stored
   // value → system preference → dark) and publishes it on <html data-theme>,
   // so React adopts it instead of flashing the opposite theme on first paint.

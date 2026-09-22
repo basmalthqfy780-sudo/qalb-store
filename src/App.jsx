@@ -20,6 +20,8 @@ const Track = lazy(() => import('./pages/Track'))
 const Licence = lazy(() => import('./pages/Licence'))
 const Legal = lazy(() => import('./pages/Legal'))
 const Host = lazy(() => import('./pages/Host'))
+const Blog = lazy(() => import('./pages/Blog'))
+const Post = lazy(() => import('./pages/Post'))
 const Studio = lazy(() => import('./pages/Studio'))
 const Ats = lazy(() => import('./pages/Ats'))
 const B2B = lazy(() => import('./pages/B2B'))
@@ -149,6 +151,8 @@ export default function App() {
               <Route path="/b2b" element={<B2B />} />
               <Route path="/ats" element={<Ats />} />
               <Route path="/host" element={<Host />} />
+              <Route path="/blog" element={<Blog />} />
+              <Route path="/blog/:slug" element={<Post />} />
               <Route path="/studio" element={<Studio />} />
               <Route path="/admin" element={<Admin />} />
               <Route path="*" element={<NotFound />} />

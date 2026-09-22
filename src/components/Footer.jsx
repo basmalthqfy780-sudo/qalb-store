@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useI18n } from '../i18n'
 import { categories } from '../data/templates'
-import { SUPPORT_MAIL } from '../data/contact'
+import { SOCIAL, SUPPORT_MAIL } from '../data/contact'
 import { Btn, Icon } from './ui'
 import { Logo } from './Navbar'
 
@@ -24,6 +24,7 @@ export default function Footer() {
       head: t('footer.resources'),
       links: [
         { to: '/#guide', label: t('footer.cvGuide') },
+        { to: '/blog', label: t('footer.blog') },
         { to: '/ats', label: t('footer.atsCheck') },
         { to: '/#proof', label: t('footer.atsGuide') },
         { to: '/#deploy', label: t('footer.siteGuide') },
@@ -68,14 +69,18 @@ export default function Footer() {
               <Newsletter />
             </div>
             <div className="mt-5 flex items-center gap-2">
-              {['x', 'ig', 'li', 'be'].map((s) => (
+              {/* حسابات حقيقية من src/data/contact.js (تُضبط من .env) — لا روابط #contact ميتة */}
+              {SOCIAL.map((s) => (
                 <a
-                  key={s}
-                  href="#contact"
-                  aria-label={s}
+                  key={s.k}
+                  href={s.href}
+                  target="_blank"
+                  rel="noopener noreferrer me"
+                  aria-label={s.label}
+                  title={s.label}
                   className="grid size-9 place-items-center rounded-xl border border-line bg-panel/60 text-dim transition hover:-translate-y-0.5 hover:border-brand/40 hover:text-brand"
                 >
-                  <Social k={s} />
+                  <Social k={s.k} />
                 </a>
               ))}
             </div>
@@ -232,7 +237,17 @@ function Social({ k }) {
     ),
   }
   return (
-    <svg viewBox="0 0 24 24" className="size-[17px]" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      viewBox="0 0 24 24"
+      className="size-[17px]"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+    >
       {p[k]}
     </svg>
   )

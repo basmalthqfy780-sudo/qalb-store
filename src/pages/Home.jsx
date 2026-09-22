@@ -7,11 +7,12 @@ import Preview, { ArtTile } from '../components/Preview'
 import TemplateCard from '../components/TemplateCard'
 import QuickView from '../components/QuickView'
 import RecentlyViewed from '../components/RecentlyViewed'
-import { useSeo, siteGraph } from '../components/Seo'
+import { useSeo, siteGraph, faqLd } from '../components/Seo'
 import { Btn, Head, Icon, Money, Pill, Reveal, Stars } from '../components/ui'
 import { useStore } from '../store/StoreContext'
 
 const HERO_IDS = ['aether', 'mirrorbundle', 'nexus', 'nova']
+const FAQ_KEYS = ['1', '2', '3', '4', '5', '6']
 const DEPLOY_CMDS = [
   'git clone https://github.com/qalb/aether.git my-portfolio',
   'cd my-portfolio && npm i && cp .env.example .env',
@@ -23,7 +24,10 @@ export default function Home() {
   const { t, L } = useI18n()
   const [quick, setQuick] = useState(null)
 
-  useSeo(t('meta.title'), t('meta.desc'), { jsonLd: siteGraph(t) })
+  // أسئلة الصفحة نفسها حرفيًا — نفس مفاتيح قسم FAQ أدناه، فلا يُعلن البحث عن
+  // سؤالٍ لا تراه الصفحة
+  const faq = FAQ_KEYS.map((k) => [t(`faq.q${k}`), t(`faq.a${k}`)])
+  useSeo(t('meta.title'), t('meta.desc'), { jsonLd: siteGraph(t, [faqLd(faq)]) })
 
   return (
     <>
@@ -353,7 +357,7 @@ function Featured({ onQuick }) {
         {list.length ? (
           <div className="mt-7 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {list.map((tpl, k) => (
-              <Reveal key={tpl.id} delay={k * 60}>
+              <Reveal key={tpl.id} delay={k * 60} className="h-full">
                 <TemplateCard tpl={tpl} onQuick={onQuick} />
               </Reveal>
             ))}
@@ -813,7 +817,7 @@ function Testimonials() {
 /* =============================== FAQ =============================== */
 function Faq() {
   const { t } = useI18n()
-  const keys = ['1', '2', '3', '4', '5', '6']
+  const keys = FAQ_KEYS
   const [open, setOpen] = useState('1')
   return (
     <section className="border-t border-line bg-bg2/40 py-20" id="faq">

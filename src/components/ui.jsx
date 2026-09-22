@@ -351,7 +351,9 @@ export function Stars({ value = 5, size = 13, show = true }) {
     </span>
   )
   return (
-    <span className="inline-flex items-center gap-1.5" title={`${value} / 5`}>
+    // النجوم مرسومة زخرفية (aria-hidden)، والقيمة المعلنة على الحاوية نفسها role=img
+    // فلا يخرج التقييم من قارئ الشاشة حين يُخفى الرقم المرئي (show=false)
+    <span className="inline-flex items-center gap-1.5" title={`${value} / 5`} role="img" aria-label={`${value} / 5`}>
       <span className="relative inline-block leading-none" style={{ width: total, height: size }} aria-hidden="true">
         <span className="absolute inset-0 opacity-20">{row('text-ink')}</span>
         <span className="absolute inset-y-0 start-0 overflow-hidden text-gold" style={{ width: `${(pct / 100) * total}px` }}>

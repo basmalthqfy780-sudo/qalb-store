@@ -57,6 +57,8 @@ import { SUPPORT_MAIL } from '../src/data/contact.js'
 import { COMPANY, isSet, quoteMissing, vatSplit } from '../src/data/company.js'
 import { clearLocalLeads, leadCsv, leadMailto, leadRow, normalizeLead, quoteMath, quoteNo, readLocalLeads, saveLocalLead } from '../src/data/leads.js'
 import { zipNames, zipRead } from '../src/data/zip.js'
+import { posts } from '../src/data/posts.js'
+import { SITE_URL } from '../src/data/site.js'
 import { claimStaleReload, clearStaleReload, isStaleLoadError } from '../src/lib/load-error.js'
 
 const out = 'tests/build/app.js'
@@ -206,6 +208,12 @@ const cases = [
     expect: ['Can a machine read your CV', 'Browser-only', 'Try a sample', 'Plain text only'],
   },
   { name: 'wishlist', url: 'http://localhost/wishlist', wish: '["nova","aether"]', expect: ['المفضلة', 'أيثر'] },
+  { name: 'blog', url: 'http://localhost/blog', expect: ['مقالات', 'اقرأ المقال', 'دقائق قراءة'] },
+  {
+    name: 'blog post',
+    url: 'http://localhost/blog/seven-ats-rules',
+    expect: ['سبع قواعد تقرؤها الآلة أولًا في سيرتك', 'كل المقالات'],
+  },
   { name: '404', url: 'http://localhost/nope', expect: ['404', 'الصفحة غير موجودة'] },
   { name: 'admin (first run)', url: 'http://localhost/admin', expect: ['أنشئ حساب الإدارة الأول', 'على هذا الجهاز فقط', 'إنشاء الحساب والدخول'] },
   {
@@ -859,19 +867,26 @@ for (const c of cases) {
     const { bySlug } = await import('../src/data/templates.js')
     const g = await render('http://localhost/template/aether-portfolio')
     const ld = JSON.parse(g.doc.getElementById('qalb-jsonld')?.textContent || 'null')
+    const prod = ld?.['@graph']?.find((x) => x['@type'] === 'Product') || ld
     const tpl = bySlug('aether-portfolio')
     ok(
       'product page emits Product schema',
-      ld &&
-        ld['@type'] === 'Product' &&
-        Number(ld.offers.price) === tpl.price &&
-        ld.offers.priceCurrency === 'SAR' &&
-        ld.aggregateRating.reviewCount === tpl.reviews,
-      ld ? `${ld['@type']} ${ld.offers?.price}` : 'missing',
+      prod &&
+        prod['@type'] === 'Product' &&
+        Number(prod.offers.price) === tpl.price &&
+        prod.offers.priceCurrency === 'SAR' &&
+        prod.aggregateRating.reviewCount === tpl.reviews,
+      prod ? `${prod['@type']} ${prod.offers?.price}` : 'missing',
+    )
+    ok('and carries its breadcrumb trail beside the product', ld?.['@graph']?.some((x) => x['@type'] === 'BreadcrumbList') === true)
+    ok(
+      'hreflang alternates cover ar/en/x-default on every route',
+      ['ar', 'en', 'x-default'].every((h) => g.doc.head.querySelector(`link[rel="alternate"][hreflang="${h}"]`)?.getAttribute('href')) &&
+        g.doc.head.querySelector('link[rel="alternate"][hreflang="en"]')?.getAttribute('href') === `${SITE_URL}/template/aether-portfolio?lang=en`,
     )
     ok(
-      'canonical + og:url point at the real route',
-      g.doc.head.querySelector('link[rel="canonical"]')?.getAttribute('href') === 'http://localhost/template/aether-portfolio',
+      'canonical + og:url point at the one route the sitemap publishes',
+      g.doc.head.querySelector('link[rel="canonical"]')?.getAttribute('href') === `${SITE_URL}/template/aether-portfolio`,
     )
 
     ok('no sheet zoom on a site-only product', !g.doc.querySelector('[data-zoom]'))
@@ -1177,7 +1192,8 @@ for (const c of cases) {
     const og = g.doc.querySelector('meta[property="og:image"]')?.getAttribute('content') || ''
     ok('each product carries its own social card', /\/og\/atlas-cv\.png$/.test(og), og)
     const ld = JSON.parse(g.doc.getElementById('qalb-jsonld')?.textContent || '{}')
-    ok('the JSON-LD image follows the card', /\/og\/atlas-cv\.png$/.test(ld.image || ''), ld.image)
+    const prod = ld['@graph']?.find((x) => x['@type'] === 'Product') || ld
+    ok('the JSON-LD image follows the card', /\/og\/atlas-cv\.png$/.test(prod.image || ''), prod.image)
     ok('the card declares its 1200×630 size', g.doc.querySelector('meta[property="og:image:width"]')?.getAttribute('content') === '1200')
     ok('twitter:image matches og:image', g.doc.querySelector('meta[name="twitter:image"]')?.getAttribute('content') === og)
     g.dom.window.close()
@@ -1206,9 +1222,13 @@ for (const c of cases) {
       `missing=${notInMap.join(',') || '—'} of ${publicRoutes.length}`,
     )
     ok(
-      'the sitemap length is what the generator should write: pages + every product',
-      (map.match(/<loc>/g) || []).length === publicRoutes.length + templates.length,
-      `${(map.match(/<loc>/g) || []).length} vs ${publicRoutes.length + templates.length}`,
+      'the sitemap length is what the generator should write: pages + products + posts',
+      (map.match(/<loc>/g) || []).length === publicRoutes.length + templates.length + posts.length,
+      `${(map.match(/<loc>/g) || []).length} vs ${publicRoutes.length + templates.length + posts.length}`,
+    )
+    ok(
+      'and every URL in the map declares its ar/en/x-default alternates',
+      (map.match(/hreflang="x-default"/g) || []).length === (map.match(/<loc>/g) || []).length,
     )
     ok(
       'robots.txt keeps the transactional routes out',
@@ -1359,6 +1379,16 @@ for (const c of cases) {
     'the official e-mail is machine-readable in the Organization graph',
     org?.contactPoint?.email === 'qalb@qalb.store',
     org?.contactPoint?.email || 'missing',
+  )
+  ok(
+    'the home FAQ ships as FAQPage, asking exactly what the page asks',
+    (graph['@graph'] || []).some(
+      (x) => x['@type'] === 'FAQPage' && x.mainEntity?.every((q) => g.doc.querySelector('#faq')?.textContent.includes(q.name)),
+    ),
+  )
+  ok(
+    'social profiles are declared as sameAs on the Organization',
+    Array.isArray(org?.sameAs) && org.sameAs.length === 4 && org.sameAs.every((u) => /^https:\/\//.test(u)),
   )
   ok(
     'the address is kept on the device only, with no fake subscription claim',

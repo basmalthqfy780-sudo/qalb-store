@@ -109,9 +109,10 @@ export default function Navbar() {
     <>
       {/* announcement */}
       <div className="relative overflow-hidden bg-ink text-bg light:bg-brand light:text-brandink">
-        <div className="page-x mx-auto flex max-w-[1400px] items-center justify-center gap-3 py-2 text-center text-[12.5px] font-medium">
+        <div className="page-x mx-auto flex max-w-[1400px] flex-wrap items-center justify-center gap-x-3 gap-y-1 py-2 text-center text-[12px] font-medium sm:text-[12.5px]">
           <Icon n="bolt" className="size-3.5 shrink-0 text-gold" fill sw={0} />
-          <span className="truncate">{t('announce.text')}</span>
+          {/* لا truncate: نصّ الشريط يلتفّ في سطرين على الجوال بدل أن يُقطع بنهاية مبتورة */}
+          <span>{t('announce.text')}</span>
           <span className="num hidden rounded-md border border-current/25 px-1.5 py-0.5 text-[11px] font-bold tracking-wider sm:inline-block">
             {t('announce.code')}
           </span>
@@ -299,15 +300,16 @@ export default function Navbar() {
         </div>
       </header>
 
-      {/* mobile drawer */}
-      <div className={`fixed inset-0 z-[70] lg:hidden ${drawer ? '' : 'pointer-events-none'}`} aria-hidden={!drawer}>
+      {/* mobile drawer — الـaside مخفيٌّ بـvisibility وهو مغلق: لا يتدلّى على يمين
+          الشاشة فيجرّ التجاوز الأفقي على الجوال، ولا يبقى في شجرة قارئات الشاشة */}
+      <div className={`fixed inset-0 z-[70] lg:hidden ${drawer ? '' : 'pointer-events-none'}`}>
         <div
           onClick={() => setDrawer(false)}
           className={`absolute inset-0 bg-black/55 backdrop-blur-sm transition-opacity duration-300 ${drawer ? 'opacity-100' : 'opacity-0'}`}
         />
         <aside
-          className={`absolute inset-y-0 end-0 flex w-[min(400px,92vw)] flex-col border-line bg-bg transition-transform duration-300 ${
-            drawer ? 'translate-x-0' : lang === 'ar' ? '-translate-x-full' : 'translate-x-full'
+          className={`absolute inset-y-0 end-0 flex w-[min(400px,92vw)] flex-col border-line bg-bg transition-[transform,visibility] duration-300 ${
+            drawer ? 'visible translate-x-0' : `invisible ${lang === 'ar' ? '-translate-x-full' : 'translate-x-full'}`
           }`}
         >
           <div className="flex items-center justify-between border-b border-line px-4 py-3.5">
