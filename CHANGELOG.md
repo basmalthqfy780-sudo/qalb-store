@@ -5,7 +5,47 @@
 
 ## [Unreleased]
 
-_لا شيء معلَّق بعد 1.5.0._
+إصلاحاتُ ظهورٍ وأصولٍ عامّة: الوسومُ تُكتب روابطَ خامًا بلا صيغة Markdown، و`robots` صريحٌ في كل
+صفحة، و`Product` كاملٌ في صفحة القالب وفي كل عنصرٍ من قائمة `/templates`، وبطاقاتُ القوالب
+والخدمات تتمّدّ فيصطفّ زرُّ الشراء في سطرٍ واحد.
+
+### غُيَّر
+
+- **الروابط صارت نصًّا خامًا في كل وسم**: `src/data/links.js` بُنّاءٌ واحد (`rawSite` · `rawUrl` ·
+  `rawText`) يمرّ به `scripts/seo.mjs` و`scripts/agents.mjs` و`src/components/Seo.jsx` — فلا
+  `marked()` ولا أيّ مُحوِّل Markdown في مسار الوسوم، ولا صيغةَ `[نص](رابط)` في `canonical`
+  و`og:image` و`hreflang` ولا في `sitemap.xml` ولا في `llms.txt`. وقيمةُ `SITE_URL` الملصوقة من
+  محرّر Markdown تُنزَع صيغتُها ويُبقى المضيفُ وحدَه (والمسارُ يسقط فلا يتضاعف `/templates/templates`).
+  والنتيجةُ في الـHTML الخام: `https://qalb-store.vercel.app/templates`.
+- **`llms.txt` بلا روابط Markdown**: كلُّ قالبٍ في النصفين صار سطرًا صريحًا
+  (`- الاسم — https://…/template/slug — الوصف — السعر`) بدل `[الاسم](الرابط)`، والقاعدةُ مكتوبةٌ
+  في رأس الملف — فقارئٌ لا يُحوِّل Markdown يرى العنوانَ نفسَه. و`robots.txt` يستعمل البنّاء نفسه
+  في سطر `Sitemap`.
+- **حاجزُ صيغةٍ يوقف البناء**: `scripts/seo.mjs` يفحص `sitemap.xml` و`llms.txt` و`robots.txt`
+  و`index.html` قبل أن يطبع سطره، وأيُّ سطرٍ يحمل `[نص](رابط)` يوقف البناء باسم الملف ورقم السطر.
+- **بطاقاتٌ تتمّدّ بارتفاعٍ واحد**: غلافُ `Reveal` صار `h-full` في شبكات الخدمات والعروض
+  والرئيسية وصفحة المنتج، والبطاقةُ `flex h-full flex-col justify-between` فيصطفّ الزرُّ والصفُّ
+  السفلي على سطرٍ واحد، وشبكتا الأسعار والاشتراك في الرئيسية تمدّان أعمدتَهما (زوال `items-start`
+  الذي كان يمنع التمدّد).
+
+### أُضيف
+
+- **`<meta name="robots" content="index, follow" />` صريحًا**: مكتوبٌ في `index.html` قبل أي
+  JavaScript (تُجدّده كتلة `seo:generated` مع كل بناء)، ويكتبه `Seo.jsx` لكل مسار عام — فلا تبقى
+  صفحةٌ بلا تصريح، ولا تعلق قيمةُ `noindex` بعد تنقّلٍ داخلي من السلة إلى صفحةٍ عامة.
+- **`Product` كاملٌ في `/templates`**: `productItemList` يبني `ItemList` عناصرُه عُقَد `Product`
+  لا أسماءً وروابط — لكل عنصرٍ `name` و`image` (بطاقةُ og الخاصة به) و`description` و`offers`
+  بسعرٍ من بيانات الرّفّ نفسها وعملة `SAR` وحالة `https://schema.org/InStock`، مع `url` و
+  `itemCondition` و`priceValidUntil` و`seller`. وعقدُ صفحة المنتج صار يحمل الحقولَ نفسها، ولا
+  يُعلن صورةً بلا ملف.
+
+### تختبره
+
+`tests/smoke.mjs` — مجموعةٌ جديدة: نزعُ صيغة Markdown في البنّاء (`rawSite`/`rawUrl`/`rawText`)،
+وسلامةُ الوسوم في `index.html` الخام، و`sitemap.xml` و`llms.txt` على القرص بلا قوسٍ واحد،
+و`robots: index, follow` في صفحةٍ عامة، وشكلُ `Product` في `/templates` وفي صفحة القالب
+(الاسم والصورة والوصف والعرضُ بالريال)، و`h-full` في أغلفة الشبكات و`justify-between` في البطاقات.
+المجموعةُ تُشغَّل مع ٤٩ مجموعةً أخرى في `npm test`.
 
 ## [1.5.0] — 2026-09-22
 

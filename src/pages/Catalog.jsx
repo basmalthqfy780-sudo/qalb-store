@@ -6,7 +6,7 @@ import TemplateCard from '../components/TemplateCard'
 import QuickView from '../components/QuickView'
 import { Btn, Head, Icon, Pill, Reveal } from '../components/ui'
 import RecentlyViewed from '../components/RecentlyViewed'
-import { useSeo, itemList, breadcrumbLd, graph } from '../components/Seo'
+import { useSeo, productItemList, breadcrumbLd, graph } from '../components/Seo'
 
 const SORTS = [
   ['pop', 'catalog.sortPop'],
@@ -123,8 +123,11 @@ export default function Catalog() {
   const shown = list.slice(0, per)
 
   useSeo(`${t('catalog.title')} · ${t('brand.name')}`, t('meta.catalogDesc', { n: num(list.length) }), {
+    // Product كاملٌ لكل قالبٍ معروض — لا ItemList بالأسماء والروابط وحدها:
+    // الاسمُ والصورةُ والوصفُ والعرضُ (سعرٌ بالريال · InStock) تُقرأ من صفحة
+    // القوالب كما تُقرأ من صفحة المنتج.
     jsonLd: graph(
-      itemList(list),
+      productItemList(list, lang, t),
       breadcrumbLd([
         { name: t('crumb.home'), path: '/' },
         { name: t('nav.templates'), path: '/templates' },

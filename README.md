@@ -267,10 +267,19 @@ ALLOW_ADMIN_SETUP=1 npm run api
   `SITE_URL=https://mydomain.com` في `.env` مرة واحدة فتُقرأ في كل `npm run build`.
 - البريد الرسمي `qalb@qalb.store` هو الافتراضي في `src/data/contact.js`، ويظهر في الواجهات
   والإيصالات و`JSON-LD/Organization`. لتغييره مؤقتًا اضبط `VITE_QALB_MAIL` في `.env` بدل تعديل الملفات واحدًا واحدًا.
+- **الروابط نصٌّ خام، لا صيغة Markdown**: `src/data/links.js` هو البنّاء الوحيد — `rawSite`
+  و`rawUrl` و`rawText` — ويستعمله `scripts/seo.mjs` و`scripts/agents.mjs` و`src/components/Seo.jsx`
+  معًا. فلا `marked` ولا أيّ مُحوِّل Markdown في أيّ منها، وقيمةُ `SITE_URL` الملصوقة من محرّر
+  Markdown (`[https://x.app](https://x.app)`) تُنزَع صيغتُها وتُبقي مضيفَها وحدَه. الناتجُ في الـHTML
+  الخام `https://qalb-store.vercel.app/templates` لا `[https://…](https://…)`، وsitemap.xml
+  وllms.txt مثلهما (روابط llms.txt صارت `— الاسم — الرابط —` بدل `[الاسم](الرابط)`)، و`seo.mjs`
+  يوقف البناء إذا تسرّبت الصيغة إلى أيّ ملفٍّ مولَّد.
 - `src/components/Seo.jsx` يضبط لكل مسار: `title`، `description`، `og:*` (بما فيها `og:locale`)،
-  `canonical`، و`robots: noindex,follow` على السلة/الدفع/الإيصال، و**JSON-LD**:
-  `WebSite` + `Organization` + `SearchAction` في الرئيسية، `ItemList` في الكتالوج،
-  و`Product` + `Offer` + `AggregateRating` في صفحة القالب.
+  `canonical`، و**`robots: index, follow` افتراضيًا لكل صفحة عامة** (والوسم مكتوبٌ أيضًا في
+  `index.html` قبل أي JavaScript)، و`noindex,follow` على السلة/الدفع/الإيصال، و**JSON-LD**:
+  `WebSite` + `Organization` + `SearchAction` في الرئيسية، و`Product` كامل
+  (`name` + `image` + `description` + `offers` بسعرٍ بالريال وحالة `InStock`) في صفحة القالب
+  **وفي كل عنصرٍ من ItemList في `/templates`**، و`AggregateRating` حيث تتوفّر تقييمات.
 - الخطوط مستضافة محليًا (`public/fonts` + `src/fonts.css`) بلا طلبات خارجية؛ `npm run gen:fonts` يحدّثها،
   ونصّ ترخيص SIL OFL 1.1 لكل عائلة منسوخ حرفيًا بجانبها (`public/fonts/OFL-*.txt` و`public/fonts/README.md`).
 - البناء يفصل الإطار: `react-vendor` (165 kB) وحده، فتبقى حزمة التطبيق 229.7 kB / 78.2 kB مضغوطة في الكاش عند تعديل المحتوى؛ صفحة اللوحة ونصوصها في chunk مستقل (`Admin` 47.49 kB / 14.16 kB) لا يُحمَّل إلا عند `/admin`، وكذلك `/legal` (3.31 kB / 1.17 kB)، وحزم المسارات بين 1.5 و47.5 kB.
@@ -286,6 +295,7 @@ src/
 ├── i18n/                    translations.js (٧٥٩ مفتاحًا للمتجر) + admin-strings.js (١٧٤ للوحة) × لغتان
 │                            متطابقتان — والفحص يرفض مفتاحًا ناقصًا أو ميتًا
 ├── data/templates.js        ١٥ منتجًا · المجالات · لوحات التحكم · آراء · كوبونات · download: /download/<id>
+├── data/links.js            ★ بناءُ الروابط الخام: rawSite/rawUrl/rawText — لا Markdown في canonical ولا og:image ولا sitemap ولا llms.txt
 ├── data/ats-table.js        ★ جدول قواعد ATS الواحد — يقيس الفاحص المجاني وشارةَ القالب وscripts/check-ats.mjs منه جميعًا
 ├── data/ats.js              analyzeAts + تقريرٌ من سبعة أسطر · ATS_DEMO = 100 · لا fetch ولا تخزين: الملف لا يغادر المتصفح
 ├── data/hosting.js          PLANS (مجاني · ١٩ ريالًا/شهر) · HOST_LIMITS · sanitizeSite/slugify/editKey — يُقرأ في الواجهة والخادم
@@ -308,13 +318,13 @@ src/
 │   ├── SitePreview.jsx      ★ الموقع داخل إطار متصفح (٣ شاشات، ٣ ترويسات، ٤ شبكات)
 │   ├── ResumePreview.jsx    ★ صفحة A4 حقيقية بخمسة تخطيطات + تكبير
 │   ├── QuickView.jsx        معاينة ملء الشاشة (portal + inert + مصيدة تركيز)
-│   ├── Seo.jsx              title/description/og(:image)/canonical + JSON-LD لكل مسار
+│   ├── Seo.jsx              title/description/og(:image)/canonical + robots + JSON-LD لكل مسار — كلُّ رابطٍ عبر links.js
 │   ├── ErrorBoundary.jsx    شاشة استرجاع لكل مسار بدل فراغ `#main`
 │   ├── RecentlyViewed.jsx   آخر ٦ منتجات مفتوحة
 │   └── TemplateCard.jsx · Navbar.jsx · Footer.jsx · ui.jsx
 └── pages/                   Home · Catalog · Product · Cart · Checkout · Success · Wishlist · Track · Licence · Legal · Host · Studio · Ats · B2B · **Admin** · NotFound
 
-scripts/  seo.mjs (robots + sitemap بـ ٢٤ عنوانًا + og-cover + ١٥ بطاقة منتج) · og-cover.py · fonts.mjs · deliverables.mjs (١٥ حزمة، ومعها scripts/check-ats.mjs) · check-ats.mjs (الفاحص على سطر الأوامر)
+scripts/  seo.mjs (robots + sitemap + og-cover + بطاقةٌ لكل منتج · حاجزٌ يمنع Markdown في أيّ ملفٍّ مولَّد) · og-cover.py · fonts.mjs · deliverables.mjs (١٥ حزمة، ومعها scripts/check-ats.mjs) · check-ats.mjs (الفاحص على سطر الأوامر)
 server/   worker.js (Node، بلا اعتماديات) · admin.js (بوابة اللوحة: scrypt + كوكي + خنق المحاولات) · deliver.js (تسليم موقّع: HMAC · ١٠ دقائق · مرة واحدة) · sites.js (مواقع الاستضافة وحصص التحرير) · orgs.js (عقود المقاعد وأبواب /org) · seal.js (كل ملف حالة 0600، ختمٌ عند الإقلاع أيضًا) · schema.sql · README.md
 tests/    entry.jsx · smoke.mjs (الحزمة الحقيقية في jsdom — ٤٥ مجموعة، ٢٩ مسارًا، ١٥١ توقّعًا، منها ٥٠ للتخصيص و١٧ للتسليم و٤٧ للمقاعد و٥٨ لفاحص ATS) · admin-api.mjs (خادم فعلي على :8899 — ١٧٣ فحصًا: اللوحة، التوقيع، صلاحيات الملفات، المقاعد)
 public/   fonts/ · robots.txt · sitemap.xml · _redirects · og-cover.png · og/ (بطاقات مولّدة)

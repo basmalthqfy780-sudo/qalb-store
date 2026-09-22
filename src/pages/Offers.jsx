@@ -32,10 +32,10 @@ export default function Offers() {
           const live = now?.slug === o.slug
           const from = picks.length ? Math.min(...picks.map((p) => p.price)) : 0
           return (
-            <Reveal key={o.slug} delay={k * 70}>
+            <Reveal key={o.slug} delay={k * 70} className="h-full">
               <article
                 data-offer={o.slug}
-                className={`group relative flex h-full flex-col rounded-3xl border p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-lift ${
+                className={`group relative flex h-full flex-col justify-between rounded-3xl border p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-lift ${
                   live ? 'border-brand/45 bg-panel' : 'border-line bg-panel/60 hover:border-brand/30'
                 }`}
               >

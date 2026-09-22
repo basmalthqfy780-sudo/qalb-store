@@ -8,6 +8,8 @@
  */
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
+// نفسُ بناء الروابط الذي تستعمله الواجهة وscripts/seo.mjs: نصٌّ خام، لا Markdown.
+import { rawUrl } from '../src/data/links.js'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const imp = (rel) => import(path.join(ROOT, rel))
@@ -51,7 +53,7 @@ export function buildRobots({ site = 'https://qalb.store' } = {}) {
     ].join('\n'),
     agentBlock('*'),
     '# ——— وكلاءُ الذكاء الاصطناعي: نفسُ العامّ مسموحٌ به، ونفسُ الخاصّ ممنوعٌ به ———\n' + AI_AGENTS.map(agentBlock).join('\n\n'),
-    `Sitemap: ${site}/sitemap.xml`,
+    `Sitemap: ${rawUrl('/sitemap.xml', site)}`,
     '',
   ].join('\n\n')
 }
@@ -75,7 +77,9 @@ export async function buildLlms({ site = 'https://qalb.store' } = {}) {
   const { UPSELLS, cartUpsells, serviceUpsells, proPlans } = await imp('src/data/upsells.js')
   const { coupons } = await imp('src/data/templates.js')
 
-  const U = (p) => `${site}${p}`
+  // رابطٌ واحد صريح في الملف كله: بلا `[نص](رابط)` — القارئُ الآليّ قد لا يُحوِّل
+  // Markdown أصلًا، فيبقى العنوانُ عنوانًا والرابطُ رابطًا.
+  const U = (p) => rawUrl(p, site)
   const prices = templates.map((t) => Number(t.price)).filter(Boolean)
   const band = seatRetailBand()
   const bundle = seatBundle()
@@ -99,7 +103,7 @@ export async function buildLlms({ site = 'https://qalb.store' } = {}) {
   const tplEn = templates
     .map(
       (t) =>
-        `- [${t.name.en}](${U('/template/' + t.slug)}): ${t.tagline.en} — SAR ${num(t.price)}${
+        `- ${t.name.en} — ${U('/template/' + t.slug)} — ${t.tagline.en} — SAR ${num(t.price)}${
           t.ats != null ? ', ships an ATS-readable CV as well as the site' : ', site only'
         }`,
     )
@@ -107,7 +111,7 @@ export async function buildLlms({ site = 'https://qalb.store' } = {}) {
   const tplAr = templates
     .map(
       (t) =>
-        `- [${t.name.ar}](${U('/template/' + t.slug)}): ${t.tagline.ar} — ${arNum(t.price)} ريالًا${
+        `- ${t.name.ar} — ${U('/template/' + t.slug)} — ${t.tagline.ar} — ${arNum(t.price)} ريالًا${
           t.ats != null ? ' · يُخرِج سيرةً ذاتية يقرؤها الفرزُ الآلي مع الموقع' : ' · موقعٌ فقط'
         }`,
     )
@@ -153,6 +157,8 @@ export async function buildLlms({ site = 'https://qalb.store' } = {}) {
     '# Qalb · قالب',
     '',
     `> Qalb sells a CV and a site that a recruiter’s parser can actually read, gives away the measurement tool that proves it, and licenses that tool to whole graduating cohorts. Arabic-first RTL interface with a complete English mirror; prices in Saudi riyals, VAT ${vatPct}% included. Every page here is a client-rendered React app, so this file — not a crawl of the DOM — is the plain-text authority for what the site is.`,
+    '',
+    `Every address below is written raw (\`${U('/template/nova-cv')}\`), never as a Markdown link, so a reader that does not render Markdown still sees the URL itself.`,
     '',
     '## What is sold',
     '',
@@ -246,6 +252,8 @@ export async function buildLlms({ site = 'https://qalb.store' } = {}) {
     '# قالب — بالعربية',
     '',
     `> قالبُ واحدٌ وسيرةٌ ذاتيةٌ واحدة: موقعٌ وسيرةٌ يقرؤهما فرزُ الشركات الآلي فعلًا، وأداةُ قياسٍ مجانيةٌ تُثبت ذلك، وعقودُ مقاعد سنوية للجامعات والمعاهد ومكاتب التوظيف تقيس بها جاهزيةَ دفعةٍ كاملة. الواجهةُ عربيةٌ من اليمين إلى اليسار بنسخةٍ إنجليزيةٍ كاملة، والأسعارُ بالريال السعودي مشتملةً على ضريبة القيمة المضافة ${vatPct}٪. كلُّ صفحةٍ هنا تطبيقُ React يُبنى في المتصفح، فهذا الملفُّ هو المرجعُ المسطّحُ لما لا يستطيع الفاحصُ تنفيذَه.`,
+    '',
+    `كلُّ رابطٍ في هذا الملف مكتوبٌ خامًا (\`${U('/template/nova-cv')}\`) لا بصيغة رابط Markdown، فمَن يقرؤه بلا مُحوِّل Markdown يرى العنوانَ نفسَه.`,
     '',
     '## ما يُباع',
     '',

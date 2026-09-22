@@ -563,7 +563,7 @@ export default function Product() {
           </Reveal>
           <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {related.map((r, k) => (
-              <Reveal key={r.id} delay={k * 70}>
+              <Reveal key={r.id} delay={k * 70} className="h-full">
                 <TemplateCard tpl={r} />
               </Reveal>
             ))}
