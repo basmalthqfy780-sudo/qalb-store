@@ -41,6 +41,7 @@ export default function Home() {
       <ProofBlock />
       <DeployBlock />
       <Features />
+      <HiringSuite />
       <Bundles />
       <ProBand />
       <RecentlyViewed />
@@ -49,6 +50,63 @@ export default function Home() {
       <CtaBand />
       {quick && <QuickView tpl={quick} onClose={() => setQuick(null)} />}
     </>
+  )
+}
+
+/* =========================== HIRING SUITE =========================== */
+/**
+ * منظومةُ التوظيف: القالبُ يفتح الباب، وهذه الستُّ أدوات تعمل بعده — من مطابقةِ
+ * الإعلان إلى الرابط المهني وتقرير السوق. تُعرض هنا لأنها تُشترى في لحظةِ التقديم،
+ * والزائرُ الذي جاء ليشتري قالبًا هو نفسُه من سيقدّم به غدًا.
+ */
+// كلُّ مفتاحٍ مكتوبٌ صريحًا: الفحصُ يمنع مفتاحًا في القاموس لا يرد في الملف
+const SUITE = [
+  { to: '/match', icon: 'briefcase', k: 'home.suiteMatch', d: 'home.suiteMatchSub', price: 29 },
+  { to: '/kit', icon: 'spark', k: 'home.suiteKit', d: 'home.suiteKitSub', price: 49 },
+  { to: '/talent', icon: 'grid', k: 'home.suiteTalent', d: 'home.suiteTalentSub', price: 0 },
+  { to: '/studio', icon: 'globe', k: 'home.suiteLink', d: 'home.suiteLinkSub', price: 29 },
+  { to: '/market', icon: 'pulse', k: 'home.suiteMarket', d: 'home.suiteMarketSub', price: 0 },
+  { to: '/embed', icon: 'code2', k: 'home.suiteEmbed', d: 'home.suiteEmbedSub', price: 199 },
+]
+
+function HiringSuite() {
+  const { t } = useI18n()
+  return (
+    <section className="page-x mx-auto max-w-[1400px] py-20" id="suite" data-suite>
+      <Reveal>
+        <Head
+          kicker={t('home.suiteKicker')}
+          title={t('home.suiteTitle')}
+          sub={t('home.suiteSub')}
+          right={
+            <Btn to="/match" variant="outline" size="md">
+              {t('home.suiteCta')}
+              <Icon n="arrow" className="size-4 rtl:-scale-x-100" />
+            </Btn>
+          }
+        />
+      </Reveal>
+      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {SUITE.map((x, k) => (
+          <Reveal key={x.to} delay={k * 70} className="h-full">
+            <Link
+              to={x.to}
+              className="flex h-full flex-col rounded-3xl border border-line bg-panel/60 p-5 transition hover:border-brand/45 hover:bg-panel"
+              data-suite-card={x.to}
+            >
+              <span className="grid size-10 place-items-center rounded-2xl bg-brand/12 text-brand">
+                <Icon n={x.icon} className="size-5" />
+              </span>
+              <p className="mt-3.5 text-[15px] font-extrabold text-ink">{t(x.k)}</p>
+              <p className="mt-1.5 text-[12.5px] leading-relaxed text-dim">{t(x.d)}</p>
+              <span className="num mt-auto pt-3 text-[12px] font-bold text-brand">
+                {x.price ? `${num(x.price)} ${t('common.sar')}` : t('home.suiteFree')}
+              </span>
+            </Link>
+          </Reveal>
+        ))}
+      </div>
+    </section>
   )
 }
 

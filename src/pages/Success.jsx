@@ -5,6 +5,7 @@ import { useI18n, num, dec } from '../i18n'
 import { byId, templates } from '../data/templates'
 import { upsellById, addonDelivery } from '../data/upsells'
 import { bundleZip, isProtectedDownload, kindOf, packageFiles, packageIndex, packageZip, packageName, readmeText } from '../data/deliverable'
+import { kitGrantFor } from '../data/kit'
 import { SUPPORT_MAIL } from '../data/contact'
 import { Btn, Icon, Money, Pill } from '../components/ui'
 import { useSeo } from '../components/Seo'
@@ -44,6 +45,15 @@ export default function Success() {
     }
     return null
   }, [loc.state, wanted, remote])
+
+  /**
+   * رصيدُ مولّد التقديم يُمنح هنا وحده: بعد طلبٍ حقيقي يحمل الإضافة، ومرةً واحدة
+   * لكلِّ طلب (إعادةُ فتح الإيصال لا تضاعف الرصيد). لا يُمنح شيءٌ لطلبٍ بلا الإضافة.
+   */
+  useEffect(() => {
+    if (!order?.id || !Array.isArray(order.addons) || !order.addons.length) return
+    kitGrantFor(order.id, order.addons)
+  }, [order?.id, order?.addons])
 
   if (wanted && order === undefined) {
     return (

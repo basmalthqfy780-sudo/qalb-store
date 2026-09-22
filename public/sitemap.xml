@@ -73,6 +73,51 @@
     <priority>0.9</priority>
   </url>
   <url>
+    <loc>https://qalb.store/match</loc>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://qalb.store/match"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://qalb.store/match?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://qalb.store/match"/>
+    <lastmod>2026-09-22</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://qalb.store/kit</loc>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://qalb.store/kit"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://qalb.store/kit?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://qalb.store/kit"/>
+    <lastmod>2026-09-22</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://qalb.store/talent</loc>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://qalb.store/talent"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://qalb.store/talent?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://qalb.store/talent"/>
+    <lastmod>2026-09-22</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://qalb.store/market</loc>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://qalb.store/market"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://qalb.store/market?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://qalb.store/market"/>
+    <lastmod>2026-09-22</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://qalb.store/embed</loc>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://qalb.store/embed"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://qalb.store/embed?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://qalb.store/embed"/>
+    <lastmod>2026-09-22</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://qalb.store/b2b</loc>
     <xhtml:link rel="alternate" hreflang="ar" href="https://qalb.store/b2b"/>
     <xhtml:link rel="alternate" hreflang="en" href="https://qalb.store/b2b?lang=en"/>

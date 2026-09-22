@@ -279,6 +279,14 @@ export default function Navbar() {
             </Link>
 
             <Link
+              to="/match"
+              className="hidden items-center gap-1.5 rounded-xl px-2.5 py-2 text-[13px] font-bold text-ink/80 transition hover:bg-panel2 hover:text-brand xl:inline-flex"
+            >
+              <Icon n="briefcase" className="size-4 text-brand" />
+              {t('nav.match')}
+            </Link>
+
+            <Link
               to="/host"
               className="hidden items-center gap-1.5 rounded-xl px-2.5 py-2 text-[13px] font-bold text-ink/80 transition hover:bg-panel2 hover:text-brand xl:inline-flex"
             >

@@ -6,13 +6,18 @@
  *   2. صفحة الخدمات /services (group: 'services') — خدمات Done-For-You يؤديها فريقنا لا ملفٌ يُنزَّل.
  *   3. فاحص ATS (group: 'ats') — التقرير التفصيلي المدفوع بعد الفحص المجاني.
  *   4. اشتراك Qalb Pro في الرئيسية (group: 'pro') — شهري وسنوي، موازيًا للشراء لمرة واحدة.
+ *   5. منظومةُ التوظيف (groups: 'match' و'kit' و'share' و'link' و'talent' و'linkedin'
+ *      و'badge') — مطابقةُ الإعلان، ملفُّ التقديم، بطاقة المشاركة، الرابط المهني،
+ *      دليل المواهب، الاستيراد من LinkedIn، وإزالة الشارة.
  *
  * والخادم يحسب أسعارها بنفسه في server/worker.js من هذا الجدول — لا يُصدَّق سعرٌ
  * قادم من المتصفح، كما لا يُصدَّق سعرُ قالب. وما هو بشريُّ التسليم (مراجعة، كتابة،
  * تركيب) تُسلَّم بالبريد خلال مهلةٍ معلنة، فلا «تحميل فوري» على خدمةٍ يقوم بها إنسان.
+ * وما هو فوريٌّ فعلًا (`instant`) يُفتح في المتصفح بعد الدفع، فلا يُوعد ببريدٍ لا
+ * يصل: حقلُ `sla` مخصوصٌ بما يُسلَّم باليد.
  */
 
-export const UPSELL_GROUPS = ['checkout', 'services', 'ats', 'pro']
+export const UPSELL_GROUPS = ['checkout', 'services', 'ats', 'pro', 'match', 'kit', 'share', 'link', 'talent', 'linkedin', 'badge']
 
 export const UPSELLS = [
   {
@@ -136,6 +141,121 @@ export const UPSELLS = [
       en: 'A full year of every template, update and new release, with re-downloadable copies at no re-purchase. No auto-renewal — a reminder arrives before your last month.',
     },
   },
+  {
+    // ————— منظومة التوظيف —————
+    // ١. مطابقةُ السيرة بإعلان الوظيفة: الفحصُ الأول مجاني، وهذا تقريره المفصّل
+    id: 'match-report',
+    groups: ['match'],
+    price: 29,
+    icon: 'scan',
+    sla: 24,
+    name: { ar: 'تقريرُ مطابقةٍ مفصّل', en: 'A detailed match report' },
+    tagline: { ar: 'الكلماتُ الناقصة، ونقاطُ التعديل، والقالبُ الأنسب لإعلانك', en: 'The missing words, the edits, and the template for this post' },
+    desc: {
+      ar: 'بعد الفحص المجاني (النسبة وحدها): تقريرٌ يقرأ إعلانك أنت — المفرداتُ التي طلبها الإعلان وغابت عن سيرتك مرتّبةً بوزنها، ولكلِّ واحدةٍ سطرٌ مقترحٌ يُكتب في قسمه، ثم ثلاثةُ قوالبَ من كتالوجنا يليقُ بتخصصك. ملفٌّ يُنسخ أو يُنزَّل، ولا يُرسل بالبريد.',
+      en: 'After the free check (the percentage alone): a report that reads your posting — the words it asks for and your CV lacks, ordered by weight, each with a suggested line and the section it belongs in, then three templates from our catalogue that fit your field. A file to copy or download; nothing is mailed.',
+    },
+  },
+  {
+    id: 'match-5',
+    groups: ['match'],
+    price: 79,
+    icon: 'layers',
+    sla: 24,
+    name: { ar: 'خمسةُ تقارير مطابقة', en: 'Five match reports' },
+    tagline: { ar: 'لمن يقدّم على خمسِ وظائف في شهر', en: 'For five applications in one month' },
+    desc: {
+      ar: 'خمسةُ تقاريرَ تُستعمل متى شئت في اثني عشر شهرًا: الباحثُ عن عمل يقدّم على عشرين وظيفة، فالتقريرُ الواحد لا يكفيه. كلُّ تقريرٍ لإعلانٍ واحد، والرصيدُ يظهر في صفحة المطابقة قبل أن تفتح تقريرًا جديدًا.',
+      en: 'Five reports to spend over twelve months: a job seeker sends twenty applications, and one report does not cover it. Each report is for one posting, and the balance shows on the match page before you open a new one.',
+    },
+  },
+  {
+    // ٤. مولّد ملف التقديم: عشرُ توليداتٍ برصيد، لا اشتراك
+    id: 'kit-10',
+    groups: ['kit'],
+    price: 49,
+    icon: 'spark',
+    instant: true,
+    name: { ar: 'ملفُّ تقديم — ١٠ توليدات', en: 'Application kit — 10 generations' },
+    tagline: {
+      ar: 'سيرةٌ مخصّصة + خطاب + رسالة LinkedIn + إيميل، لإعلانٍ واحد',
+      en: 'A tailored CV + letter + LinkedIn note + e-mail, for one posting',
+    },
+    desc: {
+      ar: 'كلُّ توليدٍ يبني من إعلانٍ واحد: نقاطُ سيرتك مرتّبةً على مفردات الإعلان، وخطابُ تقديم، ورسالةٌ قصيرة، وإيميلٌ بموضوعه جاهز. لا يخترعُ خبرةً ولا رقمًا: ما لا يجده في سيرتك يتركه فارغًا لتكتبه. الرصيدُ عشرٌ، يُنقص عند كلِّ توليد، ويبقى في متصفحك.',
+      en: 'Each generation builds from one posting: your bullets re-ordered around its words, a cover letter, a short note and an e-mail with its subject ready. It invents neither experience nor numbers — whatever it cannot find in your CV it leaves blank for you. Ten credits, spent one per generation, kept in your browser.',
+    },
+  },
+  {
+    // ٧. بطاقة المشاركة: نسخةٌ بلا شعار
+    id: 'share-verified',
+    groups: ['share'],
+    price: 19,
+    icon: 'star',
+    instant: true,
+    name: { ar: 'بطاقةٌ موثّقة بلا شعار', en: 'A verified card, no badge' },
+    tagline: { ar: 'نفسُ الدرجة، بلا شعارنا، ومعها كوبونٌ لصديق', en: 'The same score, without our logo, and with a friend coupon' },
+    desc: {
+      ar: 'البطاقةُ المجانية تحمل شعارَنا في أسفلها؛ هذه نسختُها الموثّقة: الدرجةُ نفسها التي قاسها الفاحص، بلا شعار، وفيها سطرُ كوبونٍ يخصم على صديقك أولَ قالب. تُبنى في متصفحك صورةً (SVG أو PNG) ولا تُرفع إلى خدمةٍ خارجية.',
+      en: 'The free card carries our logo at the bottom; this is its verified version: the very score the checker measured, no logo, plus a coupon line that discounts a friend’s first template. Built in your browser as an image (SVG or PNG) and never uploaded anywhere.',
+    },
+  },
+  {
+    // ٣. الرابط المهني: تحليلات متقدمة ونطاق خاص
+    id: 'link-plus',
+    groups: ['link'],
+    price: 29,
+    icon: 'globe',
+    period: 'month',
+    name: { ar: 'رابطٌ بلس — تحليلات ونطاق', en: 'Link Plus — analytics and domain' },
+    tagline: { ar: 'البلدان والمصدر وسجلُّ ثلاثين يومًا، ونطاقك على الرابط', en: 'Countries, sources, a 30-day log, and your own domain' },
+    desc: {
+      ar: 'الرابطُ المجاني يعدُّ الزيارات وتنزيلات السيرة. هذه النسخةُ تفتح ما وراء العدد: من أيِّ بلدٍ فُتح (مستنتجًا من منطقةِ الجهاز الزمنية، لا من عنوانه)، ومن أيِّ صفحةٍ جاء الزائر، وسجلُّ ثلاثين يومًا، ونطاقُك الخاص يُربط بالرابط. اشتراكٌ شهريٌّ بلا تجديدٍ تلقائي.',
+      en: 'The free link counts views and CV downloads. This one opens what is behind the count: which country it was opened from (inferred from the device’s time zone, not its address), which page the visitor came from, a thirty-day log, and your own domain pointed at the link. Monthly, with no auto-renewal.',
+    },
+  },
+  {
+    // ٧. دليل المواهب: إبراز الملف للشركات
+    id: 'talent-spot',
+    groups: ['talent'],
+    price: 29,
+    icon: 'pulse',
+    period: 'month',
+    name: { ar: 'إبرازٌ في دليل المواهب', en: 'A featured spot in the talent directory' },
+    tagline: { ar: 'ملفُك أولَ النتائج في تخصصك ومدينتك', en: 'Your profile first in your field and city' },
+    desc: {
+      ar: 'الدليلُ مجانيٌّ لمن يفعّله، والإبرازُ يجعل ملفَّك أولَ ما تراه الشركاتُ الباحثة في تخصصك ومدينتك. لا نبيعُ بياناتك: الذي يظهر هو ما اخترتَ إظهاره في رابطك، والبريدُ لا يظهر إلا باختيارك. اشتراكٌ شهريٌّ يُلغى في أيِّ وقت.',
+      en: 'The directory is free to join, and a featured spot puts your profile first for companies searching your field and city. We sell no data: what appears is what you chose to show on your link, and your e-mail appears only if you say so. Monthly, cancelled any time.',
+    },
+  },
+  {
+    // ٦. الاستيراد من LinkedIn
+    id: 'linkedin-import',
+    groups: ['checkout', 'linkedin'],
+    price: 39,
+    icon: 'briefcase',
+    instant: true,
+    name: { ar: 'ابنِ سيرتك من LinkedIn', en: 'Build your CV from LinkedIn' },
+    tagline: { ar: 'انسخ ملفّك، الصقه، وتمتلئ الحقول', en: 'Copy your profile, paste it, the fields fill' },
+    desc: {
+      ar: 'لا نصلُ إلى حسابك ولا نطلب كلمةَ سر: زرٌّ في LinkedIn ينسخ ملفّك نصًّا، وتلصقه هنا فتُقرأ الأقسام (النبذة، الخبرة، التعليم، المهارات) وتُملأ حقولُ القالب في ثانية. الأداةُ تعمل في متصفحك، ولا يُرسل النصُّ إلى خادم، وما لم تفهمه من سطرٍ تتركه فارغًا لتكتبه — لا تُخترع مسمّيات.',
+      en: 'We never touch your account and never ask for a password: a button on LinkedIn copies your profile as text, you paste it here, and the sections (About, Experience, Education, Skills) are read into the template’s fields in a second. It runs in your browser, the text is sent to no server, and any line it cannot parse is left blank for you — titles are never invented.',
+    },
+  },
+  {
+    // ٩. إزالة شارة «بُنيَ بقالب»
+    id: 'badge-off',
+    groups: ['checkout', 'badge'],
+    price: 19,
+    icon: 'type',
+    instant: true,
+    name: { ar: 'إزالةُ شارة «بُنيَ بقالب»', en: 'Remove the “Built with Qalb” badge' },
+    tagline: { ar: 'لمرةٍ واحدة، بلا اشتراك — أو مجانًا مع «قالب بلس»', en: 'One time, no subscription — or free with Qalb Plus' },
+    desc: {
+      ar: 'كلُّ قالبٍ منشور يحمل شارةً صغيرة في فوتره تعود إلينا. هذه الإضافةُ تُسقطها من سيرتك وموقعك المُولَّدين، لمرةٍ واحدة وبلا اشتراك. طريقٌ ثانٍ بلا مقابل: باقةُ «قالب بلس» تُسقطها ضمن ما تفتحه — نقولها هنا فلا يشتري أحدٌ مرتين ما يُفتح مجانًا في باقةٍ أعلى.',
+      en: 'Every published template carries a small badge in its footer that points back to us. This add-on takes it off your generated CV and site, once, with no subscription. There is a second way at no cost: Qalb Plus removes it as part of what it opens — said here so nobody buys twice what a higher tier gives free.',
+    },
+  },
 ]
 
 export const upsellById = (id) => UPSELLS.find((u) => u.id === id) || null
@@ -157,6 +277,21 @@ export const proPlans = () => inGroup('pro')
 /** التقرير المدفوع الذي يُعرض بعد الفحص المجاني في /ats */
 export const atsReportUpsell = () => upsellById('ats-report')
 
+/** تقريرُ المطابقة وباقته — يُعرضان بعد الفحص المجاني في /match */
+export const matchUpsells = () => inGroup('match')
+/** مولّد ملف التقديم — رصيدُ عشرِ توليدات */
+export const kitUpsell = () => upsellById('kit-10')
+/** بطاقةُ المشاركة الموثّقة — بلا شعار */
+export const shareUpsell = () => upsellById('share-verified')
+/** اشتراكُ الرابط المهني — تحليلاتٌ متقدمة ونطاق */
+export const linkUpsell = () => upsellById('link-plus')
+/** إبرازُ الملف في دليل المواهب */
+export const talentUpsell = () => upsellById('talent-spot')
+/** استيرادُ السيرة من LinkedIn */
+export const linkedinUpsell = () => upsellById('linkedin-import')
+/** إزالةُ شارة «بُنيَ بقالب» من الفوتر */
+export const badgeUpsell = () => upsellById('badge-off')
+
 /**
  * كيف يُسلَّم — كلُّ ما هنا ليس ملفًا يُنزَّل لحظة الدفع: الخدمات بالبريد خلال
  * مهلتها (sla بالساعات)، والاشتراك يُفعَّل بعد الدفع بيد الفريق. تقرأها صفحة
@@ -165,6 +300,8 @@ export const atsReportUpsell = () => upsellById('ats-report')
 export const addonDelivery = (id) => {
   const u = upsellById(id)
   if (!u) return null
+  // فوريٌّ: يُفتح في المتصفح بعد الدفع (رصيدٌ أو مِيزة)، فلا بريدَ ولا انتظار
+  if (u.instant) return { kind: 'instant' }
   return u.period ? { kind: 'activate', period: u.period } : { kind: 'email', hours: u.sla }
 }
 

@@ -210,6 +210,8 @@ export function profileOf(site) {
     hosted: true,
     subdomain: site && site.slug,
     plan: planOf(recPlan(site)),
+    // الشارةُ في الفوتر تُسقطها خطةُ «بلس» ولا تُسقطها الخطة المجانية
+    badge: planOf(recPlan(site)) !== 'pro',
   }
   // المدينة حقل مفرد: يُطبع في اللغتين كما يُطبع الاسم
   if (site.site && site.site.city) p.city = { ar: site.site.city, en: site.site.city }

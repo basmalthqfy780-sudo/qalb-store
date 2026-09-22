@@ -1,5 +1,5 @@
-import { useMemo, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useI18n, num } from '../i18n'
 import { ATS_DEMO, ATS_TARGET, analyzeAts, atsReport } from '../data/ats'
 import { atsReadyTemplates, byId, categories, templates } from '../data/templates'
@@ -7,6 +7,8 @@ import { atsReportUpsell } from '../data/upsells'
 import { useStore } from '../store/StoreContext'
 import { SUPPORT_MAILTO } from '../data/contact'
 import { toolLd, useSeo } from '../components/Seo'
+import { recordEmbedHit } from '../data/embed'
+import ShareCard from '../components/ShareCard'
 import { Btn, Head, Icon, Money, Pill, Reveal } from '../components/ui'
 
 const OK_EXTS = /\.(txt|md|markdown|csv|text)$/i
@@ -19,6 +21,17 @@ const MAX_BYTES = 200_000
  */
 export default function Ats() {
   const { t, L, lang } = useI18n()
+  // مُضمَّنٌ في موقعِ جهةٍ مشتركة (?embed=1&org=…): نفسُ الفاحص بلا ترويسةٍ ولا أسئلة،
+  // وكلُّ تحميلٍ يُعدّ مرةً على حسابِ جهتها — هذا هو الذي يبيعه اشتراك /embed.
+  const [params] = useSearchParams()
+  const embedded = params.get('embed') === '1'
+  const org = String(params.get('org') || '').slice(0, 32)
+  const counted = useRef(false)
+  useEffect(() => {
+    if (!embedded || counted.current) return
+    counted.current = true
+    recordEmbedHit(org)
+  }, [embedded, org])
   const { toggleAddon, hasAddon, toast } = useStore()
   const [text, setText] = useState('')
   const [fileName, setFileName] = useState('')
@@ -50,7 +63,8 @@ export default function Ats() {
     [t('ats.q4'), t('ats.a4')],
   ]
   useSeo(`${t('ats.title')} · ${t('brand.name')}`, t('meta.atsDesc'), {
-    jsonLd: toolLd({ name: `${t('ats.title')} · ${t('brand.name')}`, desc: t('meta.atsDesc'), faq }),
+    jsonLd: embedded ? null : toolLd({ name: `${t('ats.title')} · ${t('brand.name')}`, desc: t('meta.atsDesc'), faq }),
+    robots: embedded ? 'noindex, follow' : undefined,
   })
 
   const report = useMemo(() => (scored || res.words > 0 ? atsReport(res, { lang }) : ''), [res, lang, scored])
@@ -119,18 +133,25 @@ export default function Ats() {
     <div className="relative">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-64 grad-mesh" />
       <div className="page-x relative mx-auto max-w-[1120px] py-13 sm:py-16">
-        <Head
-          as="h1"
-          kicker={t('ats.kicker')}
-          title={t('ats.title')}
-          sub={t('ats.sub')}
-          right={
-            <Pill tone="brand" className="max-w-full">
-              <Icon n="shield" className="size-3" />
-              {t('ats.privacy')}
-            </Pill>
-          }
-        />
+        {!embedded && (
+          <Head
+            as="h1"
+            kicker={t('ats.kicker')}
+            title={t('ats.title')}
+            sub={t('ats.sub')}
+            right={
+              <Pill tone="brand" className="max-w-full">
+                <Icon n="shield" className="size-3" />
+                {t('ats.privacy')}
+              </Pill>
+            }
+          />
+        )}
+        {embedded && (
+          <p className="mb-4 rounded-2xl border border-line bg-panel/70 px-3.5 py-2.5 text-[11.5px] leading-relaxed text-dim" data-ats-embedded>
+            {t('ats.embedded')}
+          </p>
+        )}
 
         <div className="mt-9 grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_344px]">
           {/* ------------------------------ المدخل ------------------------------ */}
@@ -344,6 +365,21 @@ export default function Ats() {
               </div>
             )}
 
+            {scored && !embedded && (
+              <ShareCard
+                score={res.score}
+                bandLabel={L(res.band.label)}
+                title={t('share.title')}
+                stats={[
+                  { k: t('ats.words'), v: num(res.words) },
+                  { k: t('ats.bullets'), v: num(res.bullets) },
+                  { k: t('ats.quantified'), v: `${num(res.measured)}/${num(res.bullets)}` },
+                ]}
+                seed={`ats-${res.score}-${res.words}`}
+                path="/ats"
+              />
+            )}
+
             {scored && res.gaps.length > 0 && (
               <div className="mt-4 rounded-3xl border border-brand/25 bg-brand/6 p-4.5" data-ats-cta>
                 <p className="text-[13px] font-extrabold text-ink">{t('ats.ctaTitle')}</p>
@@ -451,27 +487,29 @@ export default function Ats() {
         )}
 
         {/* ------------------------------ الأسئلة ------------------------------ */}
-        <Reveal className="mt-14 rounded-3xl border border-line bg-panel/55 p-5 sm:p-7">
-          <h2 className="text-[16px] font-extrabold text-ink">{t('ats.faqTitle')}</h2>
-          <dl className="mt-4 grid gap-4 sm:grid-cols-2">
-            <div>
-              <dt className="text-[13px] font-bold text-ink">{t('ats.q1')}</dt>
-              <dd className="mt-1.5 text-[12.5px] leading-relaxed text-dim">{t('ats.a1')}</dd>
-            </div>
-            <div>
-              <dt className="text-[13px] font-bold text-ink">{t('ats.q2')}</dt>
-              <dd className="mt-1.5 text-[12.5px] leading-relaxed text-dim">{t('ats.a2')}</dd>
-            </div>
-            <div>
-              <dt className="text-[13px] font-bold text-ink">{t('ats.q3')}</dt>
-              <dd className="mt-1.5 text-[12.5px] leading-relaxed text-dim">{t('ats.a3')}</dd>
-            </div>
-            <div>
-              <dt className="text-[13px] font-bold text-ink">{t('ats.q4')}</dt>
-              <dd className="mt-1.5 text-[12.5px] leading-relaxed text-dim">{t('ats.a4')}</dd>
-            </div>
-          </dl>
-        </Reveal>
+        {!embedded && (
+          <Reveal className="mt-14 rounded-3xl border border-line bg-panel/55 p-5 sm:p-7">
+            <h2 className="text-[16px] font-extrabold text-ink">{t('ats.faqTitle')}</h2>
+            <dl className="mt-4 grid gap-4 sm:grid-cols-2">
+              <div>
+                <dt className="text-[13px] font-bold text-ink">{t('ats.q1')}</dt>
+                <dd className="mt-1.5 text-[12.5px] leading-relaxed text-dim">{t('ats.a1')}</dd>
+              </div>
+              <div>
+                <dt className="text-[13px] font-bold text-ink">{t('ats.q2')}</dt>
+                <dd className="mt-1.5 text-[12.5px] leading-relaxed text-dim">{t('ats.a2')}</dd>
+              </div>
+              <div>
+                <dt className="text-[13px] font-bold text-ink">{t('ats.q3')}</dt>
+                <dd className="mt-1.5 text-[12.5px] leading-relaxed text-dim">{t('ats.a3')}</dd>
+              </div>
+              <div>
+                <dt className="text-[13px] font-bold text-ink">{t('ats.q4')}</dt>
+                <dd className="mt-1.5 text-[12.5px] leading-relaxed text-dim">{t('ats.a4')}</dd>
+              </div>
+            </dl>
+          </Reveal>
+        )}
       </div>
     </div>
   )

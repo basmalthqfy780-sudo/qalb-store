@@ -70,6 +70,7 @@ export async function buildLlms({ site = 'https://qalb.store' } = {}) {
   const { B2B_TIERS, B2B_TERM_MONTHS, SEAT_TEMPLATES, perSeat, perSeatVsBundle, seatBundle, seatRetailBand, COHORT_MAX } =
     await imp('src/data/b2b.js')
   const { ATS_RULES, ATS_TARGET, ATS_DEMO, analyzeAts } = await imp('src/data/ats.js')
+  const { MARKET_MIN } = await imp('src/data/market.js')
   const { COMPANY, VAT_RATE, QUOTE_VALID_DAYS, quoteReady, quoteMissing, isSet } = await imp('src/data/company.js')
   const { SUPPORT_MAIL, SUPPORT_PHONE, BOOKING_URL } = await imp('src/data/contact.js')
   const { PLANS } = await imp('src/data/hosting.js')
@@ -171,6 +172,17 @@ export async function buildLlms({ site = 'https://qalb.store' } = {}) {
     '',
     `${U('/ats')} · no account, no upload, nothing stored. ${ATS_RULES.length} rules are scored out of 100 against text pasted in your own browser, in Arabic or English, and every gap comes with the fix for that gap. The passing line is ${ATS_TARGET.pass}, and the structural thresholds behind it are public: ${ATS_TARGET.minWords}–${ATS_TARGET.maxWords} words and at least ${ATS_TARGET.minBullets} bullet lines; an empty document scores 0, so the scale has no participation floor. The sample CV in the repository scores ${demoScore}. The paid templates emit the same structure this checker reads.`,
     '',
+    '## The hiring suite (six tools around one job application)',
+    '',
+    `The checker answers “can a machine read my CV?”. The hiring suite answers the next question — “is my CV written in the language of this posting?” — and it is priced per application, not per month, because a job seeker applies twenty times and then stops.`,
+    '',
+    `${U('/match')} — paste a CV and a posting: the overall match percentage is free; the detailed report (the missing words ordered by weight, a suggested line for each with the section it belongs in, and three templates that fit the field) is SAR 29, or five reports for SAR 79. The score is the weight present over the weight required, where a word in the post’s title outweighs one in its body; company names and cities are not counted as requirements.`,
+    `${U('/kit')} — SAR 49 for ten generations. Each generation turns one posting into four artefacts: the CV bullets re-ordered around the post’s words, a cover letter, a LinkedIn note and an e-mail with its subject line. It invents nothing: whatever it cannot find in your CV is left in brackets for you to write.`,
+    `${U('/u/<name>')} — a professional link holding a CV, work, a contact button and a CV download, with analytics the owner can see: opens, CV downloads and contact taps, plus countries with the SAR 29 a month plan. The country is inferred from the visitor’s device time zone, never from an address, and no view is tied to a person.`,
+    `${U('/talent')} — a directory of profiles their owners switched on, searchable by field, city and readiness score; listing is free and removal is one click, and no e-mail is shown unless its owner says so. Companies reach it on a subscription; a featured spot is SAR 29 a month.`,
+    `${U('/market')} — four optional, anonymous answers after every check (field, city, did you get an interview, which template) aggregated into a public report: interviews per field, median months before a first interview, and which templates interviewees used. No rate is published before ${MARKET_MIN} answers, and every rate carries the count it came from.`,
+    `${U('/embed')} — the readiness checker as one iframe on a university, institute or placement site: SAR 199 a month for 500 loads, SAR 499 for 2,000, and universities above that by agreement. The check runs in the visitor’s browser, so the institution buys placement and a monthly allowance — never student data, which we do not have.`,
+    '',
     '## For universities, colleges and employment offices',
     '',
     `Annual seat contracts of ${B2B_TERM_MONTHS} months, no auto-renewal. A seat is redeemed once by one student e-mail on one template with an institution code (\`QALB-XXXX-XXXX\`, excluding letters that read as digits), and it issues a licence key for that student’s own download. Prices are contract figures, not promotions:`,
@@ -271,6 +283,17 @@ export async function buildLlms({ site = 'https://qalb.store' } = {}) {
     )}–${arNum(ATS_TARGET.maxWords)} كلمةً و${arNum(ATS_TARGET.minBullets)} نقطةً على الأقل، والمستندُ الفارغُ يأخذ صفرًا فلا مجاملةَ في المقياس. ونموذجُ السيرة المرفق مع المشروع يأخذ ${arNum(
       demoScore,
     )}. القالبُ المدفوع يُخرِج البنيةَ نفسَها التي يقرأها هذا الفاحص.`,
+    '',
+    '## منظومةُ التوظيف (ستُّ أدواتٍ حول تقديمٍ واحد)',
+    '',
+    `الفاحصُ يجيب: هل يقرأ الآليّ سيرتي؟ وهذه تجيب السؤالَ الذي بعده: هل سيرتي مكتوبةٌ بلغةِ هذا الإعلان؟ وسُعِّرت بالتقديم لا بالشهر، لأن الباحثَ عن عمل يقدّم عشرين مرة ثم يتوقف.`,
+    '',
+    `${U('/match')} — الصق سيرةً وإعلانًا: نسبةُ المطابقة العامة مجانية، والتقريرُ المفصّل (الكلماتُ الناقصة مرتّبةً بوزنها، وسطرٌ مقترحٌ لكلٍّ منها مع قسمه، وثلاثةُ قوالبَ تليق بالمجال) بـ٢٩ ريالًا، أو خمسةُ تقاريرَ بـ٧٩. النسبةُ هي وزنُ الحاضر من وزنِ المطلوب، وكلمةُ العنوان أثقلُ من كلمةِ المتن، واسمُ الشركة والمدينة لا يُحسبان مطلبًا.`,
+    `${U('/kit')} — ٤٩ ريالًا لعشرِ توليدات. كلُّ توليدٍ يُخرج من إعلانٍ واحد أربعةَ أشياء: نقاطُ السيرة مرتّبةً على مفردات الإعلان، خطابُ تقديم، رسالةُ LinkedIn، وإيميلٌ بموضوعه جاهز. لا يخترعُ شيئًا: ما لا يجده في سيرتك يتركه بين قوسين لتكتبه أنت.`,
+    `${U('/u/<name>')} — رابطٌ مهني فيه سيرةٌ وأعمالٌ وزرُّ تواصل وتحميل سيرة، وتحليلاتٌ يراها صاحبُه: الفتحات وتنزيلات السيرة وطلبات التواصل، ومعها البلدان في خطة الـ٢٩ ريالًا شهريًا. البلدُ مستنتجٌ من المنطقة الزمنية لجهاز الزائر لا من عنوانه، ولا زيارةٌ منسوبةٌ إلى شخص.`,
+    `${U('/talent')} — دليلُ ملفاتٍ فعّلها أصحابها، يُبحث بالتخصص والمدينة ودرجةِ الجاهزية؛ الإدراجُ مجاني والإخراجُ بضغطة، والبريدُ لا يظهر إلا باختيار صاحبه. الشركات تصل إليه باشتراك، والإبرازُ ٢٩ ريالًا في الشهر.`,
+    `${U('/market')} — أربعةُ أسئلةٍ اختياريةٍ مجهولة بعد كلِّ فحص (التخصص، المدينة، هل حصلت على مقابلة، أيُّ قالبٍ استعملت) تُجمَع في تقريرٍ منشور: المقابلاتُ لكلِّ تخصص، ووسيطُ الأشهر قبل أول مقابلة، والقوالبُ التي استعملها من حصلوا عليها. لا تُنشر نسبةٌ قبل ${MARKET_MIN} إجابات، وكلُّ نسبةٍ معها عددُ مَن خرجت منهم.`,
+    `${U('/embed')} — الفاحصُ نفسُه إطارًا واحدًا في موقعِ جامعةٍ أو معهدٍ أو مكتبِ توظيف: ١٩٩ ريالًا في الشهر لـ٥٠٠ تحميل، و٤٩٩ لـ٢٠٠٠، وما فوقها للجامعات بالاتفاق. الفحصُ يعمل في متصفح الزائر، فالجهةُ تشتري الموضعَ وحصةً شهرية — لا بياناتِ الطلاب التي لا نملكها.`,
     '',
     '## للجامعات والمعاهد ومكاتب التوظيف',
     '',

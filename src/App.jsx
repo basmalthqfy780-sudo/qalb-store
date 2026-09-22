@@ -24,6 +24,12 @@ const Blog = lazy(() => import('./pages/Blog'))
 const Post = lazy(() => import('./pages/Post'))
 const Studio = lazy(() => import('./pages/Studio'))
 const Ats = lazy(() => import('./pages/Ats'))
+const Match = lazy(() => import('./pages/Match'))
+const Kit = lazy(() => import('./pages/Kit'))
+const LinkProfile = lazy(() => import('./pages/LinkProfile'))
+const Talent = lazy(() => import('./pages/Talent'))
+const Market = lazy(() => import('./pages/Market'))
+const Embed = lazy(() => import('./pages/Embed'))
 const B2B = lazy(() => import('./pages/B2B'))
 const Services = lazy(() => import('./pages/Services'))
 const Offers = lazy(() => import('./pages/Offers'))
@@ -156,6 +162,13 @@ export default function App() {
               <Route path="/offers" element={<Offers />} />
               <Route path="/offers/:slug" element={<Offer />} />
               <Route path="/ats" element={<Ats />} />
+              {/* منظومةُ التوظيف: مطابقةُ الإعلان، ملفُّ التقديم، الرابط المهني، دليل المواهب، تقرير السوق، وفاحصٌ مضمّن للجهات */}
+              <Route path="/match" element={<Match />} />
+              <Route path="/kit" element={<Kit />} />
+              <Route path="/u/:slug" element={<LinkProfile />} />
+              <Route path="/talent" element={<Talent />} />
+              <Route path="/market" element={<Market />} />
+              <Route path="/embed" element={<Embed />} />
               <Route path="/host" element={<Host />} />
               <Route path="/blog" element={<Blog />} />
               <Route path="/blog/:slug" element={<Post />} />

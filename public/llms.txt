@@ -34,6 +34,17 @@ Every address below is written raw (`https://qalb.store/template/nova-cv`), neve
 
 https://qalb.store/ats · no account, no upload, nothing stored. 7 rules are scored out of 100 against text pasted in your own browser, in Arabic or English, and every gap comes with the fix for that gap. The passing line is 70, and the structural thresholds behind it are public: 320–900 words and at least 4 bullet lines; an empty document scores 0, so the scale has no participation floor. The sample CV in the repository scores 100. The paid templates emit the same structure this checker reads.
 
+## The hiring suite (six tools around one job application)
+
+The checker answers “can a machine read my CV?”. The hiring suite answers the next question — “is my CV written in the language of this posting?” — and it is priced per application, not per month, because a job seeker applies twenty times and then stops.
+
+https://qalb.store/match — paste a CV and a posting: the overall match percentage is free; the detailed report (the missing words ordered by weight, a suggested line for each with the section it belongs in, and three templates that fit the field) is SAR 29, or five reports for SAR 79. The score is the weight present over the weight required, where a word in the post’s title outweighs one in its body; company names and cities are not counted as requirements.
+https://qalb.store/kit — SAR 49 for ten generations. Each generation turns one posting into four artefacts: the CV bullets re-ordered around the post’s words, a cover letter, a LinkedIn note and an e-mail with its subject line. It invents nothing: whatever it cannot find in your CV is left in brackets for you to write.
+https://qalb.store/u/<name — a professional link holding a CV, work, a contact button and a CV download, with analytics the owner can see: opens, CV downloads and contact taps, plus countries with the SAR 29 a month plan. The country is inferred from the visitor’s device time zone, never from an address, and no view is tied to a person.
+https://qalb.store/talent — a directory of profiles their owners switched on, searchable by field, city and readiness score; listing is free and removal is one click, and no e-mail is shown unless its owner says so. Companies reach it on a subscription; a featured spot is SAR 29 a month.
+https://qalb.store/market — four optional, anonymous answers after every check (field, city, did you get an interview, which template) aggregated into a public report: interviews per field, median months before a first interview, and which templates interviewees used. No rate is published before 5 answers, and every rate carries the count it came from.
+https://qalb.store/embed — the readiness checker as one iframe on a university, institute or placement site: SAR 199 a month for 500 loads, SAR 499 for 2,000, and universities above that by agreement. The check runs in the visitor’s browser, so the institution buys placement and a monthly allowance — never student data, which we do not have.
+
 ## For universities, colleges and employment offices
 
 Annual seat contracts of 12 months, no auto-renewal. A seat is redeemed once by one student e-mail on one template with an institution code (`QALB-XXXX-XXXX`, excluding letters that read as digits), and it issues a licence key for that student’s own download. Prices are contract figures, not promotions:
@@ -63,7 +74,7 @@ Done-for-you services on https://qalb.store/services, priced in the same table t
 Qalb Pro on the home page, beside buying once: SAR 39 monthly or SAR 349 yearly for every template in the store and every release during the subscription. There is no auto-renewal and no card on file: a reminder is sent before it ends, and renewing is the buyer’s own action.
 Seasonal offer pages on https://qalb.store/offers: Co-op training season (5/6/7); Career-day season (2/3); Graduation season (4/5); The new work year (9/10/11) — each recommends real catalogue products and runs on the coupon FRIEND20.
 Coupons the store actually honours: SALE25 −25%, WELCOME10 −10%, QALB30 −30%, FRIEND20 −20%, COACH20 −20%, COACH30 −30%. A coach code (COACH20/COACH30) is stamped on the order ledger so a coach’s referral is settled manually from the ledger — no commission moves automatically.
-Order add-ons offered in the cart and checkout: A cover letter, written at SAR 39, A CV matched to the post at SAR 79, A human ATS review at SAR 149, Site setup on Vercel + your domain at SAR 249. The server re-prices every add-on from the same table and rejects unknown ones, exactly as it does for templates.
+Order add-ons offered in the cart and checkout: A cover letter, written at SAR 39, A CV matched to the post at SAR 79, A human ATS review at SAR 149, Site setup on Vercel + your domain at SAR 249, Build your CV from LinkedIn at SAR 39, Remove the “Built with Qalb” badge at SAR 19. The server re-prices every add-on from the same table and rejects unknown ones, exactly as it does for templates.
 
 ## Personal hosting
 
@@ -134,6 +145,17 @@ No VAT registration number, commercial-registration number, IBAN or bank name is
 
 https://qalb.store/ats — بلا حسابٍ ولا رفعِ ملفٍ ولا تخزين: 7 قواعدَ تُحسب من مئةٍ على النصِّ الملصوق في متصفحك أنت، بالعربية أو الإنجليزية، وكلُّ فجوةٍ معها علاجُها. حدُّ العبور 70، والمدى المطلوب ٣٢٠–٩٠٠ كلمةً و٤ نقطةً على الأقل، والمستندُ الفارغُ يأخذ صفرًا فلا مجاملةَ في المقياس. ونموذجُ السيرة المرفق مع المشروع يأخذ ١٠٠. القالبُ المدفوع يُخرِج البنيةَ نفسَها التي يقرأها هذا الفاحص.
 
+## منظومةُ التوظيف (ستُّ أدواتٍ حول تقديمٍ واحد)
+
+الفاحصُ يجيب: هل يقرأ الآليّ سيرتي؟ وهذه تجيب السؤالَ الذي بعده: هل سيرتي مكتوبةٌ بلغةِ هذا الإعلان؟ وسُعِّرت بالتقديم لا بالشهر، لأن الباحثَ عن عمل يقدّم عشرين مرة ثم يتوقف.
+
+https://qalb.store/match — الصق سيرةً وإعلانًا: نسبةُ المطابقة العامة مجانية، والتقريرُ المفصّل (الكلماتُ الناقصة مرتّبةً بوزنها، وسطرٌ مقترحٌ لكلٍّ منها مع قسمه، وثلاثةُ قوالبَ تليق بالمجال) بـ٢٩ ريالًا، أو خمسةُ تقاريرَ بـ٧٩. النسبةُ هي وزنُ الحاضر من وزنِ المطلوب، وكلمةُ العنوان أثقلُ من كلمةِ المتن، واسمُ الشركة والمدينة لا يُحسبان مطلبًا.
+https://qalb.store/kit — ٤٩ ريالًا لعشرِ توليدات. كلُّ توليدٍ يُخرج من إعلانٍ واحد أربعةَ أشياء: نقاطُ السيرة مرتّبةً على مفردات الإعلان، خطابُ تقديم، رسالةُ LinkedIn، وإيميلٌ بموضوعه جاهز. لا يخترعُ شيئًا: ما لا يجده في سيرتك يتركه بين قوسين لتكتبه أنت.
+https://qalb.store/u/<name — رابطٌ مهني فيه سيرةٌ وأعمالٌ وزرُّ تواصل وتحميل سيرة، وتحليلاتٌ يراها صاحبُه: الفتحات وتنزيلات السيرة وطلبات التواصل، ومعها البلدان في خطة الـ٢٩ ريالًا شهريًا. البلدُ مستنتجٌ من المنطقة الزمنية لجهاز الزائر لا من عنوانه، ولا زيارةٌ منسوبةٌ إلى شخص.
+https://qalb.store/talent — دليلُ ملفاتٍ فعّلها أصحابها، يُبحث بالتخصص والمدينة ودرجةِ الجاهزية؛ الإدراجُ مجاني والإخراجُ بضغطة، والبريدُ لا يظهر إلا باختيار صاحبه. الشركات تصل إليه باشتراك، والإبرازُ ٢٩ ريالًا في الشهر.
+https://qalb.store/market — أربعةُ أسئلةٍ اختياريةٍ مجهولة بعد كلِّ فحص (التخصص، المدينة، هل حصلت على مقابلة، أيُّ قالبٍ استعملت) تُجمَع في تقريرٍ منشور: المقابلاتُ لكلِّ تخصص، ووسيطُ الأشهر قبل أول مقابلة، والقوالبُ التي استعملها من حصلوا عليها. لا تُنشر نسبةٌ قبل 5 إجابات، وكلُّ نسبةٍ معها عددُ مَن خرجت منهم.
+https://qalb.store/embed — الفاحصُ نفسُه إطارًا واحدًا في موقعِ جامعةٍ أو معهدٍ أو مكتبِ توظيف: ١٩٩ ريالًا في الشهر لـ٥٠٠ تحميل، و٤٩٩ لـ٢٠٠٠، وما فوقها للجامعات بالاتفاق. الفحصُ يعمل في متصفح الزائر، فالجهةُ تشتري الموضعَ وحصةً شهرية — لا بياناتِ الطلاب التي لا نملكها.
+
 ## للجامعات والمعاهد ومكاتب التوظيف
 
 عقودُ مقاعد بمدّة ١٢ شهرًا وبلا تجديدٍ تلقائي. المقعدُ يُستبدل مرةً واحدةً لبريدِ طالبٍ واحد على قالبٍ واحد برمزٍ مؤسسيّ (`QALB-XXXX-XXXX`، بلا حروفٍ تُقرأ أرقامًا)، ويصدر معه مفتاحُ ترخيصٍ لصاحبِه. الأسعارُ أرقامُ عقدٍ لا عروضُ ترويجية:
@@ -163,7 +185,7 @@ https://qalb.store/ats — بلا حسابٍ ولا رفعِ ملفٍ ولا ت�
 اشتراك Qalb Pro في الرئيسية، موازيًا للشراء لمرة واحدة: ٣٩ ريالًا شهريًا أو ٣٤٩ ريالًا سنويًا لكل قوالب المتجر وكل إصدارٍ في أشهر الاشتراك. لا تجديدَ تلقائي ولا بطاقة محفوظة: يصلك تذكيرٌ قبل النهاية والتجديدُ فعلُ المشتري.
 صفحاتُ العروض الموسمية في https://qalb.store/offers: موسم التدريب التعاوني، موسم يوم المهنة، موسم التخرج، بداية السنة الوظيفية — كلٌّ منها يوصي بمنتجاتٍ حقيقية من الكتالوج ويعمل بكوبون FRIEND20.
 الكوبونات التي يعرفها المتجر فعلًا: SALE25 بخصم ٢٥٪، WELCOME10 بخصم ١٠٪، QALB30 بخصم ٣٠٪، FRIEND20 بخصم ٢٠٪، COACH20 بخصم ٢٠٪، COACH30 بخصم ٣٠٪. ورمزُ المدرّب (COACH20/COACH30) يُختم على سجلِّ الطلب فتُسوّى عمولتُه من الدفتر يدويًا — لا عمولة تُحوَّل آليًا.
-إضافاتُ الطلب في السلة والدفع: خطاب تقديم مكتوب بـ٣٩ ريالًا، سيرة مطابقة للإعلان بـ٧٩ ريالًا، مراجعة ATS بشرية بـ١٤٩ ريالًا، تركيب الموقع ونطاقك بـ٢٤٩ ريالًا. الخادم يُعيد تسعيرَ كل إضافةٍ من الجدول نفسه ويرفض المجهول منها، كما يفعل مع القوالب تمامًا.
+إضافاتُ الطلب في السلة والدفع: خطاب تقديم مكتوب بـ٣٩ ريالًا، سيرة مطابقة للإعلان بـ٧٩ ريالًا، مراجعة ATS بشرية بـ١٤٩ ريالًا، تركيب الموقع ونطاقك بـ٢٤٩ ريالًا، ابنِ سيرتك من LinkedIn بـ٣٩ ريالًا، إزالةُ شارة «بُنيَ بقالب» بـ١٩ ريالًا. الخادم يُعيد تسعيرَ كل إضافةٍ من الجدول نفسه ويرفض المجهول منها، كما يفعل مع القوالب تمامًا.
 
 ## الاستضافة الشخصية
 
