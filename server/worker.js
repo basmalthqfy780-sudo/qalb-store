@@ -31,7 +31,8 @@ import { appendFile, readFile } from 'node:fs/promises'
 import { existsSync, mkdirSync, openSync, fstatSync, readSync, closeSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
-import { templates } from '../src/data/templates.js'
+import { templates, coupons } from '../src/data/templates.js'
+import { upsellById } from '../src/data/upsells.js'
 import { loadDotEnv } from '../scripts/dotenv.mjs'
 import { createAdminApi } from './admin.js'
 import { createDeliverApi } from './deliver.js'
@@ -140,18 +141,47 @@ function endsWithNewline() {
   }
 }
 
-/** المجاميع شاملة الضريبة — تُعاد حسابها هنا ولا تُؤخذ من العميل */
-function recompute(body) {
+/**
+ * المجاميع شاملة الضريبة — تُعاد حسابها هنا ولا تُؤخذ من العميل.
+ * v1.5.0: الطلبُ قوالبُ و/أو إضافاتٌ (خدمات وتقارير واشتراكات من
+ * src/data/upsells.js)، والكوبونُ يُصدَّق من جدول القوالب لا من نسبةٍ يقولها المتصفح.
+ */
+function recompute(body, extra = {}) {
   const lines = Array.isArray(body.lines) ? body.lines : []
-  if (!lines.length) throw new Error('lines required')
+  const addons = Array.isArray(body.addons) ? body.addons : []
+  if (!lines.length && !addons.length) throw new Error('lines required')
   const table = PRICES()
   const unit = (id) => {
     const hit = table[id]
     if (hit == null) throw new Error(`unknown template: ${id}`)
     return hit
   }
-  const subtotal = lines.reduce((s, l) => s + unit(l.id) * (l.qty || 1), 0)
-  const pct = Number(body.couponPct) || 0
+  const addonUnit = (id) => {
+    const hit = upsellById(id)
+    if (!hit) throw new Error(`unknown add-on: ${id}`)
+    return hit.price
+  }
+  const lineSum = lines.reduce((s, l) => s + unit(l.id) * (l.qty || 1), 0)
+  const addonSum = addons.reduce((s, a) => s + addonUnit(a.id), 0)
+  const subtotal = Math.round((lineSum + addonSum) * 100) / 100
+  // الكوبون من الجدول لا من العميل: نسبةٌ مُختلَقة مع رمزٍ صحيح كانت ستُمرَّر قبل اليوم.
+  // استثناءٌ واحد: مسارٌ داخل الخادم (استبدال مقعد مؤسسة) يمرر نسبته في extra —
+  // لأن 100% هناك ثمنُ مقعدٍ دُفع في عقد، لا خصمًا يختاره المتصفح.
+  const trustedPct = extra && Number.isFinite(Number(extra.couponPct)) ? Number(extra.couponPct) : null
+  let pct
+  let label
+  if (trustedPct != null) {
+    pct = trustedPct
+    label = pct ? `${String(body.coupon || '')} ${pct}%` : body.coupon || null
+  } else {
+    const code = String(body.coupon || '')
+      .trim()
+      .toUpperCase()
+    const known = code ? coupons[code] : null
+    if (code && !known) throw new Error(`unknown coupon: ${code}`)
+    pct = known ? known.pct : 0
+    label = pct ? `${code} ${pct}%` : body.coupon || null
+  }
   const discount = Math.round(subtotal * (pct / 100) * 100) / 100
   const net = Math.round((subtotal - discount) * 100) / 100
   const vat = Math.round((net - net / (1 + VAT)) * 100) / 100
@@ -160,7 +190,17 @@ function recompute(body) {
   // السعر الذي حوسب فعلًا يُختم على السطر: لو تغيّر سعر القالب بعد الطلب،
   // يجب أن يبقى إيراد الماضي كما دُفع، لا كما يُسعَّر اليوم
   const stamped = lines.map((l) => ({ id: l.id, slug: l.slug || null, qty: l.qty || 1, price: unit(l.id) }))
-  return { lines: stamped, subtotal, discount, vat, total: net, coupon: pct ? `${body.coupon || ''} ${pct}%` : body.coupon || null }
+  // والإضافات كذلك: سعرُها من الجدول ختمًا، فلا يُخزَّن سعرٌ قيل للمتصفح
+  const stampedAddons = addons.map((a) => ({ id: a.id, price: addonUnit(a.id) }))
+  return {
+    lines: stamped,
+    addons: stampedAddons,
+    subtotal,
+    discount,
+    vat,
+    total: net,
+    coupon: label,
+  }
 }
 
 /**
@@ -199,7 +239,7 @@ const deliver = createDeliverApi({
  * الشراءُ الفردي واستبدالُ مقعدٍ من مؤسسة — نسخة واحدة من الحساب، لا مسارٌ ثانٍ ينفصل.
  */
 async function makeOrder(body, extra = {}) {
-  const math = recompute(body)
+  const math = recompute(body, extra)
   return save({
     id: rid(),
     key: rand(4),
@@ -210,7 +250,7 @@ async function makeOrder(body, extra = {}) {
     country: body.country || null,
     currency: 'SAR',
     vatRate: VAT,
-    count: body.count || math.lines.reduce((s, l) => s + (l.qty || 1), 0),
+    count: body.count || math.lines.reduce((s, l) => s + (l.qty || 1), 0) + math.addons.length,
     method: body.method || 'card',
     methodLabel: body.methodLabel || null,
     invoice: !!body.invoice,

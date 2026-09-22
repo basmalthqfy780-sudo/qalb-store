@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { templates, coupons } from '../data/templates'
 import { VAT } from '../data/tax.js'
 import { applyOverlay } from '../data/catalog'
+import { upsellById } from '../data/upsells'
 import { fetchCatalog } from '../api'
 
 const StoreCtx = createContext(null)
@@ -10,6 +11,8 @@ const WISH_KEY = 'qalb.wish.v1'
 const COUPON_KEY = 'qalb.coupon.v1'
 const RECENT_KEY = 'qalb.recent.v1'
 const PERSONAL_KEY = 'qalb.personalize.v1'
+/** إضافات الطلب (خدمات/تقارير/اشتراكات): معرّفٌ واحد لكل إضافة، بلا كميات */
+const ADDON_KEY = 'qalb.addons.v1'
 
 /** حقول التخصيص الاختياري — فارغة تعني «لا تُحقن شيء»، فالقالب يصل بنصوصه التجريبية */
 export const EMPTY_PERSONAL = { on: false, name: '', role: '', email: '', phone: '', website: '', bio: '' }
@@ -37,6 +40,9 @@ export function StoreProvider({ children }) {
   const [wish, setWish] = useState(() => load(WISH_KEY, []))
   const [coupon, setCoupon] = useState(() => load(COUPON_KEY, null))
   const [recent, setRecent] = useState(() => load(RECENT_KEY, []))
+  // إضافات الطلب — خدماتٍ بشرية واشتراكات وتقارير، من src/data/upsells.js وحده:
+  // المخزن يحفظ المعرّف، والسعر يُقرأ من الجدول عند كل حساب فلا ينجرف برقمٍ قديم
+  const [addons, setAddons] = useState(() => load(ADDON_KEY, []).filter((id) => !!upsellById(id)))
   const [toasts, setToasts] = useState([])
   // تُحمَل مرّة واحدة وتُرفَق بكل طلب: صفحة المنتج تكتبها، والدفع يرسلها، والإيصال يقرأها
   const [personal, setPersonalState] = useState(() => ({ ...EMPTY_PERSONAL, ...load(PERSONAL_KEY, {}) }))
@@ -50,6 +56,7 @@ export function StoreProvider({ children }) {
   useEffect(() => save(COUPON_KEY, coupon), [coupon])
   useEffect(() => save(RECENT_KEY, recent), [recent])
   useEffect(() => save(PERSONAL_KEY, personal), [personal])
+  useEffect(() => save(ADDON_KEY, addons), [addons])
 
   /**
    * الاستثناءات المكتوبة من لوحة الإدارة تُدمج هنا وحدها — نفس الوحدة التي
@@ -99,6 +106,9 @@ export function StoreProvider({ children }) {
     [lines, catalog],
   )
 
+  // الإضافات المُلحقة بالطلب — تُحلّ من جدول upsells عند كل رسم، فسعرُها المصدرُ دائمًا
+  const addonItems = useMemo(() => addons.map((id) => upsellById(id)).filter(Boolean), [addons])
+
   // Read the current lines here instead of inside the updater: React may call
   // an updater twice (StrictMode) or batch it, which made the "already in cart"
   // return value — and therefore the toast — unreliable.
@@ -111,12 +121,45 @@ export function StoreProvider({ children }) {
     [lines],
   )
 
+  // مجموعةٌ كاملة بتحديثٍ واحد: استدعاءُ add ثلاثَ مراتٍ متتابعةٍ يقرأ كلٌّ منها نسخةً
+  // قديمةً من lines فيسقط ما قبل الأخير — وهذا ما كان يفعله زرّ «أضف المجموعة».
+  const addMany = useCallback((ids) => {
+    let fresh = 0
+    setLines((prev) => {
+      const next = [...prev]
+      for (const id of ids) {
+        if (!id) continue
+        const at = next.findIndex((l) => l.id === id)
+        if (at === -1) {
+          next.push({ id, qty: 1 })
+          fresh++
+        } else next[at] = { ...next[at], qty: Math.min(9, next[at].qty + 1) }
+      }
+      return next
+    })
+    return fresh
+  }, [])
+
   const remove = useCallback((id) => setLines((p) => p.filter((l) => l.id !== id)), [])
   const setQty = useCallback(
     (id, qty) => setLines((p) => (qty <= 0 ? p.filter((l) => l.id !== id) : p.map((l) => (l.id === id ? { ...l, qty: Math.min(9, qty) } : l)))),
     [],
   )
-  const clear = useCallback(() => setLines([]), [])
+  // إضافة/إسقاط خدمةٍ أو تقريرٍ أو اشتراك — واحدة من كل نوع، فلا معنى لكمية «٣ مراجعات ATS»
+  const toggleAddon = useCallback(
+    (id) => {
+      if (!upsellById(id)) return false
+      const hit = addons.includes(id)
+      setAddons(hit ? addons.filter((x) => x !== id) : [...addons, id])
+      return !hit
+    },
+    [addons],
+  )
+  const hasAddon = useCallback((id) => addons.includes(id), [addons])
+  const clear = useCallback(() => {
+    setLines([])
+    setAddons([])
+  }, [])
 
   const inCart = useCallback((id) => lines.some((l) => l.id === id), [lines])
   const toggleWish = useCallback((id) => {
@@ -137,24 +180,27 @@ export function StoreProvider({ children }) {
   }, [])
 
   const totals = useMemo(() => {
-    const subtotal = items.reduce((s, i) => s + i.price * i.qty, 0)
+    // الإضافات تدخل المجموع كما تدخله القوالب: سعرها من الجدول، والخصمُ يشملها معها
+    const addonsSum = addonItems.reduce((s, a) => s + a.price, 0)
+    const subtotal = items.reduce((s, i) => s + i.price * i.qty, 0) + addonsSum
     const listPrice = items.reduce((s, i) => s + (i.oldPrice || i.price) * i.qty, 0)
-    const deal = listPrice - subtotal
+    const deal = listPrice - items.reduce((s, i) => s + i.price * i.qty, 0)
     const discount = coupon ? (subtotal * coupon.pct) / 100 : 0
     // Listed prices are VAT-inclusive (Saudi standard), so the 15% is
     // extracted from the net amount rather than added on top.
     const net = subtotal - discount
     const vat = net - net / (1 + VAT)
     return {
-      count: items.reduce((s, i) => s + i.qty, 0),
+      count: items.reduce((s, i) => s + i.qty, 0) + addonItems.length,
       subtotal,
+      addonsSum,
       dealSavings: deal,
       discount,
       vat,
       total: net,
       vatInclusive: true,
     }
-  }, [items, coupon])
+  }, [items, addonItems, coupon])
 
   /** يُحدَّث ثم يُنقّى في طبقة التوليد — المخزن لا يعرف قواعد الحقول */
   const setPersonal = useCallback((patch) => setPersonalState((p) => ({ ...p, ...patch })), [])
@@ -169,10 +215,15 @@ export function StoreProvider({ children }) {
     lines,
     items,
     add,
+    addMany,
     remove,
     setQty,
     clear,
     inCart,
+    addons,
+    addonItems,
+    toggleAddon,
+    hasAddon,
     wish,
     toggleWish,
     recent,

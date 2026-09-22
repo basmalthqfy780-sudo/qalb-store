@@ -4,7 +4,7 @@
 
 ## What is sold
 
-15 published templates, SAR 59–449 each. 7 of them also produce an ATS-readable CV, and that subset is what an institutional seat unlocks: a seat buys a machine-readable document, not decoration.
+20 published templates, SAR 49–449 each. 10 of them also produce an ATS-readable CV, and that subset is what an institutional seat unlocks: a seat buys a machine-readable document, not decoration.
 
 ### Templates
 - [Aether](https://qalb.store/template/aether-portfolio): Dark-mode portfolio for designers — SAR 249, site only
@@ -22,6 +22,11 @@
 - [Atlas](https://qalb.store/template/atlas-cv): The engineer’s CV — SAR 99, ships an ATS-readable CV as well as the site
 - [Apex](https://qalb.store/template/apex-cv): Executive CV in serif — SAR 129, ships an ATS-readable CV as well as the site
 - [Echo](https://qalb.store/template/echo-cv): For grads, no record needed — SAR 59, ships an ATS-readable CV as well as the site
+- [LinkedIn Kit](https://qalb.store/template/linkedin-kit): The profile a recruiter reads before your CV — SAR 119, site only
+- [Cover Letter Pack](https://qalb.store/template/cover-letter-pack): Twelve letters for every application moment — SAR 49, site only
+- [Freelancer Kit](https://qalb.store/template/freelancer-kit): Site, CV, contracts, rates — a whole shop — SAR 279, ships an ATS-readable CV as well as the site
+- [The Medical CV](https://qalb.store/template/med-cv): From internship to residency, in boards’ language — SAR 119, ships an ATS-readable CV as well as the site
+- [The Legal CV](https://qalb.store/template/legal-cv): Cases and briefs in numbers, not adjectives — SAR 109, ships an ATS-readable CV as well as the site
 
 ## Free tool: ATS readiness checker
 
@@ -31,14 +36,12 @@ https://qalb.store/ats · no account, no upload, nothing stored. 7 rules are sco
 
 Annual seat contracts of 12 months, no auto-renewal. A seat is redeemed once by one student e-mail on one template with an institution code (`QALB-XXXX-XXXX`, excluding letters that read as digits), and it issues a licence key for that student’s own download. Prices are contract figures, not promotions:
 
-- 25 seats · SAR 3,900 for 12 months · SAR 156 per seat · 65% under buying the same product one by one
-- 50 seats · SAR 15,000 for 12 months · SAR 300 per seat · 33% under buying the same product one by one
-- 150 seats · SAR 24,000 for 12 months · SAR 160 per seat · 64% under buying the same product one by one
+- 50 seats · SAR 7,500 for 12 months · SAR 150 per seat · 67% under buying the same product one by one
+- 100 seats · SAR 13,000 for 12 months · SAR 130 per seat · 71% under buying the same product one by one
 - 300 seats · SAR 33,000 for 12 months · SAR 110 per seat · 76% under buying the same product one by one
-- 500 seats · SAR 45,000 for 12 months · SAR 90 per seat · 80% under buying the same product one by one
 
-The entry offer is 25 seats for SAR 3,900 — sized to stay under a dean’s signature authority — and what was paid for it is credited against the first annual contract by a staff member, manually, because there is no payment gateway here to net it automatically.
-A seat is compared with what a seat opens, never with the cheapest item on the shelf: the reference product is “Mirror Pro” at SAR 449, and the individual-purchase range across the 7 measurable templates is SAR 59–449.
+The university ladder is three packages: a cohort of 50 seats, a college of 100 with the coach panel — the cohort code’s page shows the coach seats spent and seats left, with no student names — and a campus of 300 that adds a workshop run by our team, scheduled with the university after signing. More than 300 students is a second contract; the page says so rather than inventing a bigger tier.
+A seat is compared with what a seat opens, never with the cheapest item on the shelf: the reference product is “Mirror Pro” at SAR 449, and the individual-purchase range across the 10 measurable templates is SAR 59–449.
 
 ### Measuring a cohort (the part we ask to be judged on)
 
@@ -51,6 +54,14 @@ A printable quotation sheet: quote number (`QALB-Q-<year>-<4>`), date, validity 
 Buying through the Etimad (اعتماد) government procurement platform: we are not listed there yet, and the page says so. An institution whose procurement must run through Etimad is asked to tell us first, and no “registered” badge is shown to look better.
 
 No sales phone number and no booking link are published, because none is configured on this deployment; the site says that plainly instead of showing a call button that reaches nothing. The working channel is qalb@qalb.store.
+
+## Services, subscriptions and seasonal offers
+
+Done-for-you services on https://qalb.store/services, priced in the same table the cart prices: Site setup on Vercel + your domain at SAR 249 (delivered by e-mail within 72 working hours), A CV written from scratch at SAR 299 (delivered by e-mail within 120 working hours), The full identity at SAR 899 (delivered by e-mail within 240 working hours). They are paid in the same cart as templates, but nothing is auto-delivered: a person reads the order and writes the reply, which is why each card prints a deadline instead of “instant”.
+Qalb Pro on the home page, beside buying once: SAR 39 monthly or SAR 349 yearly for every template in the store and every release during the subscription. There is no auto-renewal and no card on file: a reminder is sent before it ends, and renewing is the buyer’s own action.
+Seasonal offer pages on https://qalb.store/offers: Co-op training season (5/6/7); Career-day season (2/3); Graduation season (4/5); The new work year (9/10/11) — each recommends real catalogue products and runs on the coupon FRIEND20.
+Coupons the store actually honours: SALE25 −25%, WELCOME10 −10%, QALB30 −30%, FRIEND20 −20%, COACH20 −20%, COACH30 −30%. A coach code (COACH20/COACH30) is stamped on the order ledger so a coach’s referral is settled manually from the ledger — no commission moves automatically.
+Order add-ons offered in the cart and checkout: A cover letter, written at SAR 39, A CV matched to the post at SAR 79, A human ATS review at SAR 149, Site setup on Vercel + your domain at SAR 249. The server re-prices every add-on from the same table and rejects unknown ones, exactly as it does for templates.
 
 ## Personal hosting
 
@@ -73,6 +84,8 @@ No VAT registration number, commercial-registration number, IBAN or bank name is
 - Legal, licence and refund terms: https://qalb.store/legal
 - Catalogue: https://qalb.store/templates
 - ATS checker: https://qalb.store/ats
+- Done-for-you services: https://qalb.store/services
+- Seasonal offers: https://qalb.store/offers
 - Institutional seats and cohort measurement: https://qalb.store/b2b
 - Hosting: https://qalb.store/host
 - Journal (CV and portfolio guides): https://qalb.store/blog
@@ -89,7 +102,7 @@ No VAT registration number, commercial-registration number, IBAN or bank name is
 
 ## ما يُباع
 
-15 قالبًا منشورًا من ٥٩ إلى ٤٤٩ ريالًا؛ 7 منها يُخرِج مع الموقع سيرةً ذاتيةً بمعايير الفرز الآلي، وهذا الجزءُ وحدَه هو ما تفتحه المقاعدُ المؤسسية: المقعدُ يشتري وثيقةً تقرؤها الآلة، لا زينةً.
+20 قالبًا منشورًا من ٤٩ إلى ٤٤٩ ريالًا؛ 10 منها يُخرِج مع الموقع سيرةً ذاتيةً بمعايير الفرز الآلي، وهذا الجزءُ وحدَه هو ما تفتحه المقاعدُ المؤسسية: المقعدُ يشتري وثيقةً تقرؤها الآلة، لا زينةً.
 
 ### القوالب
 - [أيثر](https://qalb.store/template/aether-portfolio): بورتفوليو المصممين بنمط داكن — ٢٤٩ ريالًا · موقعٌ فقط
@@ -107,6 +120,11 @@ No VAT registration number, commercial-registration number, IBAN or bank name is
 - [أطلس](https://qalb.store/template/atlas-cv): سيرة المهندسين والتقنيين — ٩٩ ريالًا · يُخرِج سيرةً ذاتية يقرؤها الفرزُ الآلي مع الموقع
 - [أبيكس](https://qalb.store/template/apex-cv): سيرة تنفيذية بخط serif — ١٢٩ ريالًا · يُخرِج سيرةً ذاتية يقرؤها الفرزُ الآلي مع الموقع
 - [إيكو](https://qalb.store/template/echo-cv): لخريج بلا خبرة طويلة — ٥٩ ريالًا · يُخرِج سيرةً ذاتية يقرؤها الفرزُ الآلي مع الموقع
+- [حزمة LinkedIn](https://qalb.store/template/linkedin-kit): ملفك المهني يقرؤه المستشغل قبل سيرتك — ١١٩ ريالًا · موقعٌ فقط
+- [قوالب خطاب التقديم](https://qalb.store/template/cover-letter-pack): اثنا عشر خطابًا لمواقف التقديم كلها — ٤٩ ريالًا · موقعٌ فقط
+- [حزمة المستقلين](https://qalb.store/template/freelancer-kit): موقع وسيرة وعقود وأسعار — دكانٌ كامل — ٢٧٩ ريالًا · يُخرِج سيرةً ذاتية يقرؤها الفرزُ الآلي مع الموقع
+- [سيرة التخصص الطبي](https://qalb.store/template/med-cv): من الامتياز إلى الإقامة بلغة اللجان — ١١٩ ريالًا · يُخرِج سيرةً ذاتية يقرؤها الفرزُ الآلي مع الموقع
+- [سيرة القانونيين](https://qalb.store/template/legal-cv): قضايا ومذكرات بأرقامها، لا صفاتٍ عامة — ١٠٩ ريالًا · يُخرِج سيرةً ذاتية يقرؤها الفرزُ الآلي مع الموقع
 
 ## الأداةُ المجانية: فاحصُ جاهزية الفرز الآلي
 
@@ -116,14 +134,12 @@ https://qalb.store/ats — بلا حسابٍ ولا رفعِ ملفٍ ولا ت�
 
 عقودُ مقاعد بمدّة ١٢ شهرًا وبلا تجديدٍ تلقائي. المقعدُ يُستبدل مرةً واحدةً لبريدِ طالبٍ واحد على قالبٍ واحد برمزٍ مؤسسيّ (`QALB-XXXX-XXXX`، بلا حروفٍ تُقرأ أرقامًا)، ويصدر معه مفتاحُ ترخيصٍ لصاحبِه. الأسعارُ أرقامُ عقدٍ لا عروضُ ترويجية:
 
-- ٢٥ مقعدًا · ٣,٩٠٠ ريالًا لكل ١٢ شهرًا · ١٥٦ ريالًا للمقعد · أقلُّ بـ٦٥٪ من شرائه فرديًا
-- ٥٠ مقعدًا · ١٥,٠٠٠ ريالًا لكل ١٢ شهرًا · ٣٠٠ ريالًا للمقعد · أقلُّ بـ٣٣٪ من شرائه فرديًا
-- ١٥٠ مقعدًا · ٢٤,٠٠٠ ريالًا لكل ١٢ شهرًا · ١٦٠ ريالًا للمقعد · أقلُّ بـ٦٤٪ من شرائه فرديًا
+- ٥٠ مقعدًا · ٧,٥٠٠ ريالًا لكل ١٢ شهرًا · ١٥٠ ريالًا للمقعد · أقلُّ بـ٦٧٪ من شرائه فرديًا
+- ١٠٠ مقعدًا · ١٣,٠٠٠ ريالًا لكل ١٢ شهرًا · ١٣٠ ريالًا للمقعد · أقلُّ بـ٧١٪ من شرائه فرديًا
 - ٣٠٠ مقعدًا · ٣٣,٠٠٠ ريالًا لكل ١٢ شهرًا · ١١٠ ريالًا للمقعد · أقلُّ بـ٧٦٪ من شرائه فرديًا
-- ٥٠٠ مقعدًا · ٤٥,٠٠٠ ريالًا لكل ١٢ شهرًا · ٩٠ ريالًا للمقعد · أقلُّ بـ٨٠٪ من شرائه فرديًا
 
-باقةُ الدخول ٢٥ مقعدًا بـ٣,٩٠٠ ريالًا مصمَّمةٌ لتبقى تحت سلطة توقيع العميد، ويُخصَم ما دُفع منها من عقد السنة الأولى بخطوةٍ من موظفنا يدويًا — لا خصمًا ذاتيًّا لأن لا بوابة دفع لدينا.
-المقعدُ يُقارَن بما يفتحه هو، لا بأرخص شيءٍ على الرف: المرجعُ «مِرآة برو» بـ٤٤٩ ريالًا، ونطاقُ الشراء الفردي للّ٧ القابلة للقياس ٥٩–٤٤٩ ريالًا.
+سلّمُ الجامعات ثلاثُ باقات: فوجٌ بخمسين مقعدًا، وكليةٌ بمئة مقعد مع لوحةِ المدرّب — صفحةُ رمز الفوج تُظهر للمدرّب ما استُهلك وما بقي بلا أسماء طلاب — وجامعةٌ بثلاثِمئة مقعد تضيف ورشةَ عملٍ يقدمها فريقنا تُنسَّق مواعيدها بعد التوقيع. وما زاد على الثلاثِمئة بعقدٍ ثانٍ؛ الصفحةُ تقول ذلك بدل أن تختلق باقةً أكبر.
+المقعدُ يُقارَن بما يفتحه هو، لا بأرخص شيءٍ على الرف: المرجعُ «مِرآة برو» بـ٤٤٩ ريالًا، ونطاقُ الشراء الفردي للّ١٠ القابلة للقياس ٥٩–٤٤٩ ريالًا.
 
 ### قياسُ جاهزية الدفعة
 
@@ -136,6 +152,14 @@ https://qalb.store/ats — بلا حسابٍ ولا رفعِ ملفٍ ولا ت�
 الشراءُ عبر منصة اعتماد: لسنا مُدرَجين هناك بعد، والصفحةُ تقول ذلك ولا تُظهر شارةَ «مسجَّل» لتبدو أفضل؛ ومَن تشترطُ الشراءَ من اعتماد تُخبرنا أولًا لِنُكمل المسارَ معها.
 
 لا هاتفَ مبيعات ولا رابطَ حجزٍ منشورًا — لا شيء مضبوطًا في هذا النشر، والصفحةُ تقول ذلك بصريح العبارة بدل زرِّ «اتصل» لا يوصل إلى شيء. القناةُ العاملةُ هي الكتابةُ إلى qalb@qalb.store.
+
+## الخدماتُ والاشتراكُ والعروضُ الموسمية
+
+خدماتٌ نؤديها نحن في https://qalb.store/services، مُسعَّرةٌ من الجدول نفسه الذي تُحسب به السلة: تركيب الموقع ونطاقك بـ٢٤٩ ريالًا (تُسلَّم بالبريد خلال ٧٢ ساعة عمل)، كتابة السيرة من الصفر بـ٢٩٩ ريالًا (تُسلَّم بالبريد خلال ١٢٠ ساعة عمل)، الهوية كاملة بـ٨٩٩ ريالًا (تُسلَّم بالبريد خلال ٢٤٠ ساعة عمل). تُدفع في السلة نفسها مع القوالب، لكن لا شيء يُسلَّم آليًا: إنسانٌ يقرأ الطلب ويكتب الرد — ولهذا تطبع كلُّ بطاقةٍ مهلةً لا «فورًا».
+اشتراك Qalb Pro في الرئيسية، موازيًا للشراء لمرة واحدة: ٣٩ ريالًا شهريًا أو ٣٤٩ ريالًا سنويًا لكل قوالب المتجر وكل إصدارٍ في أشهر الاشتراك. لا تجديدَ تلقائي ولا بطاقة محفوظة: يصلك تذكيرٌ قبل النهاية والتجديدُ فعلُ المشتري.
+صفحاتُ العروض الموسمية في https://qalb.store/offers: موسم التدريب التعاوني، موسم يوم المهنة، موسم التخرج، بداية السنة الوظيفية — كلٌّ منها يوصي بمنتجاتٍ حقيقية من الكتالوج ويعمل بكوبون FRIEND20.
+الكوبونات التي يعرفها المتجر فعلًا: SALE25 بخصم ٢٥٪، WELCOME10 بخصم ١٠٪، QALB30 بخصم ٣٠٪، FRIEND20 بخصم ٢٠٪، COACH20 بخصم ٢٠٪، COACH30 بخصم ٣٠٪. ورمزُ المدرّب (COACH20/COACH30) يُختم على سجلِّ الطلب فتُسوّى عمولتُه من الدفتر يدويًا — لا عمولة تُحوَّل آليًا.
+إضافاتُ الطلب في السلة والدفع: خطاب تقديم مكتوب بـ٣٩ ريالًا، سيرة مطابقة للإعلان بـ٧٩ ريالًا، مراجعة ATS بشرية بـ١٤٩ ريالًا، تركيب الموقع ونطاقك بـ٢٤٩ ريالًا. الخادم يُعيد تسعيرَ كل إضافةٍ من الجدول نفسه ويرفض المجهول منها، كما يفعل مع القوالب تمامًا.
 
 ## الاستضافة الشخصية
 
@@ -158,6 +182,8 @@ https://qalb.store/ats — بلا حسابٍ ولا رفعِ ملفٍ ولا ت�
 - العقودُ والترخيصُ والاسترجاع: https://qalb.store/legal
 - الكتالوج: https://qalb.store/templates
 - فاحصُ الجاهزية: https://qalb.store/ats
+- الخدمات: https://qalb.store/services
+- العروضُ الموسمية: https://qalb.store/offers
 - مقاعدُ المؤسسات وقياسُ الدفعة: https://qalb.store/b2b
 - الاستضافة: https://qalb.store/host
 - المدوّنة (أدلة السيرة والمعرض): https://qalb.store/blog

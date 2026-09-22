@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useI18n, num, dec } from '../i18n'
 import { useStore } from '../store/StoreContext'
 import { templates } from '../data/templates'
+import { cartUpsells, addonDelivery } from '../data/upsells'
 import { ArtTile } from '../components/Preview'
 import TemplateCard from '../components/TemplateCard'
 import { Btn, Icon, Money, Pill } from '../components/ui'
@@ -10,11 +11,12 @@ import { useSeo } from '../components/Seo'
 
 export default function Cart() {
   const { t, L } = useI18n()
-  const { items, totals, setQty, remove, clear, coupon, applyCoupon, clearCoupon, toast } = useStore()
+  const { items, addonItems, totals, setQty, remove, clear, coupon, applyCoupon, clearCoupon, toggleAddon, hasAddon, toast } = useStore()
   const [code, setCode] = useState('')
   const [err, setErr] = useState(false)
 
   const suggestions = templates.filter((x) => !items.some((i) => i.id === x.id)).slice(0, 3)
+  const upsells = cartUpsells()
 
   const submitCoupon = (e) => {
     e.preventDefault()
@@ -30,7 +32,7 @@ export default function Cart() {
 
   useSeo(`${t('cart.title')} · ${t('brand.name')}`, t('meta.cartDesc'), { robots: 'noindex,follow' })
 
-  if (!items.length) {
+  if (!items.length && !addonItems.length) {
     return (
       <div className="page-x mx-auto flex max-w-[1400px] flex-col items-center px-6 py-24 text-center">
         <span className="relative grid size-24 place-items-center rounded-3xl border border-line bg-panel">
@@ -85,90 +87,145 @@ export default function Cart() {
       </div>
 
       <div className="mt-8 grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_384px]">
-        <ul className="space-y-3">
-          {items.map((it) => {
-            const off = it.oldPrice ? Math.round((1 - it.price / it.oldPrice) * 100) : 0
-            return (
-              <li
-                key={it.id}
-                className="group flex flex-col gap-4 rounded-2xl border border-line bg-panel p-3.5 transition hover:border-brand/30 sm:flex-row"
-              >
-                <Link
-                  to={`/template/${it.slug}`}
-                  className="grid shrink-0 place-items-center self-center rounded-lg border border-line bg-bg p-2 sm:self-start"
+        <div className="min-w-0">
+          <ul className="space-y-3">
+            {items.map((it) => {
+              const off = it.oldPrice ? Math.round((1 - it.price / it.oldPrice) * 100) : 0
+              return (
+                <li
+                  key={it.id}
+                  className="group flex flex-col gap-4 rounded-2xl border border-line bg-panel p-3.5 transition hover:border-brand/30 sm:flex-row"
                 >
-                  <ArtTile tpl={it} size={66} />
-                </Link>
-                <div className="flex min-w-0 flex-1 flex-col">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <Link to={`/template/${it.slug}`} className="block truncate font-display text-[17px] font-extrabold hover:text-brand">
-                        {L(it.name)}
-                      </Link>
-                      <p className="mt-1 line-clamp-2 text-[12.5px] leading-relaxed text-dim">{L(it.tagline)}</p>
+                  <Link
+                    to={`/template/${it.slug}`}
+                    className="grid shrink-0 place-items-center self-center rounded-lg border border-line bg-bg p-2 sm:self-start"
+                  >
+                    <ArtTile tpl={it} size={66} />
+                  </Link>
+                  <div className="flex min-w-0 flex-1 flex-col">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <Link to={`/template/${it.slug}`} className="block truncate font-display text-[17px] font-extrabold hover:text-brand">
+                          {L(it.name)}
+                        </Link>
+                        <p className="mt-1 line-clamp-2 text-[12.5px] leading-relaxed text-dim">{L(it.tagline)}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          remove(it.id)
+                          toast(t('toast.removed'))
+                        }}
+                        aria-label={t('cart.remove')}
+                        className="grid size-8 shrink-0 place-items-center rounded-lg border border-line text-dim transition hover:border-danger/40 hover:text-danger"
+                      >
+                        <Icon n="trash" className="size-3.5" />
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        remove(it.id)
-                        toast(t('toast.removed'))
-                      }}
-                      aria-label={t('cart.remove')}
-                      className="grid size-8 shrink-0 place-items-center rounded-lg border border-line text-dim transition hover:border-danger/40 hover:text-danger"
-                    >
-                      <Icon n="trash" className="size-3.5" />
-                    </button>
-                  </div>
-                  <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                    <Pill tone="solid">{t(`types.${it.type}`)}</Pill>
-                    {it.perf && (
-                      <Pill tone="brand">
-                        {t('product.perfScore')} {it.perf}
-                      </Pill>
-                    )}
-                    {it.ats && (
-                      <Pill tone="gold">
-                        {t('product.atsScore')} {it.ats}
-                      </Pill>
-                    )}
-                    {off > 0 && <Pill tone="gold">-{off}%</Pill>}
-                    {(it.stack || []).slice(0, 3).map((x) => (
-                      <Pill key={x}>{x}</Pill>
-                    ))}
-                  </div>
-                  <div className="mt-auto flex flex-wrap items-end justify-between gap-3 pt-4">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[11px] font-bold uppercase tracking-wide text-dim">{t('cart.qty')}</span>
-                      <div className="inline-flex h-9 items-center rounded-lg border border-line bg-bg">
-                        <button
-                          type="button"
-                          onClick={() => setQty(it.id, it.qty - 1)}
-                          aria-label="-"
-                          className="grid size-9 place-items-center text-dim transition hover:text-ink"
-                        >
-                          <Icon n="minus" className="size-3.5" sw={2.2} />
-                        </button>
-                        <span className="num w-7 text-center text-[13.5px] font-bold">{it.qty}</span>
-                        <button
-                          type="button"
-                          onClick={() => setQty(it.id, it.qty + 1)}
-                          aria-label="+"
-                          className="grid size-9 place-items-center text-dim transition hover:text-ink"
-                        >
-                          <Icon n="plus" className="size-3.5" sw={2.2} />
-                        </button>
+                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                      <Pill tone="solid">{t(`types.${it.type}`)}</Pill>
+                      {it.perf && (
+                        <Pill tone="brand">
+                          {t('product.perfScore')} {it.perf}
+                        </Pill>
+                      )}
+                      {it.ats && (
+                        <Pill tone="gold">
+                          {t('product.atsScore')} {it.ats}
+                        </Pill>
+                      )}
+                      {off > 0 && <Pill tone="gold">-{off}%</Pill>}
+                      {(it.stack || []).slice(0, 3).map((x) => (
+                        <Pill key={x}>{x}</Pill>
+                      ))}
+                    </div>
+                    <div className="mt-auto flex flex-wrap items-end justify-between gap-3 pt-4">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] font-bold uppercase tracking-wide text-dim">{t('cart.qty')}</span>
+                        <div className="inline-flex h-9 items-center rounded-lg border border-line bg-bg">
+                          <button
+                            type="button"
+                            onClick={() => setQty(it.id, it.qty - 1)}
+                            aria-label="-"
+                            className="grid size-9 place-items-center text-dim transition hover:text-ink"
+                          >
+                            <Icon n="minus" className="size-3.5" sw={2.2} />
+                          </button>
+                          <span className="num w-7 text-center text-[13.5px] font-bold">{it.qty}</span>
+                          <button
+                            type="button"
+                            onClick={() => setQty(it.id, it.qty + 1)}
+                            aria-label="+"
+                            className="grid size-9 place-items-center text-dim transition hover:text-ink"
+                          >
+                            <Icon n="plus" className="size-3.5" sw={2.2} />
+                          </button>
+                        </div>
+                      </div>
+                      <div className="text-end">
+                        {it.oldPrice && <div className="num text-[11.5px] text-dim line-through">{dec(it.oldPrice * it.qty)}</div>}
+                        <Money v={it.price * it.qty} size="text-[19px]" />
                       </div>
                     </div>
-                    <div className="text-end">
-                      {it.oldPrice && <div className="num text-[11.5px] text-dim line-through">{dec(it.oldPrice * it.qty)}</div>}
-                      <Money v={it.price * it.qty} size="text-[19px]" />
-                    </div>
                   </div>
-                </div>
-              </li>
-            )
-          })}
-        </ul>
+                </li>
+              )
+            })}
+          </ul>
+
+          {/* ————— إضافات الطلب: خدماتٌ تُلحَق بالطلب من جدول واحد لا تُكتب أسعارها هنا ————— */}
+          {upsells.length > 0 && (
+            <section className="mt-6 rounded-3xl border border-line bg-panel/60 p-5" data-upsells aria-label={t('cart.upsellsTitle')}>
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <h2 className="font-display text-[17px] font-extrabold">{t('cart.upsellsTitle')}</h2>
+                <p className="text-[11.5px] text-dim">{t('cart.upsellsSub')}</p>
+              </div>
+              <ul className="mt-3.5 grid gap-2.5 sm:grid-cols-2">
+                {upsells.map((u) => {
+                  const on = hasAddon(u.id)
+                  const delivery = addonDelivery(u.id)
+                  return (
+                    <li key={u.id}>
+                      <button
+                        type="button"
+                        data-upsell={u.id}
+                        aria-pressed={on}
+                        onClick={() => {
+                          const added = toggleAddon(u.id)
+                          toast(added ? t('cart.addonAdded', { n: L(u.name) }) : t('cart.addonRemoved', { n: L(u.name) }))
+                        }}
+                        className={`flex w-full items-center gap-3 rounded-2xl border p-3 text-start transition ${
+                          on ? 'border-brand/45 bg-brand/8' : 'border-line bg-bg/50 hover:border-brand/30'
+                        }`}
+                      >
+                        <span
+                          className={`grid size-9 shrink-0 place-items-center rounded-xl ${on ? 'bg-brand/15 text-brand' : 'bg-panel2/60 text-dim'}`}
+                        >
+                          <Icon n={on ? 'check' : u.icon || 'spark'} className="size-4" sw={2.4} />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-[13.5px] font-bold text-ink">{L(u.name)}</span>
+                          <span className="mt-0.5 block line-clamp-2 text-[11.5px] leading-relaxed text-dim">{L(u.tagline)}</span>
+                          {delivery?.kind === 'email' && (
+                            <span className="num mt-1 block text-[10.5px] font-semibold text-dim/80">
+                              {t('cart.addonSla', { h: num(delivery.hours) })}
+                            </span>
+                          )}
+                        </span>
+                        <span className="shrink-0 text-end">
+                          <Money v={u.price} size="text-[14px]" />
+                          <span className={`mt-1 block text-[10.5px] font-bold ${on ? 'text-brand' : 'text-dim'}`}>
+                            {on ? t('cart.addonIn') : t('cart.addonAdd')}
+                          </span>
+                        </span>
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
+            </section>
+          )}
+        </div>
 
         {/* summary */}
         <aside className="lg:sticky lg:top-[92px]">
@@ -177,6 +234,32 @@ export default function Cart() {
               <h2 className="font-display text-[17px] font-extrabold">{t('cart.summary')}</h2>
             </div>
             <div className="space-y-3 px-6 py-5 text-[13.5px]">
+              {addonItems.length > 0 && (
+                <ul data-cart-addons className="space-y-2 border-b border-line pb-3">
+                  {addonItems.map((a) => (
+                    <li key={a.id} className="flex items-center justify-between gap-2">
+                      <span className="inline-flex min-w-0 items-center gap-1.5">
+                        <Icon n={a.icon || 'spark'} className="size-3.5 shrink-0 text-brand" />
+                        <span className="truncate text-[12.5px] font-semibold text-ink">{L(a.name)}</span>
+                      </span>
+                      <span className="inline-flex shrink-0 items-center gap-2">
+                        <span className="num text-[12.5px] font-semibold">{dec(a.price)}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            toggleAddon(a.id)
+                            toast(t('cart.addonRemoved', { n: L(a.name) }))
+                          }}
+                          aria-label={t('cart.remove')}
+                          className="text-dim transition hover:text-danger"
+                        >
+                          <Icon n="close" className="size-3" sw={2.6} />
+                        </button>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
               <Line label={t('cart.subtotal')} value={totals.subtotal} />
               {totals.dealSavings > 0 && (
                 <div className="flex items-center justify-between text-brand">
@@ -259,7 +342,7 @@ export default function Cart() {
                     {t('cart.couponBad')}
                   </>
                 ) : (
-                  !coupon && <span className="num">SALE25 · WELCOME10 · QALB30</span>
+                  !coupon && <span className="num">FRIEND20 · COACH20 · COACH30</span>
                 )}
               </p>
             </form>

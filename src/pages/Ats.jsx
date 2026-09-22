@@ -2,7 +2,9 @@ import { useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useI18n, num } from '../i18n'
 import { ATS_DEMO, ATS_TARGET, analyzeAts, atsReport } from '../data/ats'
-import { atsReadyTemplates, byId } from '../data/templates'
+import { atsReadyTemplates, byId, categories, templates } from '../data/templates'
+import { atsReportUpsell } from '../data/upsells'
+import { useStore } from '../store/StoreContext'
 import { SUPPORT_MAILTO } from '../data/contact'
 import { toolLd, useSeo } from '../components/Seo'
 import { Btn, Head, Icon, Money, Pill, Reveal } from '../components/ui'
@@ -17,10 +19,13 @@ const MAX_BYTES = 200_000
  */
 export default function Ats() {
   const { t, L, lang } = useI18n()
+  const { toggleAddon, hasAddon, toast } = useStore()
   const [text, setText] = useState('')
   const [fileName, setFileName] = useState('')
   const [refused, setRefused] = useState('')
   const [note, setNote] = useState('')
+  // مجالُ صاحب السيرة — يوجّه توصيات القوالب في بطاقة التقرير المدفوع
+  const [field, setField] = useState('')
   const taRef = useRef(null)
   const fileRef = useRef(null)
 
@@ -49,6 +54,15 @@ export default function Ats() {
   })
 
   const report = useMemo(() => (scored || res.words > 0 ? atsReport(res, { lang }) : ''), [res, lang, scored])
+  const paid = atsReportUpsell()
+  /** توصيات حسب المجال: من الكتالوج نفسه، مرتّبة بالتقييم — بلا قائمةٍ تُكتب يدويًا */
+  const fieldPicks = useMemo(() => {
+    if (!field) return []
+    return templates
+      .filter((x) => (x.cats || []).includes(field))
+      .sort((a, b) => (b.rating || 0) - (a.rating || 0))
+      .slice(0, 3)
+  }, [field])
 
   async function copy() {
     try {
@@ -265,6 +279,69 @@ export default function Ats() {
                 </>
               )}
             </div>
+
+            {scored && paid && (
+              <div className="mt-4 rounded-3xl border border-gold/35 bg-gold/[0.06] p-4.5" data-ats-paid>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[13.5px] font-extrabold text-ink">{L(paid.name)}</p>
+                    <p className="mt-1 text-[12px] leading-relaxed text-dim">{L(paid.tagline)}</p>
+                  </div>
+                  <Money v={paid.price} size="text-[18px]" />
+                </div>
+                <p className="mt-2.5 text-[12px] leading-relaxed text-dim">{L(paid.desc)}</p>
+
+                <p className="mt-3.5 text-[11px] font-bold uppercase tracking-[0.14em] text-dim">{t('ats.fieldPick')}</p>
+                <div className="mt-2 flex flex-wrap gap-1.5" data-ats-fields>
+                  {categories.map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      aria-pressed={field === c.id}
+                      onClick={() => setField(field === c.id ? '' : c.id)}
+                      className={`rounded-lg border px-2.5 py-1.5 text-[11.5px] font-bold transition ${
+                        field === c.id ? 'border-brand/50 bg-brand/12 text-brand' : 'border-line bg-bg/60 text-dim hover:text-ink'
+                      }`}
+                    >
+                      {L(c)}
+                    </button>
+                  ))}
+                </div>
+                {field && (
+                  <div className="mt-2.5 flex flex-col gap-1.5" data-ats-field-picks>
+                    {fieldPicks.map((x) => (
+                      <Link
+                        key={x.id}
+                        to={`/template/${x.slug}`}
+                        className="flex items-center gap-2.5 rounded-2xl border border-line bg-panel/70 p-2.5 transition hover:border-brand/45"
+                      >
+                        <span className="grid size-8 shrink-0 place-items-center rounded-xl bg-bg/80 text-dim">
+                          <Icon n="file" className="size-4" />
+                        </span>
+                        <span className="min-w-0 text-[12.5px] font-semibold text-ink">{L(x.name)}</span>
+                        <span className="ms-auto shrink-0">
+                          <Money v={x.price} size="text-[12px]" />
+                        </span>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+
+                <Btn
+                  size="md"
+                  className="mt-3.5 w-full"
+                  data-ats-paid-add
+                  onClick={() => {
+                    const added = toggleAddon(paid.id)
+                    toast(added ? t('cart.addonAdded', { n: L(paid.name) }) : t('cart.addonRemoved', { n: L(paid.name) }))
+                  }}
+                >
+                  <Icon n={hasAddon(paid.id) ? 'check' : 'cart'} className="size-4" />
+                  {hasAddon(paid.id) ? t('ats.paidInCart') : t('ats.paidAdd')}
+                </Btn>
+                <p className="num mt-2 text-center text-[10.5px] font-semibold text-dim">{t('cart.addonSla', { h: num(paid.sla) })}</p>
+              </div>
+            )}
 
             {scored && res.gaps.length > 0 && (
               <div className="mt-4 rounded-3xl border border-brand/25 bg-brand/6 p-4.5" data-ats-cta>

@@ -71,12 +71,14 @@ export async function buildLlms({ site = 'https://qalb.store' } = {}) {
   const { COMPANY, VAT_RATE, QUOTE_VALID_DAYS, quoteReady, quoteMissing, isSet } = await imp('src/data/company.js')
   const { SUPPORT_MAIL, SUPPORT_PHONE, BOOKING_URL } = await imp('src/data/contact.js')
   const { PLANS } = await imp('src/data/hosting.js')
+  const { offers } = await imp('src/data/offers.js')
+  const { UPSELLS, cartUpsells, serviceUpsells, proPlans } = await imp('src/data/upsells.js')
+  const { coupons } = await imp('src/data/templates.js')
 
   const U = (p) => `${site}${p}`
   const prices = templates.map((t) => Number(t.price)).filter(Boolean)
   const band = seatRetailBand()
   const bundle = seatBundle()
-  const pilot = B2B_TIERS.find((t) => t.id === 'pilot')
   const pro = PLANS.pro
   const free = PLANS.free
   const vatPct = Math.round(VAT_RATE * 100)
@@ -169,9 +171,7 @@ export async function buildLlms({ site = 'https://qalb.store' } = {}) {
     '',
     tiersEn,
     '',
-    pilot
-      ? `The entry offer is ${pilot.seats} seats for SAR ${num(pilot.price)} — sized to stay under a dean’s signature authority — and what was paid for it is credited against the first annual contract by a staff member, manually, because there is no payment gateway here to net it automatically.`
-      : null,
+    `The university ladder is three packages: a cohort of 50 seats, a college of 100 with the coach panel — the cohort code’s page shows the coach seats spent and seats left, with no student names — and a campus of 300 that adds a workshop run by our team, scheduled with the university after signing. More than 300 students is a second contract; the page says so rather than inventing a bigger tier.`,
     `A seat is compared with what a seat opens, never with the cheapest item on the shelf: the reference product is ${
       bundle ? `“${bundle.name.en}” at SAR ${num(bundle.price)}` : 'the CV-and-site bundle'
     }, and the individual-purchase range across the ${band.count} measurable templates is SAR ${num(band.min)}–${num(band.max)}.`,
@@ -191,6 +191,30 @@ export async function buildLlms({ site = 'https://qalb.store' } = {}) {
     }, and the page says so. An institution whose procurement must run through Etimad is asked to tell us first, and no “registered” badge is shown to look better.`,
     '',
     phoneEn,
+    '',
+    '## Services, subscriptions and seasonal offers',
+    '',
+    `Done-for-you services on ${U('/services')}, priced in the same table the cart prices: ${serviceUpsells()
+      .map((x) => `${x.name.en} at SAR ${num(x.price)} (delivered by e-mail within ${x.sla} working hours)`)
+      .join(
+        ', ',
+      )}. They are paid in the same cart as templates, but nothing is auto-delivered: a person reads the order and writes the reply, which is why each card prints a deadline instead of “instant”.`,
+    `Qalb Pro on the home page, beside buying once: ${proPlans()
+      .map((x) => `SAR ${num(x.price)} ${x.period === 'month' ? 'monthly' : 'yearly'}`)
+      .join(
+        ' or ',
+      )} for every template in the store and every release during the subscription. There is no auto-renewal and no card on file: a reminder is sent before it ends, and renewing is the buyer’s own action.`,
+    `Seasonal offer pages on ${U('/offers')}: ${offers
+      .map((o) => `${o.title.en} (${o.months.map((m) => m).join('/')})`)
+      .join('; ')} — each recommends real catalogue products and runs on the coupon FRIEND20.`,
+    `Coupons the store actually honours: ${Object.entries(coupons)
+      .map(([code, c]) => `${code} −${c.pct}%`)
+      .join(
+        ', ',
+      )}. A coach code (COACH20/COACH30) is stamped on the order ledger so a coach’s referral is settled manually from the ledger — no commission moves automatically.`,
+    `Order add-ons offered in the cart and checkout: ${cartUpsells()
+      .map((x) => `${x.name.en} at SAR ${num(x.price)}`)
+      .join(', ')}. The server re-prices every add-on from the same table and rejects unknown ones, exactly as it does for templates.`,
     '',
     '## Personal hosting',
     '',
@@ -213,7 +237,7 @@ export async function buildLlms({ site = 'https://qalb.store' } = {}) {
     '',
     '## Index',
     '',
-    `- E-mail: ${SUPPORT_MAIL}\n- Legal, licence and refund terms: ${U('/legal')}\n- Catalogue: ${U('/templates')}\n- ATS checker: ${U('/ats')}\n- Institutional seats and cohort measurement: ${U('/b2b')}\n- Hosting: ${U('/host')}\n- Journal (CV and portfolio guides): ${U('/blog')}\n- Track an order: ${U(
+    `- E-mail: ${SUPPORT_MAIL}\n- Legal, licence and refund terms: ${U('/legal')}\n- Catalogue: ${U('/templates')}\n- ATS checker: ${U('/ats')}\n- Done-for-you services: ${U('/services')}\n- Seasonal offers: ${U('/offers')}\n- Institutional seats and cohort measurement: ${U('/b2b')}\n- Hosting: ${U('/host')}\n- Journal (CV and portfolio guides): ${U('/blog')}\n- Track an order: ${U(
       '/track',
     )}\n- Verify a licence key: ${U('/licence')}\n- Sitemap: ${U('/sitemap.xml')}\n- Crawling rules: ${U('/robots.txt')}`,
     '',
@@ -246,11 +270,7 @@ export async function buildLlms({ site = 'https://qalb.store' } = {}) {
     '',
     tiersAr,
     '',
-    pilot
-      ? `باقةُ الدخول ${arNum(pilot.seats)} مقعدًا بـ${arNum(
-          pilot.price,
-        )} ريالًا مصمَّمةٌ لتبقى تحت سلطة توقيع العميد، ويُخصَم ما دُفع منها من عقد السنة الأولى بخطوةٍ من موظفنا يدويًا — لا خصمًا ذاتيًّا لأن لا بوابة دفع لدينا.`
-      : null,
+    `سلّمُ الجامعات ثلاثُ باقات: فوجٌ بخمسين مقعدًا، وكليةٌ بمئة مقعد مع لوحةِ المدرّب — صفحةُ رمز الفوج تُظهر للمدرّب ما استُهلك وما بقي بلا أسماء طلاب — وجامعةٌ بثلاثِمئة مقعد تضيف ورشةَ عملٍ يقدمها فريقنا تُنسَّق مواعيدها بعد التوقيع. وما زاد على الثلاثِمئة بعقدٍ ثانٍ؛ الصفحةُ تقول ذلك بدل أن تختلق باقةً أكبر.`,
     `المقعدُ يُقارَن بما يفتحه هو، لا بأرخص شيءٍ على الرف: المرجعُ ${
       bundle ? `«${bundle.name.ar}» بـ${arNum(bundle.price)} ريالًا` : 'حزمةُ القالب والسيرة'
     }، ونطاقُ الشراء الفردي للّ${arNum(band.count)} القابلة للقياس ${arNum(band.min)}–${arNum(band.max)} ريالًا.`,
@@ -273,6 +293,28 @@ export async function buildLlms({ site = 'https://qalb.store' } = {}) {
     '',
     phoneAr,
     '',
+    '## الخدماتُ والاشتراكُ والعروضُ الموسمية',
+    '',
+    `خدماتٌ نؤديها نحن في ${U('/services')}، مُسعَّرةٌ من الجدول نفسه الذي تُحسب به السلة: ${serviceUpsells()
+      .map((x) => `${x.name.ar} بـ${arNum(x.price)} ريالًا (تُسلَّم بالبريد خلال ${arNum(x.sla)} ساعة عمل)`)
+      .join(
+        '، ',
+      )}. تُدفع في السلة نفسها مع القوالب، لكن لا شيء يُسلَّم آليًا: إنسانٌ يقرأ الطلب ويكتب الرد — ولهذا تطبع كلُّ بطاقةٍ مهلةً لا «فورًا».`,
+    `اشتراك Qalb Pro في الرئيسية، موازيًا للشراء لمرة واحدة: ${proPlans()
+      .map((x) => `${arNum(x.price)} ريالًا ${x.period === 'month' ? 'شهريًا' : 'سنويًا'}`)
+      .join(
+        ' أو ',
+      )} لكل قوالب المتجر وكل إصدارٍ في أشهر الاشتراك. لا تجديدَ تلقائي ولا بطاقة محفوظة: يصلك تذكيرٌ قبل النهاية والتجديدُ فعلُ المشتري.`,
+    `صفحاتُ العروض الموسمية في ${U('/offers')}: ${offers
+      .map((o) => `${o.title.ar}`)
+      .join('، ')} — كلٌّ منها يوصي بمنتجاتٍ حقيقية من الكتالوج ويعمل بكوبون FRIEND20.`,
+    `الكوبونات التي يعرفها المتجر فعلًا: ${Object.entries(coupons)
+      .map(([code, c]) => `${code} بخصم ${arNum(c.pct)}٪`)
+      .join('، ')}. ورمزُ المدرّب (COACH20/COACH30) يُختم على سجلِّ الطلب فتُسوّى عمولتُه من الدفتر يدويًا — لا عمولة تُحوَّل آليًا.`,
+    `إضافاتُ الطلب في السلة والدفع: ${cartUpsells()
+      .map((x) => `${x.name.ar} بـ${arNum(x.price)} ريالًا`)
+      .join('، ')}. الخادم يُعيد تسعيرَ كل إضافةٍ من الجدول نفسه ويرفض المجهول منها، كما يفعل مع القوالب تمامًا.`,
+    '',
     '## الاستضافة الشخصية',
     '',
     `صفحةٌ مستضافةٌ على \`<الاسم>.qalb.store\`: ${
@@ -294,7 +336,7 @@ export async function buildLlms({ site = 'https://qalb.store' } = {}) {
     '',
     '## الفهرس',
     '',
-    `- البريد: ${SUPPORT_MAIL}\n- العقودُ والترخيصُ والاسترجاع: ${U('/legal')}\n- الكتالوج: ${U('/templates')}\n- فاحصُ الجاهزية: ${U('/ats')}\n- مقاعدُ المؤسسات وقياسُ الدفعة: ${U('/b2b')}\n- الاستضافة: ${U('/host')}\n- المدوّنة (أدلة السيرة والمعرض): ${U('/blog')}\n- تتبّعُ طلب: ${U(
+    `- البريد: ${SUPPORT_MAIL}\n- العقودُ والترخيصُ والاسترجاع: ${U('/legal')}\n- الكتالوج: ${U('/templates')}\n- فاحصُ الجاهزية: ${U('/ats')}\n- الخدمات: ${U('/services')}\n- العروضُ الموسمية: ${U('/offers')}\n- مقاعدُ المؤسسات وقياسُ الدفعة: ${U('/b2b')}\n- الاستضافة: ${U('/host')}\n- المدوّنة (أدلة السيرة والمعرض): ${U('/blog')}\n- تتبّعُ طلب: ${U(
       '/track',
     )}\n- التحققُ من مفتاح: ${U('/licence')}\n- خريطةُ المسارات: ${U('/sitemap.xml')}\n- قواعدُ الزحف: ${U('/robots.txt')}`,
     '',

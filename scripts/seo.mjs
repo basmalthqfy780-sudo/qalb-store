@@ -29,6 +29,7 @@ writeFileSync(path.join(PUB, 'llms.txt'), await agents.buildLlms({ site: SITE })
 
 /* ---------------- sitemap.xml ---------------- */
 const { posts } = await import(path.join(ROOT, 'src/data/posts.js'))
+const { offers } = await import(path.join(ROOT, 'src/data/offers.js'))
 const today = new Date().toISOString().slice(0, 10)
 const urls = [
   { loc: '/', pri: '1.0', freq: 'daily' },
@@ -40,9 +41,13 @@ const urls = [
   { loc: '/host', pri: '0.8', freq: 'weekly' },
   { loc: '/ats', pri: '0.9', freq: 'weekly' },
   { loc: '/b2b', pri: '0.8', freq: 'monthly' },
+  { loc: '/services', pri: '0.8', freq: 'monthly' },
+  { loc: '/offers', pri: '0.8', freq: 'weekly' },
   { loc: '/blog', pri: '0.8', freq: 'weekly' },
   ...templates.map((t) => ({ loc: `/template/${t.slug}`, pri: t.featured ? '0.9' : '0.8', freq: 'weekly' })),
   ...posts.map((p) => ({ loc: `/blog/${p.slug}`, pri: '0.7', freq: 'monthly' })),
+  // صفحات المواسم — من بيانات offers.js كما تدخل الصفحات نفسها، فلا تنجوّ صفحةٌ عن الخريطة
+  ...offers.map((o) => ({ loc: `/offers/${o.slug}`, pri: '0.7', freq: 'monthly' })),
 ]
 // كل مسار يعلن نسختيه: hreflang في الخريطة يطابق ما يكتبه Seo.jsx في كل صفحة،
 // وcanonical هو الرابط ar نفسه — فلا يرى البحث ثلاث نسخ من الحقيقة.

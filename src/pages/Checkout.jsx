@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { submitOrder, apiMode } from '../api'
 import { Link, useNavigate } from 'react-router-dom'
-import { useI18n, dec } from '../i18n'
+import { useI18n, num, dec } from '../i18n'
 import { useStore, VAT } from '../store/StoreContext'
 import Personalize from '../components/Personalize'
 import { sanitizePersonal } from '../data/deliverable'
@@ -19,7 +19,7 @@ const methodById = (id) => METHODS.find((m) => m.id === id)
 
 export default function Checkout() {
   const { t, lang, L } = useI18n()
-  const { items, totals, coupon, clear, personal } = useStore()
+  const { items, addonItems, totals, coupon, clear, personal } = useStore()
   const nav = useNavigate()
   const [step, setStep] = useState(0)
   const [busy, setBusy] = useState(false)
@@ -47,7 +47,7 @@ export default function Checkout() {
 
   useSeo(`${t('checkout.title')} · ${t('brand.name')}`, t('meta.checkoutDesc'), { robots: 'noindex,follow' })
 
-  if (!items.length) {
+  if (!items.length && !addonItems.length) {
     return (
       <div className="mx-auto flex max-w-md flex-col items-center px-6 py-28 text-center">
         <span className="grid size-16 place-items-center rounded-2xl border border-line bg-panel text-dim">
@@ -105,6 +105,8 @@ export default function Checkout() {
       invoice: !!f.invoice,
       vatNo: f.vat || null,
       lines: items.map((i) => ({ id: i.id, slug: i.slug, qty: i.qty, price: i.price })),
+      // الإضافات (خدمات/تقارير/اشتراكات): معرّفها هنا، وسعرها يُعاد ختمه من الجدول في الخادم
+      addons: addonItems.map((a) => ({ id: a.id, price: a.price })),
     }
 
     submitOrder(draft)
@@ -160,7 +162,7 @@ export default function Checkout() {
           <div className="mb-6">
             <h1 className="font-display text-[30px] font-extrabold leading-tight">{t('checkout.title')}</h1>
             <p className="mt-1.5 text-[13px] text-dim">
-              {t('cart.summary')} · <span className="num">{items.length}</span> {t('nav.templates')}
+              {t('cart.summary')} · <span className="num">{num(totals.count)}</span> {t('cart.items')}
             </p>
           </div>
 
@@ -341,6 +343,15 @@ export default function Checkout() {
                     <span className="num shrink-0 font-bold">{dec(it.price * it.qty)}</span>
                   </li>
                 ))}
+                {addonItems.map((a) => (
+                  <li key={a.id} className="flex items-center justify-between gap-3 text-[13.5px]">
+                    <span className="flex min-w-0 items-center gap-2">
+                      <Icon n={a.icon || 'spark'} className="size-4 shrink-0 text-gold" />
+                      <span className="truncate font-semibold">{L(a.name)}</span>
+                    </span>
+                    <span className="num shrink-0 font-bold">{dec(a.price)}</span>
+                  </li>
+                ))}
               </ul>
               <label className="mt-6 flex cursor-pointer items-start gap-2.5">
                 <input type="checkbox" checked={f.agree} onChange={(e) => set('agree', e.target.checked)} className="peer sr-only" />
@@ -436,6 +447,18 @@ export default function Checkout() {
                     </span>
                   </span>
                   <span className="num text-[13.5px] font-bold">{dec(it.price * it.qty)}</span>
+                </li>
+              ))}
+              {addonItems.map((a) => (
+                <li key={a.id} className="flex items-center gap-3" data-checkout-addon={a.id}>
+                  <span className="grid size-9 shrink-0 place-items-center rounded-lg border border-line bg-bg">
+                    <Icon n={a.icon || 'spark'} className="size-4 text-gold" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[13.5px] font-bold">{L(a.name)}</span>
+                    <span className="block text-[11.5px] text-dim">{t('cart.addonRail')}</span>
+                  </span>
+                  <span className="num text-[13.5px] font-bold">{dec(a.price)}</span>
                 </li>
               ))}
             </ul>

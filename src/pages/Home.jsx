@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useI18n, num } from '../i18n'
 import { brands, brandsEn, byId, categories, templates, testimonials } from '../data/templates'
+import { proPlans } from '../data/upsells'
 import { SUPPORT_MAIL, SUPPORT_MAILTO } from '../data/contact'
 import Preview, { ArtTile } from '../components/Preview'
 import TemplateCard from '../components/TemplateCard'
@@ -41,6 +42,7 @@ export default function Home() {
       <DeployBlock />
       <Features />
       <Bundles />
+      <ProBand />
       <RecentlyViewed />
       <Testimonials />
       <Faq />
@@ -765,6 +767,84 @@ function Bundles() {
           ))}
         </div>
       </div>
+    </section>
+  )
+}
+
+/* =============================== QALB PRO =============================== */
+/**
+ * الاشتراك، موازيًا للشراء لمرة واحدة: الأسعار من src/data/upsells.js (pro-month
+ * وpro-year) لا من هذه الصفحة، فما يظهر هنا هو ما تحسب به السلة والخادم.
+ * لا تجديد تلقائي: لا بوابة دفع هنا تُديمه، والنصُّ يقول ذلك.
+ */
+function ProBand() {
+  const { t, L } = useI18n()
+  const { toggleAddon, hasAddon, toast } = useStore()
+  const plans = proPlans()
+  const [month, year] = [plans.find((p) => p.period === 'month'), plans.find((p) => p.period === 'year')]
+
+  return (
+    <section className="page-x mx-auto max-w-[1400px] pt-20" id="pro" data-pro>
+      <Reveal>
+        <Head title={t('pro.title')} sub={t('pro.sub')} align="center" />
+      </Reveal>
+      <div className="mt-12 grid items-start gap-5 lg:grid-cols-2">
+        {[month, year].filter(Boolean).map((p, k) => {
+          const on = hasAddon(p.id)
+          return (
+            <Reveal key={p.id} delay={k * 90}>
+              <div
+                data-pro-plan={p.period}
+                className={`relative flex h-full flex-col rounded-3xl border p-7 transition-all duration-300 ${
+                  k === 1 ? 'border-brand/45 bg-panel shadow-lift lg:-mt-4 lg:pb-9 lg:pt-9' : 'border-line bg-panel/60 hover:-translate-y-1'
+                }`}
+              >
+                {k === 1 && (
+                  <Pill tone="brand" className="absolute -top-3 start-7">
+                    {t('pro.bestValue')}
+                  </Pill>
+                )}
+                <span className={`grid size-11 place-items-center rounded-xl border border-line bg-bg ${k === 1 ? 'text-brand' : 'text-dim'}`}>
+                  <Icon n={p.icon || 'refresh'} className="size-5" />
+                </span>
+                <h3 className="mt-4 font-display text-[20px] font-extrabold">{L(p.name)}</h3>
+                <p className="mt-1.5 min-h-[44px] text-[13.5px] leading-relaxed text-dim">{L(p.tagline)}</p>
+                <div className="mt-4 flex items-end gap-2">
+                  <Money v={p.price} size="text-4xl" />
+                  <span className="pb-2 text-[12px] font-semibold text-dim">/ {p.period === 'month' ? t('pro.perMonth') : t('pro.perYear')}</span>
+                </div>
+                <ul className="mt-6 space-y-2.5 border-t border-line pt-6">
+                  {['f1', 'f2', 'f3', 'f4'].map((f) => (
+                    <li key={f} className="flex gap-2.5 text-[13.5px]">
+                      <Icon n="check" className="mt-0.5 size-4 shrink-0 text-brand" sw={2.6} />
+                      <span className="text-dim">{t(`pro.${f}`)}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Btn
+                  variant={k === 1 ? 'primary' : 'outline'}
+                  size="lg"
+                  className="mt-7 w-full"
+                  onClick={() => {
+                    const added = toggleAddon(p.id)
+                    toast(added ? t('cart.addonAdded', { n: L(p.name) }) : t('cart.addonRemoved', { n: L(p.name) }))
+                  }}
+                >
+                  {on ? t('pro.inCart') : t('pro.cta')}
+                </Btn>
+              </div>
+            </Reveal>
+          )
+        })}
+      </div>
+      <p className="mx-auto mt-8 max-w-[640px] text-center text-[12px] leading-relaxed text-dim">
+        {t('pro.note')}{' '}
+        <a href="#bundles" className="font-bold text-brand hover:underline">
+          {t('pro.onceLink')}
+        </a>
+        {' · '}
+        <span className="num">{t('pro.savingNote', { n: num(month && year ? month.price * 12 - year.price : 0) })}</span>
+      </p>
     </section>
   )
 }

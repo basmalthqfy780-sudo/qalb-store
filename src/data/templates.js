@@ -194,6 +194,91 @@ const cvDemo = {
     skills: { ar: ['Figma', 'نظم التصميم', 'هوية بصرية', 'بحث المستخدم'], en: ['Figma', 'Design systems', 'Brand', 'Research'] },
     edu: { ar: 'بكالوريوس تصميم اتصال — جامعة دار الحكمة', en: 'BA Comm. Design — UDH' },
   },
+  // ————— شخصيات التخصصات (v1.5.0): تُقرأها قوالب /templates?type=cv الجديدة —————
+  med: {
+    name: { ar: 'د. ريم القحطاني', en: 'Dr. Reem Al-Qahtani' },
+    role: { ar: 'طبيبة امتياز · باطنة', en: 'Medical Intern · Internal Medicine' },
+    city: { ar: 'الرياض، السعودية', en: 'Riyadh, Saudi Arabia' },
+    jobs: [
+      {
+        t: { ar: 'امتياز — مستشفى الملك فيصل التخصصي', en: 'Internship — KFSH&RC' },
+        p: { ar: '2025 — 2026', en: '2025 — 2026' },
+        b: [
+          { ar: '٦ دورات سريرية بمعدل تقييم ٤٫٨ من ٥', en: '6 clinical rotations, 4.8/5 evaluations' },
+          { ar: '٤٠ حالة حرجة موثّقة في السجل الإلكتروني', en: '40 acute cases documented in the EHR' },
+        ],
+      },
+      {
+        t: { ar: 'بحث سريري — وحدة السكري', en: 'Clinical research — Diabetes unit' },
+        p: { ar: '2024 — 2025', en: '2024 — 2025' },
+        b: [
+          { ar: 'تجربة على ١٢٠ مريضًا؛ النتائج في مؤتمر SGICON', en: 'A 120-patient trial; findings at SGICON' },
+          { ar: 'تقليص زمن جمع البيانات ٣٠٪ بنموذج موحّد', en: 'Cut data-collection time 30% with one form' },
+        ],
+      },
+    ],
+    skills: {
+      ar: ['التاريخ المرضي', 'السجل الصحي الموحّد', 'BLS', 'أخلاقيات البحث'],
+      en: ['Clinical history', 'Unified health record', 'BLS', 'Research ethics'],
+    },
+    edu: { ar: 'دكتور طب — جامعة الملك سعود', en: 'MD — KSU' },
+  },
+  legal: {
+    name: { ar: 'عبدالله الشهري', en: 'Abdullah Al-Shehri' },
+    role: { ar: 'محامٍ نزاع وتحكيم', en: 'Litigation & arbitration lawyer' },
+    city: { ar: 'جدة، السعودية', en: 'Jeddah, Saudi Arabia' },
+    jobs: [
+      {
+        t: { ar: 'محامٍ — مكاتب العُلا للحجز والتحكيم', en: 'Associate — Al-Ula Law' },
+        p: { ar: '2022 — الآن', en: '2022 — Present' },
+        b: [
+          { ar: '٣١ مذكرة دفاع قُبلت أصولها كاملة', en: '31 defence briefs accepted as filed' },
+          { ar: 'تحكيمٌ قيمته ٤٠ مليون ريال حُسم في ٩ جلسات', en: 'SAR 40M arbitration settled in 9 sessions' },
+        ],
+      },
+      {
+        t: { ar: 'باحث قانوني — الهيئة السعودية للمحكمين', en: 'Legal researcher — SCCA' },
+        p: { ar: '2020 — 2022', en: '2020 — 2022' },
+        b: [
+          { ar: 'تلخيص ١٤٠ حكمًا في قاعدة سوابق قابلية البحث', en: 'Summarised 140 awards into a searchable digest' },
+          { ar: 'تقليص زمن التحرير ٢٥٪ بقوالب مذكرات', en: 'Cut drafting time 25% with brief templates' },
+        ],
+      },
+    ],
+    skills: {
+      ar: ['التحكيم التجاري', 'صياغة العقود', 'نظام التنفيذ', 'الإنجليزية القانونية'],
+      en: ['Commercial arbitration', 'Contract drafting', 'Enforcement law', 'Legal English'],
+    },
+    edu: { ar: 'بكالوريوس أنظمة حقوق — جامعة الملك عبدالعزيز', en: 'LLB — KAU' },
+  },
+  freelance: {
+    name: { ar: 'دانة العمري', en: 'Dana Al-Omari' },
+    role: { ar: 'مستقلة · هوية ومحتوى', en: 'Freelancer · brand & content' },
+    city: { ar: 'الخبر، السعودية', en: 'Khobar, Saudi Arabia' },
+    jobs: [
+      {
+        t: { ar: 'مستقلة — عملاء مباشرون', en: 'Independent — direct clients' },
+        p: { ar: '2023 — الآن', en: '2023 — Present' },
+        b: [
+          { ar: '٢٤ مشروعًا بقيمة ٣٨٠ ألف ريال في سنتين', en: '24 projects worth SAR 380k in two years' },
+          { ar: '٩ من كل ١٠ عملاء عادوا بطلبٍ ثانٍ', en: '9 of 10 clients returned with a second job' },
+        ],
+      },
+      {
+        t: { ar: 'مسؤولة محتوى — متجر «رسّة»', en: 'Content lead — Rassa store' },
+        p: { ar: '2021 — 2023', en: '2021 — 2023' },
+        b: [
+          { ar: 'بريد إعلاني بمعدل فتح ٤١٪', en: 'Newsletter at a 41% open rate' },
+          { ar: 'دليل هوية كامل بقيادة مصممة', en: 'A full brand guide, designer-led' },
+        ],
+      },
+    ],
+    skills: {
+      ar: ['تسعير المشاريع', 'عقود المستقلين', 'فواتير ومحاسب', 'Figma'],
+      en: ['Project pricing', 'Freelance contracts', 'Invoicing', 'Figma'],
+    },
+    edu: { ar: 'بكالوريوس تسويق — جامعة الدمام', en: 'BSc Marketing — University of Dammam' },
+  },
 }
 
 /* ================= site (portfolio) demo content ================= */
@@ -529,6 +614,33 @@ const siteDemo = {
       { t: { ar: 'عناوين مهرجان', en: 'Festival titles' }, c: { ar: 'حدث', en: 'Event' }, y: '2023', hue: 36 },
     ],
     cv: 'mirror',
+  },
+  // v1.5.0 · حزمة المستقلين: الموقع التجريبي الذي يُعاين ويُسلَّم مع freelancerkit
+  freelancerkit: {
+    name: { ar: 'دانة العمري', en: 'Dana Al-Omari' },
+    role: { ar: 'مستقلة · هوية ومحتوى وأسعار معلنة', en: 'Freelancer · brand, content, rates on display' },
+    blurb: {
+      ar: 'مستقلة تحتاج أكثر من سيرة: عرض خدمات، أسعار واضحة، وصفحة تفاوض تُغلق العملية قبل المكالمة.',
+      en: 'A freelancer needs more than a CV: a services page, public rates, and a booking page that closes the deal before the call.',
+    },
+    host: 'dana.work',
+    hero: 'split',
+    gallery: 'list',
+    theme: 'light',
+    font: 'humanist',
+    accent: 'pine',
+    nav: { ar: ['الخدمات', 'الأسعار', 'سجل العمل', 'العقود', 'تواصل'], en: ['Services', 'Rates', 'Track record', 'Contracts', 'Contact'] },
+    stats: [
+      { v: '٢٤', e: '24' },
+      { v: 'مشروعًا', e: 'projects' },
+    ],
+    projects: [
+      { t: { ar: 'هوية مقهى «نسكه»', en: 'Naska café identity' }, c: { ar: 'هوية', en: 'Brand' }, y: '2025', hue: 150 },
+      { t: { ar: 'دليل محتوى لمتجر', en: 'Store content guide' }, c: { ar: 'محتوى', en: 'Content' }, y: '2025', hue: 210 },
+      { t: { ar: 'حزمة إعلانات مؤسسة', en: 'B2B ad pack' }, c: { ar: 'إعلان', en: 'Ads' }, y: '2024', hue: 34 },
+      { t: { ar: 'تدقيق نبرة العلامة', en: 'Brand-voice audit' }, c: { ar: 'استشارة', en: 'Consult' }, y: '2024', hue: 268 },
+    ],
+    cv: 'freelance',
   },
 }
 
@@ -1103,6 +1215,211 @@ export const templates = [
     },
     bestFor: { ar: ['خريجون جدد', 'تدرب تعاوني', 'منح دراسية'], en: ['New graduates', 'Internships', 'Scholarships'] },
   },
+
+  /* ————— v1.5.0 · خطة النمو: منتجاتٌ جديدة — حزمة LinkedIn، قوالب خطابات،
+     حزمة المستقلين، وسيرتا التخصصات (الطبي والقانوني) ————— */
+  {
+    id: 'linkedinkit',
+    slug: 'linkedin-kit',
+    download: '/download/linkedinkit',
+    type: 'cv',
+    site: null,
+    demo: 'nova',
+    name: { ar: 'حزمة LinkedIn', en: 'LinkedIn Kit' },
+    designer: { ar: 'فريق قالب', en: 'Qalb Studio' },
+    tagline: { ar: 'ملفك المهني يقرؤه المستشغل قبل سيرتك', en: 'The profile a recruiter reads before your CV' },
+    desc: {
+      ar: 'ليس كل التوظيف يبدأ بسيرة: المستشغل يفتح ملفك أولًا. الحزمة: صيغ عنوان مهني لستة مسارات، نص «نبذة» من ثلاث فقرات، إطار صورة وبانر بألوانك، ونصوص تواصل مع المستشغلين ومدراء التوظيف.',
+      en: 'Not every hire starts with a CV: the recruiter opens your profile first. The kit: headline formulas for six tracks, a three-paragraph About, a photo frame and banner in your colours, and outreach scripts for recruiters and hiring managers.',
+    },
+    cats: ['corporate', 'graduate'],
+    level: 'mid',
+    price: 119,
+    oldPrice: 159,
+    rating: 4.8,
+    reviews: 96,
+    sales: 410,
+    pages: 1,
+    layout: 'single',
+    accent: 'azure',
+    font: 'sans',
+    best: true,
+    addedDays: 12,
+    stack: ['Word', 'PDF', 'قابل للنسخ'],
+    sections: {
+      ar: ['٦ صيغ عنوان مهني', 'نبذة من ثلاث فقرات', 'إطار صورة وبانر', 'نصوص تواصل ورسائل'],
+      en: ['Six headline formulas', 'A three-paragraph About', 'Photo frame + banner', 'Outreach message scripts'],
+    },
+    highlights: {
+      ar: ['مناسب لملف عربي أو إنجليزي', 'أمثلة مكتوبة لكل مسار', 'يُستكمل في جلسة واحدة'],
+      en: ['Fits an Arabic or English profile', 'Written examples per track', 'Done in one sitting'],
+    },
+    bestFor: { ar: ['باحثون عن عمل', 'تغيير مسار مهني', 'خريجون جدد'], en: ['Job seekers', 'Career switchers', 'Fresh graduates'] },
+  },
+  {
+    id: 'letterpack',
+    slug: 'cover-letter-pack',
+    download: '/download/letterpack',
+    type: 'cv',
+    site: null,
+    demo: 'echo',
+    name: { ar: 'قوالب خطاب التقديم', en: 'Cover Letter Pack' },
+    designer: { ar: 'نور فؤاد', en: 'Nour Fouad' },
+    tagline: { ar: 'اثنا عشر خطابًا لمواقف التقديم كلها', en: 'Twelve letters for every application moment' },
+    desc: {
+      ar: 'خطاب التقديم لا يُكتب من الصفر كل مرة: اثنا عشر قالبًا — وظيفة معلنة، تواصل بارد، تغيير مسار، عودة بعد انقطاع، ترشيح داخلي — كلٌّ بمثالٍ مكتوب وإرشادات ما تُذكَر وما يُترك. بنفس خطوط وألوان قوالب سيرتنا فتصل بهويةٍ واحدة.',
+      en: 'A cover letter is not written from scratch each time: twelve templates — a posted role, a cold intro, a career switch, a return after a break, an internal move — each with a worked example and what to leave out. On the same type and colours as our CVs, so one identity arrives.',
+    },
+    cats: ['graduate', 'general'],
+    level: 'beginner',
+    price: 49,
+    oldPrice: 79,
+    rating: 4.9,
+    reviews: 128,
+    sales: 560,
+    pages: 1,
+    layout: 'single',
+    accent: 'teal',
+    font: 'sans',
+    addedDays: 10,
+    stack: ['Word', 'Google Docs', 'PDF'],
+    sections: {
+      ar: ['١٢ قالب خطاب', 'مثال مكتوب لكل موقف', 'جُمل افتتاح جاهزة', 'إرشادات طول ونبرة'],
+      en: ['12 letter templates', 'A worked example each', 'Ready opening lines', 'Length and tone guidance'],
+    },
+    highlights: {
+      ar: ['تُكمل في عشرين دقيقة', 'بنفس هوية قوالب السيرة', 'نسخة عربية وإنجليزية لكل قالب'],
+      en: ['Done in twenty minutes', 'Same identity as the CVs', 'Arabic and English version each'],
+    },
+    bestFor: {
+      ar: ['تقديم على وظائف معلنة', 'تواصل مع شركات', 'طلبة التدريب التعاوني'],
+      en: ['Posted-role applications', 'Cold outreach', 'Co-op students'],
+    },
+  },
+  {
+    id: 'freelancerkit',
+    slug: 'freelancer-kit',
+    download: '/download/freelancerkit',
+    type: 'bundle',
+    site: 'freelancerkit',
+    demo: 'freelance',
+    name: { ar: 'حزمة المستقلين', en: 'Freelancer Kit' },
+    designer: { ar: 'فريق قالب', en: 'Qalb Studio' },
+    tagline: { ar: 'موقع وسيرة وعقود وأسعار — دكانٌ كامل', en: 'Site, CV, contracts, rates — a whole shop' },
+    desc: {
+      ar: 'للمستقل حاجةٌ غير الخريج: صفحة خدمات بأسعار معلنة، سيرة تُقفل الصفقة، ونماذج عرض سعر وعقد وفاتورة تُرسل فورًا. الحزمة تجمعها كلها بهويةٍ واحدة، مع صفحة «متاح للعمل» تُحدَّث بحالةٍ واحدة.',
+      en: 'A freelancer needs more than a graduate: a services page with public rates, a CV that closes the deal, and quote, contract and invoice forms ready to send. The kit bundles all of it in one identity, with an “available for work” page toggled in one line.',
+    },
+    cats: ['design', 'content'],
+    level: 'mid',
+    price: 279,
+    oldPrice: 359,
+    rating: 4.9,
+    reviews: 87,
+    sales: 340,
+    perf: 99,
+    ats: 100,
+    theme: 'light',
+    featured: true,
+    addedDays: 8,
+    stack: ['Astro', 'Tailwind', 'Word', 'Google Docs'],
+    sections: {
+      ar: ['موقع بخدمات وأسعار معلنة', 'سيرة ATS على هوية الموقع', 'نماذج عرض سعر وعقد وفاتورة', 'صفحة «متاح للعمل»'],
+      en: [
+        'A site with services and public rates',
+        'An ATS CV on the site’s identity',
+        'Quote, contract and invoice forms',
+        'An “available for work” page',
+      ],
+    },
+    highlights: {
+      ar: ['عقود مراجعة بصياغة سعودية', 'الأسعار تُحدَّث من ملف واحد', 'سكربت فحص ATS مرفق'],
+      en: ['Contracts reviewed for Saudi wording', 'Rates edited from one file', 'The ATS check script included'],
+    },
+    bestFor: { ar: ['مستقلون ومستقلات', 'وكالات صغيرة', 'أصحاب أعمال جانبية'], en: ['Freelancers', 'Micro agencies', 'Side-business owners'] },
+  },
+  {
+    id: 'medcv',
+    slug: 'med-cv',
+    download: '/download/medcv',
+    type: 'cv',
+    site: null,
+    demo: 'med',
+    name: { ar: 'سيرة التخصص الطبي', en: 'The Medical CV' },
+    designer: { ar: 'منى الشهري', en: 'Mona Al-Shehri' },
+    tagline: { ar: 'من الامتياز إلى الإقامة بلغة اللجان', en: 'From internship to residency, in boards’ language' },
+    desc: {
+      ar: 'سيرات الأطباء تقرؤها لجانٌ لا أنظمة فرز فقط: الدورات السريرية بأسمائها وتقييماتها، البحث والتسجيلات، والتراخيص. القالب يرتبها بالترتيب الذي تسأل عنه لجنة الإقامة، ويبقى نصًّا يقرؤه الفرز الآلي.',
+      en: 'Doctors’ CVs are read by boards, not only parsers: clinical rotations with names and evaluations, research and registrations, licences. The template orders them the way a residency committee asks, while staying machine-readable text.',
+    },
+    cats: ['corporate', 'graduate'],
+    level: 'beginner',
+    price: 119,
+    oldPrice: 159,
+    rating: 4.9,
+    reviews: 74,
+    sales: 260,
+    ats: 100,
+    layout: 'side',
+    accent: 'pine',
+    font: 'humanist',
+    pages: 2,
+    addedDays: 6,
+    stack: ['Word', 'PDF', 'Google Docs'],
+    sections: {
+      ar: ['الدورات السريرية بتقييماتها', 'البحث والملخصات المقبولة', 'التراخيص والشهادات (BLS/ACLS)', 'مقررات وساعات معتمدة'],
+      en: ['Rotations with evaluations', 'Research and accepted abstracts', 'Licences and certs (BLS/ACLS)', 'CME hours and courses'],
+    },
+    highlights: {
+      ar: ['ترتيبٌ تسأل عنه لجان الإقامة', 'مصطلحات إنجليزية طبية مثبتة', 'نسخة نص خام للفرز'],
+      en: ['The order residency boards ask for', 'Medical English terms kept exact', 'A plain-text copy for parsing'],
+    },
+    bestFor: {
+      ar: ['طلبة الامتياز', 'التقديم على الإقامة', 'أطباء خارجون لتوّهم'],
+      en: ['Internship students', 'Residency applicants', 'Newly licensed physicians'],
+    },
+  },
+  {
+    id: 'legalcv',
+    slug: 'legal-cv',
+    download: '/download/legalcv',
+    type: 'cv',
+    site: null,
+    demo: 'legal',
+    name: { ar: 'سيرة القانونيين', en: 'The Legal CV' },
+    designer: { ar: 'سلطان راشد', en: 'Sultan Rashed' },
+    tagline: { ar: 'قضايا ومذكرات بأرقامها، لا صفاتٍ عامة', en: 'Cases and briefs in numbers, not adjectives' },
+    desc: {
+      ar: 'سيرة المحامي تُقاس بما حُسم: عدد المذكرات المقبولة، قيم التحكيمات، ونوع النزاعات. القالب يعطي كل قضية سطرًا بنتيجتها، ويفصل «التقاضي» عن «التحكيم» عن «الصياغة» — والفرز الآلي يقرؤها كلها.',
+      en: 'A lawyer’s CV is measured by outcomes: briefs accepted, arbitration values, dispute types. The template gives each matter a line with its result, and splits litigation from arbitration from drafting — all machine-readable.',
+    },
+    cats: ['corporate'],
+    level: 'senior',
+    price: 109,
+    oldPrice: 149,
+    rating: 4.8,
+    reviews: 58,
+    sales: 190,
+    ats: 100,
+    layout: 'band',
+    accent: 'ink',
+    font: 'serif',
+    pages: 2,
+    addedDays: 6,
+    stack: ['Word', 'PDF', 'InDesign'],
+    sections: {
+      ar: ['قضايا بنتائجها لا بأسمائها', 'تحكيم تجاري بقيمه', 'صياغة عقود ومراجعتها', 'التراخيص والعضويات'],
+      en: ['Matters with outcomes, not names', 'Commercial arbitration by value', 'Contract drafting and review', 'Licences and memberships'],
+    },
+    highlights: {
+      ar: ['سرية القضايا محفوظة بنمط «النوع والنتيجة»', 'خط سيريف يعطي الصفحة وزنًا', 'نسخة نص خام للفرز'],
+      en: ['Confidentiality kept by type-and-result pattern', 'A serif that carries weight', 'A plain-text copy for parsing'],
+    },
+    bestFor: {
+      ar: ['محامون ومستشارون قانونيون', 'مراجعو عقود', 'خريجو الحقوق الجدد'],
+      en: ['Lawyers and counsel', 'Contract reviewers', 'Fresh law graduates'],
+    },
+  },
 ]
 
 export const bySlug = (slug) => templates.find((t) => t.slug === slug)
@@ -1182,6 +1499,12 @@ export const coupons = {
   SALE25: { pct: 25, ar: 'عرض الموسم', en: 'Season sale' },
   WELCOME10: { pct: 10, ar: 'ترحيبي', en: 'Welcome' },
   QALB30: { pct: 30, ar: 'خصم الطلبة', en: 'Student offer' },
+  // v1.5.0 · خطة النمو: خصمٌ مباشر للأصدقاء، ورمزان تُنسَب لهما العمولة.
+  // الرمزُ يُختم على الطلب في دفتر الطلبات (حقل coupon)، فتُحسَب أثريةُ المدرِّب
+  // من الدفتر نفسه وتُسوّى يدويًا — لا عمولةٌ تُحوَّل آليًا من هذا المتجر.
+  FRIEND20: { pct: 20, ar: 'خصم الأصدقاء', en: 'Friends discount' },
+  COACH20: { pct: 20, ar: 'رمز مدرّب — ٢٠٪', en: 'Coach code — 20%' },
+  COACH30: { pct: 30, ar: 'رمز مدرّب — ٣٠٪', en: 'Coach code — 30%' },
 }
 
 /*
