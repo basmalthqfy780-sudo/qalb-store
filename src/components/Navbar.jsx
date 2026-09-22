@@ -1,10 +1,36 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, NavLink, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useI18n } from '../i18n'
 import { useStore } from '../store/StoreContext'
 import { categories, templates } from '../data/templates'
 import { Icon, Btn } from './ui'
 import { ArtTile } from './Preview'
+
+/* ============================ بيانات القائمة الشاملة ============================
+ * روابطُ المنصة كلُّها في موضعٍ واحد: تقرأها قائمةُ ☰ الشاملة ودرجُ الجوال معًا.
+ * كلُّ مفتاحِ ترجمةٍ مكتوبٌ صريحًا في `k` — الفحص يمنع مفتاحًا في القاموس لا يُستعمل،
+ * ومنعٌ كذلك مفتاحًا يُطلب من القاموس ولا يوجد. أدواتُ التوظيف التسعُ معدودةٌ من
+ * الجدول نفسه (MENU_TOOLS.length) فلا رقمَ في الشاشة لا يسنده سطرٌ هنا.
+ */
+const MENU_TOOLS = [
+  { to: '/ats', k: 'nav.ats', icon: 'scan' },
+  { to: '/match', k: 'footer.match', icon: 'briefcase' },
+  { to: '/kit', k: 'footer.kit', icon: 'spark' },
+  { to: '/u/noura-alharbi', k: 'home.suiteLink', icon: 'globe' },
+  { to: '/studio', k: 'studio.kicker', icon: 'pen' },
+  { to: '/talent', k: 'footer.talent', icon: 'grid' },
+  { to: '/market', k: 'footer.market', icon: 'pulse' },
+  { to: '/embed', k: 'footer.embed', icon: 'code2' },
+  { to: '/b2b', k: 'footer.b2b', icon: 'cap' },
+]
+const MENU_SUPPORT = [
+  { to: '/#faq', k: 'footer.help', icon: 'phone' },
+  { to: '/#guide', k: 'nav.guide', icon: 'book' },
+  { to: '/blog', k: 'footer.blog', icon: 'quote' },
+  { to: '/track', k: 'footer.track', icon: 'clock' },
+  { to: '/licence', k: 'footer.licenseCheck', icon: 'lock' },
+  { to: '/#contact', k: 'footer.contact', icon: 'mail' },
+]
 
 export function Logo({ compact = false }) {
   const { t } = useI18n()
@@ -41,6 +67,7 @@ export default function Navbar() {
   const { totals, wish } = useStore()
   const [scrolled, setScrolled] = useState(false)
   const [mega, setMega] = useState(false)
+  const [menu, setMenu] = useState(false)
   const [drawer, setDrawer] = useState(false)
   const [sp] = useSearchParams()
   const urlQ = sp.get('q') || ''
@@ -48,6 +75,7 @@ export default function Navbar() {
   const nav = useNavigate()
   const loc = useLocation()
   const megaRef = useRef(null)
+  const menuRef = useRef(null)
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8)
@@ -63,14 +91,16 @@ export default function Navbar() {
     setAtRoute(navKey)
     setDrawer(false)
     setMega(false)
+    setMenu(false)
     setQ(urlQ)
   }
 
   useEffect(() => {
     const onDoc = (e) => {
       if (megaRef.current && !megaRef.current.contains(e.target)) setMega(false)
+      if (menuRef.current && !menuRef.current.contains(e.target)) setMenu(false)
     }
-    const onKey = (e) => e.key === 'Escape' && (setMega(false), setDrawer(false))
+    const onKey = (e) => e.key === 'Escape' && (setMega(false), setMenu(false), setDrawer(false))
     document.addEventListener('mousedown', onDoc)
     document.addEventListener('keydown', onKey)
     return () => {
@@ -83,20 +113,12 @@ export default function Navbar() {
     e.preventDefault()
     nav(`/templates${q.trim() ? `?q=${encodeURIComponent(q.trim())}` : ''}`)
     setDrawer(false)
+    setMenu(false)
   }
-
-  const links = [
-    { to: '/templates', label: t('nav.templates') },
-    { to: '/services', label: t('nav.services') },
-    { to: '/offers', label: t('nav.offers') },
-    { to: '/#bundles', label: t('nav.pricing') },
-    { to: '/#guide', label: t('nav.guide') },
-    { to: '/#faq', label: t('nav.support') },
-  ]
 
   const featured = templates.filter((x) => x.featured).slice(0, 3)
 
-  /** route links and in-page anchors both live in `links` — mark whichever one you are on */
+  /** route links and in-page anchors both live in the menu — mark whichever one you are on */
   const isCurrent = (to) => {
     const hashAt = to.indexOf('#')
     if (hashAt >= 0) {
@@ -106,6 +128,26 @@ export default function Navbar() {
     }
     return loc.pathname === to || (to !== '/' && loc.pathname.startsWith(to))
   }
+
+  /** صفا القائمة الواحدة: أيقونةُ SVG فوق اسمٍ من القاموس — تُقرأ في ☰ ودرج الجوال */
+  const menuRow = (x) => (
+    <Link
+      key={x.to}
+      to={x.to}
+      onClick={() => {
+        setMenu(false)
+        setDrawer(false)
+      }}
+      aria-current={isCurrent(x.to) ? 'page' : undefined}
+      className="flex items-center gap-2.5 rounded-xl px-2.5 py-2 transition hover:bg-panel2"
+      data-menu-link={x.to}
+    >
+      <span className="grid size-8 shrink-0 place-items-center rounded-lg border border-line bg-bg text-brand">
+        <Icon n={x.icon} className="size-4" />
+      </span>
+      <span className="text-[13px] font-semibold">{t(x.k)}</span>
+    </Link>
+  )
 
   return (
     <>
@@ -204,17 +246,6 @@ export default function Navbar() {
                 </div>
               </div>
             </div>
-
-            {links.slice(1).map((l) => (
-              <Link
-                key={l.to}
-                to={l.to}
-                aria-current={isCurrent(l.to) ? 'page' : undefined}
-                className={`rounded-lg px-3 py-2 text-[13.5px] font-semibold transition ${isCurrent(l.to) ? 'text-ink' : 'text-dim hover:text-ink'}`}
-              >
-                {l.label}
-              </Link>
-            ))}
           </nav>
 
           <div className="ms-auto flex items-center gap-1.5">
@@ -270,33 +301,123 @@ export default function Navbar() {
               <Count n={totals.count} />
             </Link>
 
-            <Link
-              to="/ats"
-              className="hidden items-center gap-1.5 rounded-xl px-2.5 py-2 text-[13px] font-bold text-ink/80 transition hover:bg-panel2 hover:text-brand xl:inline-flex"
-            >
-              <Icon n="scan" className="size-4 text-brand" />
-              {t('nav.ats')}
-            </Link>
-
-            <Link
-              to="/match"
-              className="hidden items-center gap-1.5 rounded-xl px-2.5 py-2 text-[13px] font-bold text-ink/80 transition hover:bg-panel2 hover:text-brand xl:inline-flex"
-            >
-              <Icon n="briefcase" className="size-4 text-brand" />
-              {t('nav.match')}
-            </Link>
-
-            <Link
-              to="/host"
-              className="hidden items-center gap-1.5 rounded-xl px-2.5 py-2 text-[13px] font-bold text-ink/80 transition hover:bg-panel2 hover:text-brand xl:inline-flex"
-            >
-              <Icon n="globe" className="size-4 text-brand" />
-              {t('nav.host')}
-            </Link>
-
             <Btn to="/templates" size="sm" className="hidden md:inline-flex">
               {t('hero.ctaPrimary')}
             </Btn>
+
+            {/* ☰ القائمة الشاملة على الشاشات الكبيرة: كلُّ روابط المنصة في عمودٍ واحد،
+                فلا زحمَةَ روابطَ مباشرةً في الشريط */}
+            <div ref={menuRef} className="relative hidden lg:block">
+              <button
+                type="button"
+                onClick={() => setMenu((v) => !v)}
+                aria-expanded={menu}
+                aria-controls="menu-panel"
+                aria-label={t('nav.menu')}
+                title={t('nav.menu')}
+                data-menu-trigger
+                className="grid size-10 place-items-center rounded-xl border border-line bg-panel/50 text-ink transition hover:border-brand/40"
+              >
+                <Icon n={menu ? 'close' : 'menu'} className="size-[18px]" />
+              </button>
+              <div
+                id="menu-panel"
+                data-menu={menu ? 'open' : 'closed'}
+                className={`absolute end-0 top-[calc(100%+10px)] w-[min(880px,90vw)] origin-top-end rounded-2xl border border-line bg-panel/95 p-5 shadow-lift backdrop-blur-xl transition-all duration-200 ${
+                  menu ? 'visible scale-100 opacity-100' : 'invisible scale-[.97] opacity-0'
+                }`}
+              >
+                <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+                  {/* القوالب */}
+                  <div>
+                    <p className="mb-2 px-2 text-[11px] font-bold uppercase tracking-[0.14em] text-dim">{t('nav.templates')}</p>
+                    <Link
+                      to="/templates"
+                      onClick={() => setMenu(false)}
+                      className="mb-1 flex items-center gap-2 rounded-xl border border-line bg-bg px-2.5 py-2 text-[12.5px] font-bold transition hover:border-brand/40 hover:text-brand"
+                    >
+                      <Icon n="grid" className="size-4" />
+                      {t('nav.allTemplates')}
+                    </Link>
+                    <div className="grid grid-cols-2 gap-1">
+                      {categories.map((c) => (
+                        <Link
+                          key={c.id}
+                          to={`/templates?cat=${c.id}`}
+                          onClick={() => setMenu(false)}
+                          className="flex items-center gap-2 rounded-xl px-2 py-1.5 transition hover:bg-panel2"
+                        >
+                          <Icon n={c.icon} className="size-4 shrink-0 text-brand" />
+                          <span className="truncate text-[12.5px] font-semibold">{lang === 'ar' ? c.ar : c.en}</span>
+                        </Link>
+                      ))}
+                    </div>
+                    <Link
+                      to="/#bundles"
+                      onClick={() => setMenu(false)}
+                      className="mt-1 flex items-center gap-2 rounded-xl px-2.5 py-2 text-[12.5px] font-semibold transition hover:bg-panel2"
+                    >
+                      <Icon n="layers" className="size-4 text-brand" />
+                      {t('nav.pricing')}
+                    </Link>
+                    <Link
+                      to="/#pro"
+                      onClick={() => setMenu(false)}
+                      className="flex items-center gap-2 rounded-xl px-2.5 py-2 text-[12.5px] font-semibold transition hover:bg-panel2"
+                    >
+                      <Icon n="crown" className="size-4 text-brand" />
+                      {t('footer.pro')}
+                    </Link>
+                  </div>
+
+                  {/* أدوات التوظيف — التسعُ أدوات */}
+                  <div>
+                    <p className="mb-2 flex items-center gap-2 px-2 text-[11px] font-bold uppercase tracking-[0.14em] text-dim">
+                      {t('footer.careers')}
+                      <span
+                        className="num rounded-md border border-brand/25 bg-brand/10 px-1.5 py-0.5 text-[10px] font-bold text-brand"
+                        data-menu-tools-count
+                      >
+                        {MENU_TOOLS.length}
+                      </span>
+                    </p>
+                    <div className="grid gap-0.5" data-menu-tools>
+                      {MENU_TOOLS.map(menuRow)}
+                    </div>
+                  </div>
+
+                  {/* الخدمات والاستضافة */}
+                  <div className="space-y-4">
+                    <div>
+                      <Link
+                        to="/services"
+                        onClick={() => setMenu(false)}
+                        className="mb-1 block px-2 text-[11px] font-bold uppercase tracking-[0.14em] text-dim transition hover:text-ink"
+                      >
+                        {t('nav.services')}
+                      </Link>
+                      {menuRow({ to: '/offers', k: 'nav.offers', icon: 'gift' })}
+                    </div>
+                    <div>
+                      <Link
+                        to="/host"
+                        onClick={() => setMenu(false)}
+                        className="mb-1 block px-2 text-[11px] font-bold uppercase tracking-[0.14em] text-dim transition hover:text-ink"
+                      >
+                        {t('nav.host')}
+                      </Link>
+                      {menuRow({ to: '/#deploy', k: 'footer.siteGuide', icon: 'rocket' })}
+                    </div>
+                  </div>
+
+                  {/* الدعم */}
+                  <div>
+                    <p className="mb-2 px-2 text-[11px] font-bold uppercase tracking-[0.14em] text-dim">{t('nav.support')}</p>
+                    <div className="grid gap-0.5">{MENU_SUPPORT.map(menuRow)}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
 
             <button
               type="button"
@@ -345,23 +466,17 @@ export default function Navbar() {
             </label>
           </form>
           <div className="thin-bar flex-1 overflow-y-auto px-4 pb-6">
-            <p className="px-1 pb-2 pt-3 text-[11px] font-bold uppercase tracking-[0.14em] text-dim">{t('nav.menu')}</p>
-            {[{ to: '/templates', label: t('nav.templates') }, ...links.slice(1)].map((l) => (
-              <NavLink
-                key={l.to}
-                to={l.to}
-                className="flex items-center justify-between rounded-xl px-3 py-3 text-[15px] font-semibold hover:bg-panel2"
-              >
-                {l.label}
-                <Icon n="arrow" className="size-4 text-dim rtl:-scale-x-100" />
-              </NavLink>
-            ))}
+            <p className="px-1 pb-2 pt-3 text-[11px] font-bold uppercase tracking-[0.14em] text-dim">{t('nav.templates')}</p>
+            {menuRow({ to: '/templates', k: 'nav.allTemplates', icon: 'grid' })}
+            {menuRow({ to: '/#bundles', k: 'nav.pricing', icon: 'layers' })}
+            {menuRow({ to: '/#pro', k: 'footer.pro', icon: 'crown' })}
             <p className="px-1 pb-2 pt-4 text-[11px] font-bold uppercase tracking-[0.14em] text-dim">{t('cats.title')}</p>
             <div className="grid grid-cols-2 gap-2">
               {categories.map((c) => (
                 <Link
                   key={c.id}
                   to={`/templates?cat=${c.id}`}
+                  onClick={() => setDrawer(false)}
                   className="flex items-center gap-2 rounded-xl border border-line bg-panel/50 px-2.5 py-2 text-[12.5px] font-semibold"
                 >
                   <Icon n={c.icon} className="size-4 text-brand" />
@@ -369,6 +484,21 @@ export default function Navbar() {
                 </Link>
               ))}
             </div>
+            {/* درجُ الجوال يجمع روابط المنصة كلَّها كما تجمعها قائمة ☰ على الشاشات الكبيرة */}
+            <p className="flex items-center gap-2 px-1 pb-2 pt-4 text-[11px] font-bold uppercase tracking-[0.14em] text-dim">
+              {t('footer.careers')}
+              <span className="num rounded-md border border-brand/25 bg-brand/10 px-1.5 py-0.5 text-[10px] font-bold text-brand">
+                {MENU_TOOLS.length}
+              </span>
+            </p>
+            {MENU_TOOLS.map(menuRow)}
+            <p className="px-1 pb-2 pt-4 text-[11px] font-bold uppercase tracking-[0.14em] text-dim">{t('nav.services')}</p>
+            {menuRow({ to: '/services', k: 'nav.services', icon: 'pen' })}
+            {menuRow({ to: '/offers', k: 'nav.offers', icon: 'gift' })}
+            {menuRow({ to: '/host', k: 'nav.host', icon: 'globe' })}
+            {menuRow({ to: '/#deploy', k: 'footer.siteGuide', icon: 'rocket' })}
+            <p className="px-1 pb-2 pt-4 text-[11px] font-bold uppercase tracking-[0.14em] text-dim">{t('nav.support')}</p>
+            {MENU_SUPPORT.map(menuRow)}
             <div className="mt-5 grid grid-cols-2 gap-2">
               <Btn onClick={toggleLang} variant="outline" size="md">
                 {t('misc.langBtn')}

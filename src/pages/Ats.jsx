@@ -526,25 +526,26 @@ function Stat({ k, v }) {
 
 /** حلقة الدرجة — مرسومةٌ من الرقم نفسه، فلا حالة نجاحٍ لا يسندها قياس */
 function Ring({ score }) {
+  // القوسُ مسارٌ يبدأ من أعلى الدائرة — لا دائرةُ مُدارة بـrotate: فالرقمُ داخلها
+  // يبقى أفقيًّا سليمًا (مثال: 93%) في كلِّ اتجاهِ صفحة.
   const r = 30
   const c = 2 * Math.PI * r
+  const pct = Math.max(0, Math.min(100, score))
   return (
-    <svg viewBox="0 0 72 72" className="size-[72px] shrink-0 -rotate-90" aria-hidden="true">
+    <svg viewBox="0 0 72 72" className="size-[72px] shrink-0" aria-hidden="true">
       <circle cx="36" cy="36" r={r} fill="none" stroke="var(--c-line)" strokeWidth="7" />
-      <circle
-        cx="36"
-        cy="36"
-        r={r}
+      <path
+        d="M36 6A30 30 0 1 1 36 66A30 30 0 1 1 36 6"
         fill="none"
         stroke={score >= 90 ? 'var(--c-brand)' : 'var(--c-gold)'}
         strokeWidth="7"
         strokeLinecap="round"
         strokeDasharray={c}
-        strokeDashoffset={c * (1 - Math.max(0, Math.min(100, score)) / 100)}
+        strokeDashoffset={c * (1 - pct / 100)}
         className="transition-all duration-700"
       />
-      <text x="36" y="36" textAnchor="middle" dominantBaseline="central" className="fill-ink text-[19px] font-extrabold">
-        {score}
+      <text x="36" y="36" textAnchor="middle" dominantBaseline="central" className="fill-ink text-[17px] font-extrabold">
+        {`${score}%`}
       </text>
     </svg>
   )
