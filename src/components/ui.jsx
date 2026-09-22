@@ -374,6 +374,9 @@ const BTN = {
   gold: 'bg-gold text-[#1b1405] hover:brightness-105',
 }
 const SIZE = {
+  // xs كانت تنقص من الجدول فتحصل أزرارُ العيّنات (سيرة نموذجية / إعلان نموذجي) على
+  // صنف "undefined" بلا ارتفاعٍ ولا مسافةٍ بين الأيقونة والنصّ — فبدا أيقونتُها مكسورة.
+  xs: 'h-7 px-2.5 text-[11.5px] gap-1 rounded-md',
   sm: 'h-9 px-3.5 text-[13px] gap-1.5 rounded-lg',
   md: 'h-11 px-5 text-sm gap-2 rounded-xl',
   lg: 'h-13 px-6 text-[15px] gap-2.5 rounded-xl py-3.5',

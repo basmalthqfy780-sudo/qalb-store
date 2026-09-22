@@ -845,6 +845,96 @@ for (const c of cases) {
   }
 }
 
+/* ---------------- visual fixes · pro anchor · mega menu (☰) ---------------- */
+{
+  const checks = []
+  const bad = []
+  const ok = (name, cond, extra = '') => {
+    checks.push(name)
+    if (!cond) bad.push(name + (extra ? ` (${extra})` : ''))
+  }
+
+  /* ---------- /match: نسبةٌ أفقية داخل الدائرة، وأزرار العيّنات بأيقونات SVG صريحة ---------- */
+  {
+    const g = await render('http://localhost/match')
+    g.btn(/سيرة نموذجية/)?.click()
+    g.btn(/إعلان نموذجي/)?.click()
+    await g.wait()
+    const ring = g.doc.querySelector('[data-match-score] svg')
+    const label = ring?.querySelector('text')?.textContent || ''
+    ok('the match score sits in the ring as a horizontal NN%', /^\d+%$/.test(label.trim()), label)
+    ok(
+      'nothing rotates the ring or writes its number sideways',
+      !/rotate|writing-mode/i.test(
+        `${ring?.getAttribute('class') || ''} ${ring?.querySelector('text')?.getAttribute('class') || ''} ${ring?.querySelector('text')?.getAttribute('style') || ''}`,
+      ),
+      String(ring?.getAttribute('class')),
+    )
+    const demoCv = g.btn(/سيرة نموذجية/)
+    const demoJob = g.btn(/إعلان نموذجي/)
+    ok('the sample CV and posting buttons carry explicit SVG icons', !!demoCv?.querySelector('svg') && !!demoJob?.querySelector('svg'))
+    ok(
+      'and the sample buttons still fill both inputs',
+      (g.doc.getElementById('m-cv')?.value || '').length > 50 && (g.doc.getElementById('m-job')?.value || '').length > 20,
+    )
+    g.dom.window.close()
+  }
+
+  /* ---------- /#pro: القسم موجود فعليًّا ورابط الفوتر يقود إليه ---------- */
+  {
+    const g = await render('http://localhost/')
+    ok('the Qalb Pro section sits on the home page under id=pro', !!g.doc.getElementById('pro'))
+    ok('and the footer points its Pro link at that anchor', !!g.doc.querySelector('footer a[href="/#pro"]'))
+    g.dom.window.close()
+  }
+
+  /* ---------- ☰: قائمةٌ شاملة تجمع كل روابط المنصة وتُخفّف الشريط ---------- */
+  {
+    const g = await render('http://localhost/')
+    const trigger = g.doc.querySelector('[data-menu-trigger]')
+    ok('the header carries a ☰ trigger for the all-in menu', !!trigger)
+    trigger?.click()
+    await g.wait()
+    ok('the menu panel opens', g.doc.querySelector('#menu-panel')?.getAttribute('data-menu') === 'open')
+    const panel = g.doc.querySelector('#menu-panel')
+    const hrefs = [...(panel?.querySelectorAll('a') || [])].map((a) => a.getAttribute('href'))
+    const tools = ['/ats', '/match', '/kit', '/u/noura-alharbi', '/studio', '/talent', '/market', '/embed', '/b2b']
+    ok(
+      'all nine hiring tools are listed in one place',
+      tools.every((h) => hrefs.includes(h)),
+      tools.filter((h) => !hrefs.includes(h)).join(','),
+    )
+    ok(
+      'the tools badge counts the table’s own rows, never a typed number',
+      (panel?.querySelector('[data-menu-tools-count]')?.textContent || '').trim() === String(tools.length),
+    )
+    ok(
+      'templates, services, hosting and support are gathered with them',
+      ['/templates', '/services', '/offers', '/host', '/blog', '/track', '/licence'].every((h) => hrefs.includes(h)),
+    )
+    ok(
+      'every promised section anchor is in the panel',
+      ['/#bundles', '/#pro', '/#faq', '/#guide', '/#deploy', '/#contact'].every((h) => hrefs.includes(h)),
+    )
+    ok('the direct header links gave way to the menu', g.doc.querySelectorAll('header nav > a').length === 0)
+    g.doc.body.dispatchEvent(new g.win.MouseEvent('mousedown', { bubbles: true }))
+    await g.wait()
+    ok('clicking outside closes the menu', g.doc.querySelector('#menu-panel')?.getAttribute('data-menu') === 'closed')
+    ok('no console errors in this group', g.errs.filter((e) => !/not implemented/i.test(e)).length === 0, g.errs.slice(0, 1).join(' '))
+    g.dom.window.close()
+  }
+
+  if (bad.length) {
+    failed++
+    groups++
+    console.log('✗ visual fixes · pro anchor · mega menu')
+    bad.forEach((n) => console.log('   failed: ' + n))
+  } else {
+    groups++
+    console.log(`✓ visual fixes · pro anchor · mega menu  (${checks.length} assertions)`)
+  }
+}
+
 /* ---------------- growth v1.5.0 · الإضافات والاشتراك والعروض والخدمات ---------------- */
 {
   const checks = []
