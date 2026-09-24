@@ -736,7 +736,7 @@ export default function B2B() {
           </dl>
           <p className="mt-5 text-[12.5px] leading-relaxed text-dim">
             {t('b2b.foot')}{' '}
-            <Link to="/legal#privacy" className="font-bold text-brand hover:underline">
+            <Link to="/privacy" className="font-bold text-brand hover:underline">
               {t('b2b.footLink')}
             </Link>
           </p>

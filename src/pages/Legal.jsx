@@ -14,12 +14,9 @@ import { Btn, Head, Icon } from '../components/ui'
  * (لا مُرسِل، لا بوابة دفع، لا متتبّع، لا فاتورة موثّقة، لا زر استرجاع)،
  * والمكان الذي يُخزَّن فيه الشيء مسمّى باسمه.
  */
-const SECTIONS = [
-  { id: 'terms', h: 'legal.terms', paras: ['legal.t1', 'legal.t2', 'legal.t3', 'legal.t4', 'legal.t5'] },
-  { id: 'privacy', h: 'legal.privacy', paras: ['legal.p1', 'legal.p2', 'legal.p3', 'legal.p4', 'legal.p5', 'legal.p6', 'legal.p7', 'legal.p8'] },
-  { id: 'refund', h: 'legal.refund', paras: ['legal.r1', 'legal.r2', 'legal.r3', 'legal.r4'] },
-  { id: 'licence', h: 'legal.licence', paras: ['legal.l1', 'legal.l2', 'legal.l3', 'legal.l4'] },
-]
+// الأقسام من مصدرها الواحد (src/data/legal.js) — تقرأه هذه الصفحة الجامعة وصفحاتُ
+// المسار (/terms و/privacy و/refunds) معًا، فلا يختلف سطرٌ بين نسختين.
+import { SECTIONS } from '../data/legal'
 
 export default function Legal() {
   const { t } = useI18n()

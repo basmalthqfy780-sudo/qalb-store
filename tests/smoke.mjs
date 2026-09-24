@@ -152,10 +152,22 @@ const cases = [
     expect: [
       'قالب',
       'الأكثر رواجًا هذا الأسبوع',
-      'القالب ملكك مدى الحياة',
-      'الاستضافةُ اختيارية',
-      'ادفع مرة واحدة',
-      '449',
+      // v1.8.0: العنوان والزرّان كما كُتبا في الطلب — بلا وعدٍ بشراءٍ مرة واحدة
+      'أنشئ بورتفوليو وسيرة ذاتية',
+      'متطابقين في دقائق.',
+      'اختر قالبًا جاهزًا، عدّل محتواك، وانشر موقعك مع سيرة ATS جاهزة للتقديم.',
+      'تصفح القوالب',
+      'معاينة القوالب المجانية',
+      // «ماذا ستحصل عليه؟» — أربعةُ مخرجاتٍ تُسلَّم فعلًا
+      'ماذا ستحصل عليه؟',
+      'موقع بورتفوليو احترافي جاهز للنشر',
+      'سيرة ذاتية متوافقة مع أنظمة الفحص الآلي (ATS)',
+      'رابط شخصي حيّ ودعم النطاقات المخصصة',
+      'ترخيص استخدام شخصي وتحديثات مجانية',
+      // جدولُ الدرجات الموحّد: مجاني · Plus · Pro
+      'الباقة المجانية',
+      'Qalb Plus',
+      'Qalb Pro',
       'SALE25',
       'qalb@qalb.store',
       // منظومة التوظيف: ستُّ أدواتٍ بعد القالب، تُرى من الصفحة الأولى
@@ -163,12 +175,26 @@ const cases = [
       'طابق سيرتك مع الإعلان',
       'دليل المواهب',
     ],
+    // ما خرج من الصفحة الأولى: الباقات المؤجّلة، والقالبُ المؤجَّل، ووعدُ «مدى الحياة»
+    absent: ['ادفع مرة واحدة', 'القالب ملكك مدى الحياة', 'أنشئ قالبك من إجاباتك', 'فردية'],
   },
   {
     name: 'home / english',
     url: 'http://localhost/',
     lang: 'en',
-    expect: ['Qalb', 'Trending this week', 'The template is yours for life', 'hosting is optional', 'Pay once', '449', 'ATS'],
+    expect: [
+      'Qalb',
+      'Trending this week',
+      'Build a portfolio and a résumé',
+      'that match, in minutes.',
+      'Browse templates',
+      'Preview free templates',
+      'What’s included?',
+      'Qalb Plus',
+      'Qalb Pro',
+      'ATS',
+    ],
+    absent: ['Pay once', 'yours for life', 'Solo'],
   },
   { name: 'catalog', url: 'http://localhost/templates', expect: ['كل القوالب', 'الفلاتر', 'أيثر', 'نِكسَس', 'نوع المنتج'] },
   { name: 'catalog by field', url: 'http://localhost/templates?cat=graduate', expect: ['فِست ستيب'] },
@@ -216,12 +242,12 @@ const cases = [
       'single-use',
     ],
   },
-  { name: 'hosting', url: 'http://localhost/host', expect: ['قالبك يصير موقعًا', 'qalb.store', '19', 'مجانًا', 'تعديلات في الشهر', 'نسخ'] },
+  { name: 'hosting', url: 'http://localhost/host', expect: ['قالبك يصير موقعًا', 'qalb.store', '49', 'مجانًا', 'تعديلات في الشهر', 'نسخ'] },
   {
     name: 'hosting / english',
     url: 'http://localhost/host',
     lang: 'en',
-    expect: ['Your template becomes a site', 'subdomain', '19', 'free', 'edits a month'],
+    expect: ['Your template becomes a site', 'subdomain', '49', 'free', 'edits a month'],
   },
   { name: 'studio (nothing yet)', url: 'http://localhost/studio', expect: ['لا موقع على هذا المتصفح', 'أنشئ موقعي'] },
   {
@@ -319,54 +345,72 @@ const cases = [
     url: 'http://localhost/pricing',
     expect: [
       'ما الذي نبيعه بالضبط',
-      'القالب الأول',
-      'فردية',
+      // v1.8.0: جدولٌ واحد بثلاث درجات — لا «فردية» ولا باقةٌ تُشترى مرة واحدة
+      'الباقة المجانية',
+      'Qalb Plus',
+      'Qalb Pro',
       'المجاني مقابل المدفوع',
       'إنشاء حساب بالبريد',
       'تحميل سيرة PDF',
       'بيع القالب للآخرين',
       'عمولة المنصة من كل بيع',
-      'باقة لمرة واحدة',
       '349',
       '499',
       'ما لا يحدث في هذه النسخة',
     ],
+    absent: ['فردية', 'باقة لمرة واحدة', 'Solo'],
   },
   {
     name: 'pricing / english',
     url: 'http://localhost/pricing',
     lang: 'en',
-    expect: ['What we sell, exactly', 'The first template', 'Solo', 'Free against paid, row by row', 'Selling your template to others'],
+    expect: [
+      'What we sell, exactly',
+      'Free — the Free tier',
+      'Qalb Plus',
+      'Qalb Pro',
+      'Free against paid, row by row',
+      'Selling your template to others',
+    ],
+    absent: ['Solo', 'one-time pack at SAR'],
   },
   {
-    name: 'create / the four-step wizard',
+    // v1.8.0: مُنشئ القالب خرج من المنتج — /create يُحوَّل إلى الكتالوج نفسه
+    name: 'create / the wizard is gone, the route lands on the catalogue',
     url: 'http://localhost/create',
-    expect: ['أنشئ قالبك من إجاباتك', 'بريدك الإلكتروني', 'بالمتابعة أُقرّ', 'لا نرسل رسالة تأكيد', 'ابدأ مجانًا'],
+    expect: ['كل القوالب', 'الفلاتر', 'ابحث بالاسم أو المجال', 'نوع المنتج', 'إعادة ضبط الفلاتر', 'عرض 9 من 20'],
+    absent: ['أنشئ قالبك من إجاباتك', 'ابدأ مجانًا'],
   },
   {
-    name: 'create / step two of a signed-in account',
+    name: 'create / a signed-in account with no niche still lands on the catalogue',
     url: 'http://localhost/create',
-    // المجال لم يُختَر بعد: الخطوة الثانية لا الثالثة، ولو كان الحساب قائمًا
+    // الحساب قائم والمجال لم يُختَر: ما كان يفتح الخطوة الثانية صار تحويلًا
     seed: { 'qalb.account.v1': JSON.stringify({ ...revenueAccount, niche: null, created: [] }) },
-    expect: ['مجالك', 'مصمم', 'مصوّر', 'مبرمج', 'طالب', 'كاتب', 'مهندس', 'المرحلة الأولى', 'بدأنا بمصممين ومصورين'],
+    expect: ['كل القوالب', 'الفلاتر', 'أيثر'],
+    // «مجالك» و«مصمم» يردان في الكتالوج نفسه (فلتر المجال وتصنيف التصميم)، فالمحرَّمُ
+    // ما كان للمعالج وحده: مجالاتُ المرحلة الثانية وجملةُ «بدأنا بـ»
+    absent: ['مبرمج', 'المرحلة الأولى', 'بدأنا بمصممين ومصورين', 'أنشئ قالبك من إجاباتك'],
   },
   {
-    // البوابة نفسها: من أنشأ قالبه على المجانية يُقابل بالخطط لا بمحرّرٍ يعتذر بعده
-    name: 'create / the second template meets the plan gate',
+    // البوابة نفسها: لا محرّر يعتذر بعد خطوة، ولا قالبَ ثانٍ خلف «فردية»
+    name: 'create / the second template meets no wizard at all',
     url: 'http://localhost/create',
     seed: { 'qalb.account.v1': JSON.stringify(revenueAccount) },
-    expect: ['القالب الثاني خلف اشتراك', 'قوالبك 1 من 1', 'فردية', 'Pro', 'قارن الخطط ومصفوفة القيمة', 'لا بوابة دفع موصولة'],
+    expect: ['كل القوالب', 'الفلاتر', 'أيثر'],
+    absent: ['القالب الثاني خلف اشتراك', 'فردية', 'Pro', 'لا بوابة دفع موصولة'],
   },
   {
     name: 'account / no account on this device',
     url: 'http://localhost/account',
-    expect: ['لا حساب على هذا الجهاز بعد', 'أنشئ حسابك'],
+    // v1.8.0: الحالة الفارغة استمارةُ تسجيلٍ في الصفحة نفسها — لا زرٌّ يقود إلى /create
+    expect: ['لا حساب على هذا الجهاز بعد', 'بريدك الإلكتروني', 'بالمتابعة أُقرّ', 'ابدأ مجانًا', 'لا نرسل رسالة تأكيد'],
+    absent: ['أنشئ قالبك من إجاباتك'],
   },
   {
     name: 'account / a free account sees the watermark rule',
     url: 'http://localhost/account',
     seed: { 'qalb.account.v1': JSON.stringify(revenueAccount) },
-    expect: ['noura@qalb.store', 'القالب الأول', 'قوالبك 1 من 1', 'بعلامة مائية', 'ورقة السيرة', 'ما تفتحه خطتك', 'بيع قوالبك'],
+    expect: ['noura@qalb.store', 'الباقة المجانية', 'قوالبك 1 من 1', 'بعلامة مائية', 'ورقة السيرة', 'ما تفتحه خطتك', 'بيع قوالبك'],
   },
   {
     name: 'creators / the market and its published rules',
@@ -387,7 +431,7 @@ const cases = [
   {
     name: 'sell / a paid account gets the listing form',
     url: 'http://localhost/sell',
-    seed: { 'qalb.account.v1': JSON.stringify({ ...revenueAccount, plan: 'solo' }) },
+    seed: { 'qalb.account.v1': JSON.stringify({ ...revenueAccount, plan: 'pro' }) },
     expect: ['إدراج جديد', 'عنوان القالب', 'ملفات الحزمة', 'ارفع للفحص الآلي', 'مستحقاتك', 'ترخيص السوق', 'خطتك تفتح البيع'],
   },
 ]
@@ -554,13 +598,16 @@ for (const c of cases) {
   const text = (root && root.textContent) || ''
   const nodes = root ? root.querySelectorAll('*').length : 0
   const missing = c.expect.filter((x) => !text.includes(x))
+  // `absent`: سطرٌ خرج من المنتج — بقاؤه في الصفحةِ عودٌ إليه
+  const stray = (c.absent || []).filter((x) => text.includes(x))
   const reactErrors = errs.filter((e) => !/Warning: |not implemented/i.test(e))
-  routeChecks += c.expect.length + 1 // كل توقّع + فحص «لا أخطاء React»
+  routeChecks += c.expect.length + (c.absent || []).length + 1 // كل توقّع + كل منفيّ + فحص «لا أخطاء React»
 
-  if (missing.length || reactErrors.length) {
+  if (missing.length || stray.length || reactErrors.length) {
     failed++
     console.log(`✗ ${c.name}`)
     if (missing.length) console.log(`   missing: ${missing.join(' | ')}`)
+    if (stray.length) console.log(`   still there: ${stray.join(' | ')}`)
     if (reactErrors.length) console.log(`   errors: ${reactErrors.slice(0, 3).join('\n          ')}`)
   } else {
     groups++
@@ -668,7 +715,10 @@ for (const c of cases) {
   checks.push(['step 3 shows review + pay', /تأكيد الطلب والدفع/.test(txt()) && /sarah@example.com/.test(txt())])
 
   // 3b. what the buyer must tick before paying actually leads to readable text
-  const legalLinks = [...document.querySelectorAll('#main a[href^="/legal#"]')]
+  // v1.8.0: كلُّ اتفاقٍ صفحته — /terms و/refunds و/privacy — لا قسمٌ في صفحةٍ جامعة
+  const legalLinks = [...document.querySelectorAll('#main a[href^="/"]')].filter((a) =>
+    ['/terms', '/refunds', '/privacy'].includes(a.getAttribute('href')),
+  )
   checks.push([
     'the agreement row links out to the terms, the refund policy and the privacy text',
     legalLinks.length === 3 && legalLinks.every((a) => a.target === '_blank' && /noopener/.test(a.rel || '')),
@@ -982,11 +1032,14 @@ for (const c of cases) {
     g.dom.window.close()
   }
 
-  /* ---------- /#pro: القسم موجود فعليًّا ورابط الفوتر يقود إليه ---------- */
+  /* ---------- /#bundles: القسم موجود فعليًّا ورابط الترويسة والفوتر يقود إليه ---------- */
   {
     const g = await render('http://localhost/')
-    ok('the Qalb Pro section sits on the home page under id=pro', !!g.doc.getElementById('pro'))
-    ok('and the footer points its Pro link at that anchor', !!g.doc.querySelector('footer a[href="/#pro"]'))
+    // بطاقةُ Pro نفسها تحمل id="pro" داخل القسم (src/components/PlanCards.jsx)، وروابط
+    // الواجهة تقود إلى القسم لا إلى بطاقةٍ داخله — فالمقسومُ هو ما يُفحَص هنا.
+    ok('the plan band sits on the home page under id=bundles', !!g.doc.getElementById('bundles'))
+    ok('and the footer points its plans link at that anchor', !!g.doc.querySelector('footer a[href="/#bundles"]'))
+    ok('the Pro card inside the band carries the id the anchor promise names', !!g.doc.querySelector('#bundles [data-plan="pro"]'))
     g.dom.window.close()
   }
 
@@ -1016,7 +1069,7 @@ for (const c of cases) {
     )
     ok(
       'every promised section anchor is in the panel',
-      ['/#bundles', '/#pro', '/#faq', '/#guide', '/#deploy', '/#contact'].every((h) => hrefs.includes(h)),
+      ['/#bundles', '/#faq', '/#guide', '/#deploy', '/#contact'].every((h) => hrefs.includes(h)),
     )
     ok('the direct header links gave way to the menu', g.doc.querySelectorAll('header nav > a').length === 0)
     g.doc.body.dispatchEvent(new g.win.MouseEvent('mousedown', { bubbles: true }))
@@ -1071,7 +1124,7 @@ for (const c of cases) {
     Object.entries(upsellPriceTable())
       .map(([k, v]) => `${k}:${v}`)
       .join(',') ===
-      'cover-letter:39,cv-tailor:79,ats-review:149,deploy-setup:249,cv-write:299,brand-identity:899,ats-report:29,pro-month:39,pro-year:349,' +
+      'cover-letter:39,cv-tailor:79,ats-review:149,deploy-setup:249,cv-write:299,brand-identity:899,ats-report:29,pro-month:49,pro-year:349,' +
         // منظومةُ التوظيف: مطابقة ٢٩ وباقة الخمسة ٧٩، ملف التقديم ٤٩، البطاقة الموثّقة ١٩،
         // الرابط بلس ٢٩ شهريًا، إبراز الدليل ٢٩ شهريًا، استيراد LinkedIn ٣٩، إزالة الشارة ١٩
         'match-report:29,match-5:79,kit-10:49,share-verified:19,link-plus:29,talent-spot:29,linkedin-import:39,badge-off:19',
@@ -1180,19 +1233,46 @@ for (const c of cases) {
     g.dom.window.close()
   }
 
-  /* ---------- الرئيسية: اشتراك Pro موازيًا للشراء لمرة واحدة ---------- */
+  /* ---------- الرئيسية: جدولُ الدرجات الموحّد — مكوّنٌ واحد للصفحتين ---------- */
   {
+    const { PLANS: TIERS } = await import('../src/data/plans.js')
     const g = await render('http://localhost/')
-    const pro = g.doc.querySelector('[data-pro]')
-    ok('the subscription section renders beside the one-time bundles', !!pro && !!g.doc.querySelector('#bundles'))
-    const prices = [...(pro?.querySelectorAll('[data-pro-plan]') || [])].map((el) => el.getAttribute('data-pro-plan'))
-    ok('both plans are on the page, month and year', prices.join(',') === 'month,year', prices.join(','))
+    const band = g.doc.querySelector('[data-plan-band]')
+    ok('the subscription table renders on the home page, not a bundle shelf', !!band && !!g.doc.querySelector('#bundles'))
+    const ids = [...(band?.querySelectorAll('[data-plan]') || [])].map((el) => el.getAttribute('data-plan'))
+    ok('the three graded tiers are on the page', ids.join(',') === 'free,plus,pro', ids.join(','))
     const [m, y] = proPlans()
-    ok('their prices are read from the add-on table, 39 and 349', m.price === 39 && y.price === 349)
-    ok('the yearly saving shown is arithmetic, not a slogan', g.txt().includes('119'), `month×12 − year = ${m.price * 12 - y.price}`)
-    pro?.querySelector('[data-pro-plan="month"] button')?.click()
+    ok(
+      'their prices are read from the one table: 0 · 19 · 49 a month',
+      TIERS.map((x) => x.price).join(',') === '0,19,49' && m.price === 49 && y.price === 349,
+    )
+    ok(
+      'the monthly prices are printed, VAT included',
+      ['19', '49'].every((n) => (band?.textContent || '').includes(n)),
+    )
+    // المفتاح السنوي يحوّل السعر والسطر تحته معًا — محسوبين من الجدول لا مكتوبين
+    const yearlyBtn = [...(band?.querySelectorAll('button') || [])].find((b) => /سنوي|Yearly/.test(b.textContent || ''))
+    ok('the billing toggle is on the page', !!yearlyBtn)
+    yearlyBtn?.click()
     await g.wait()
-    ok('choosing a plan puts it in the cart storage', (g.win.localStorage.getItem('qalb.addons.v1') || '').includes('pro-month'))
+    const after = band?.textContent || ''
+    ok(
+      'the yearly prices are printed after the toggle',
+      ['149', '349'].every((n) => after.includes(n)),
+      after.replace(/\s+/g, ' ').slice(0, 120),
+    )
+    ok(
+      'and the year is stated as months paid, computed from the table',
+      ['7.8', '7.1'].every((n) => after.includes(n)),
+      after.replace(/\s+/g, ' ').slice(0, 160),
+    )
+    // الأزرار تقود إلى مكانٍ يفعل الشيء: المجانية إلى الاستضافة، والمدفوعة إلى الحساب
+    const hrefs = [...(band?.querySelectorAll('a') || [])].map((a) => a.getAttribute('href'))
+    ok(
+      'each tier’s button goes where the thing happens',
+      hrefs.includes('/host') && hrefs.includes('/account?plan=plus') && hrefs.includes('/account?plan=pro'),
+      hrefs.join(' '),
+    )
     g.dom.window.close()
   }
 
@@ -1712,10 +1792,13 @@ for (const c of cases) {
     const staticRoutes = [...readFileSync('src/App.jsx', 'utf8').matchAll(/path="(\/[a-z0-9-]*)"/g)]
       .map((m) => m[1])
       .filter((p) => p === '/' || !p.endsWith('/'))
+    // مسارٌ يُحوَّل وحده لا صفحةٌ تُفهرَس: /create صار <Navigate> في v1.8.0، فوجوب
+    // بقائه في الخريطة كان يفرض على المولّد أن ينشر رابطًا لا renders شيئًا.
+    const redirectRoutes = [...readFileSync('src/App.jsx', 'utf8').matchAll(/path="(\/[a-z0-9-]*)"\s+element=\{<Navigate/g)].map((m) => m[1])
     // مصدرٌ واحد للمسارات الخاصة: agents.mjs يكتب robots.txt منه، والفحص يقرأه منه —
     // فنسخةٌ ثانية هنا كانت ستُخفي صفحةً نُسيت من الاثنين.
     const privateRoutes = PRIVATE_PATHS
-    const publicRoutes = staticRoutes.filter((p) => !privateRoutes.includes(p))
+    const publicRoutes = staticRoutes.filter((p) => !privateRoutes.includes(p) && !redirectRoutes.includes(p))
     const notInMap = publicRoutes.filter((p) => !map.includes(`${p}</loc>`))
     ok(
       'every public route in the router is in the sitemap',
@@ -1898,14 +1981,18 @@ for (const c of cases) {
   )
   /* ---- «كل القوالب» رقمٌ يُقرأ من الرّفّ، لا يُروى من نصّ ---- */
   const bundlesTxt = (g.doc.querySelector('#bundles')?.textContent || '').replace(/\s+/g, ' ')
-  const shelfSum = templates.reduce((n, x) => n + x.price, 0)
-  const en0 = new Intl.NumberFormat('en-US')
+  const tierBand = (await import('../src/data/plans.js')).PLANS
   ok(
-    'the full-path badge states the shelf as it is today',
-    bundlesTxt.includes(en0.format(templates.length)) && bundlesTxt.includes('قالب'),
-    `${templates.length} templates · ${bundlesTxt.slice(0, 40)}`,
+    'the plan band names the three tiers the store sells',
+    tierBand.every((x) => bundlesTxt.includes(x.name.ar)),
+    tierBand.map((x) => x.name.ar).join(' · '),
   )
-  ok('and it charges what those templates add up to, to the riyal', bundlesTxt.includes(en0.format(shelfSum)), en0.format(shelfSum))
+  // شهريًا هو الافتراضيّ؛ السنويُّ خلف مفتاح الفوترة (يُفحَص في مجموعة النمو)
+  ok(
+    'and it prices them from the one table: Plus 19 and Pro 49 a month',
+    ['19', '49'].every((n) => bundlesTxt.includes(n)),
+    bundlesTxt.slice(0, 200),
+  )
   ok('no invented bundle price is left standing in the page', !bundlesTxt.includes('999'), bundlesTxt.slice(0, 90))
 
   /* ---- الرابط إلى #bundles ينزل إلى الباقات، لا إلى السقف ---- */
@@ -2808,7 +2895,7 @@ for (const c of cases) {
   ok('and survives a reload', (again.doc.getElementById('pe-name') || {}).value === 'نورة الحربي')
   ok(
     'the card links to the privacy section that explains it',
-    !!again.doc.querySelector('#personalize a[href="/legal#privacy"]') && /كيف تُحفظ هذه البيانات/.test(again.txt()),
+    !!again.doc.querySelector('#personalize a[href="/privacy"]') && /كيف تُحفظ هذه البيانات/.test(again.txt()),
   )
   ok(
     'each field stops you at the length that would be cut, not after it',
@@ -3009,8 +3096,9 @@ for (const c of cases) {
   /* --- الخطط: كل رقم يراه المتجر له مقابل في الكود --- */
   const plans = Object.values(PLANS)
   ok(
+    // الاستضافة تتبع جدول الاشتراك نفسه (src/data/plans.js) بمصدرٍ واحد: مجاني 0 · Pro 49
     'two plans, priced exactly as the storefront promises',
-    plans.length === 2 && PLANS.free.price === 0 && priceOf('pro') === 19,
+    plans.length === 2 && PLANS.free.price === 0 && priceOf('pro') === 49,
     plans.map((p) => `${p.id}:${p.price}`).join(' '),
   )
   ok('free carries our bar, pro removes it', PLANS.free.brand === true && PLANS.pro.brand === false)
@@ -4681,7 +4769,7 @@ for (const c of cases) {
   const card = read('../src/components/TemplateCard.jsx')
   ok(
     'the template card stretches and pushes its price row to the floor',
-    /flex h-full flex-col/.test(card) && /flex flex-1 flex-col justify-between/.test(card) && /mt-auto/.test(card),
+    /flex h-full flex-col/.test(card) && /flex flex-1 flex-col/.test(card) && /mt-auto/.test(card),
   )
   const services = read('../src/pages/Services.jsx')
   ok(
@@ -4694,8 +4782,9 @@ for (const c of cases) {
   ok(
     'the home grids let their cards stretch instead of pinning them to the top',
     !/grid items-start gap-5/.test(home) &&
-      /Reveal key=\{p\.key\} delay=\{k \* 90\} className="h-full"/.test(home) &&
-      /Reveal key=\{p\.id\} delay=\{k \* 90\} className="h-full"/.test(home),
+      // كلُّ شبكات الرئيسية تمرّر الارتفاع لبطاقاتها: القوالب المميّزة، ومخرجاتُ
+      // «ماذا ستحصل عليه»، والقصص، والمنظومة — لا شبكةً تثبّت بطاقاتها في الأعلى
+      (home.match(/Reveal key=\{[^}]+\} delay=\{k \* \d+\} className="h-full"/g) || []).length >= 5,
   )
   ok(
     'the related grid on the product page is full height as well',
@@ -4995,7 +5084,7 @@ for (const c of cases) {
   const checks = []
   const ok = (name, cond, extra = '') => checks.push([cond ? name : `${name} — ${extra}`, !!cond])
 
-  const { PLANS, FEATURE_MATRIX, ONE_TIME, PUBLISH_DONE, gainedBy, vatOf, withWatermark, yearlyAsMonths } = await import('../src/data/plans.js')
+  const { PLANS, FEATURE_MATRIX, PUBLISH_DONE, gainedBy, vatOf, withWatermark, yearlyAsMonths } = await import('../src/data/plans.js')
   const { NICHES, QUESTIONS, ACCOUNT_LIMITS, canCreate, sanitizeAccount, sanitizeAnswers, droppedAnswers, readyToGenerate, starterFor, firstStage } =
     await import('../src/data/account.js')
   const {
@@ -5022,19 +5111,22 @@ for (const c of cases) {
   const { byId, templates: CATALOGUE } = await import('../src/data/templates.js')
 
   /* ——— ١. الخطط: أرقام داخل المدى المعلَن، والسلوك مشتق لا مكرر ——— */
+  // v1.8.0: سلّمٌ واحد بثلاث درجات — لا «فردية» ولا باقةٌ تُشترى مرة واحدة
   const free = PLANS.find((x) => x.id === 'free')
-  const solo = PLANS.find((x) => x.id === 'solo')
+  const plus = PLANS.find((x) => x.id === 'plus')
   const pro = PLANS.find((x) => x.id === 'pro')
-  ok('three plans, free first and Pro last', PLANS.length === 3 && free.order < solo.order && solo.order < pro.order)
-  ok('the free plan costs nothing and allows exactly one template', free.price === 0 && free.templates === 1)
-  ok('the individual plan sits inside the published 19–79 SAR band', solo.price >= 19 && solo.price <= 79, `${solo.price}`)
-  ok('Pro sits inside the published 199–249 SAR band', pro.price >= 199 && pro.price <= 249, `${pro.price}`)
+  ok('three graded tiers, free first and Pro last', PLANS.length === 3 && free.order < plus.order && plus.order < pro.order)
+  ok('the free tier costs nothing and allows exactly one template', free.price === 0 && free.templates === 1)
+  ok('Qalb Plus is the 19 SAR a month tier', plus.price === 19 && plus.templates === 3, `${plus.price}/${plus.templates}`)
+  ok('Qalb Pro is the 49 SAR a month tier', pro.price === 49, `${pro.price}`)
   ok('Pro removes the ceiling entirely, it does not raise it', pro.templates === null)
   ok(
-    'the one-time pack is inside 249–499 and the publish service inside 299–799',
-    ONE_TIME.price >= 249 && ONE_TIME.price <= 499 && PUBLISH_DONE.price >= 299 && PUBLISH_DONE.price <= 799,
+    'the yearly prices are the published ones, and the service sits inside its own band',
+    plus.yearly === 149 && pro.yearly === 349 && PUBLISH_DONE.price >= 299 && PUBLISH_DONE.price <= 799,
+    `${plus.yearly}/${pro.yearly}/${PUBLISH_DONE.price}`,
   )
-  ok('the yearly price is computed as months, not asserted', yearlyAsMonths('solo') > 6 && yearlyAsMonths('solo') < 12, `${yearlyAsMonths('solo')}`)
+  ok('no one-time pack is exported any more', (await import('../src/data/plans.js')).ONE_TIME === undefined)
+  ok('the yearly price is computed as months, not asserted', yearlyAsMonths('plus') > 6 && yearlyAsMonths('plus') < 12, `${yearlyAsMonths('plus')}`)
   ok('VAT is extracted from the listed price, not added on top', Math.abs(vatOf(115) - 15) < 0.01, `${vatOf(115)}`)
   ok('Pro gains eight things over free, and the list is derived from the table', gainedBy('pro').length === 8, gainedBy('pro').join(','))
   ok('and free gains nothing over itself', gainedBy('free').length === 0)
@@ -5134,7 +5226,10 @@ for (const c of cases) {
     'eligibility is measured against the 100 SAR minimum, and the shortfall is a number',
     payoutState([{ price: 40, soldAt: '2026-09-01' }], new Date('2026-09-24')).missing > 0 && pay.eligible === true && MIN_PAYOUT === 100,
   )
-  ok('selling needs a paid plan, and the block says why', canSell('free') === false && canSell('solo') === true && canSell({ plan: 'pro' }) === true)
+  ok(
+    'selling needs the Pro tier, and the block says why',
+    canSell('free') === false && canSell('plus') === false && canSell({ plan: 'pro' }) === true,
+  )
   ok(
     'prices outside the accepted band are refused before the pipeline runs',
     priceOk(10) === false && priceOk(PRICE_MIN) === true && priceOk(PRICE_MAX + 1) === false,
@@ -5307,15 +5402,18 @@ for (const c of cases) {
     // واللغة تُزرع في الحافظة كما يزرعها الزائر: سمة `lang` على <html> وحدها لا تكفي.
     return render(`http://localhost${url}`, { 'qalb.lang': lang, ...storage }, { lang })
   }
-  const gate = await render('http://localhost/create', { 'qalb.account.v1': JSON.stringify(revenueAccount) })
+  // v1.8.0: /create لم يبقَ محرّرًا — البوابة تُقرأ من /account حيث يعرض الحسابُ سلّمَه
+  const gate = await render('http://localhost/account', { 'qalb.account.v1': JSON.stringify(revenueAccount) })
   ok(
-    'a free account that used its template meets the plan gate, not the editor',
-    /القالب الثاني خلف اشتراك/.test(gate.txt()) && !/ولّد قالبى الأول/.test(gate.txt()),
+    'a free account that used its template meets the plan table, not an editor',
+    /بلغت سقف خطتك/.test(gate.txt()) && !/ولّد قالبى الأول/.test(gate.txt()),
+    gate.txt().slice(0, 60),
   )
-  ok('the gate offers the two paid plans with their real prices', /فردية/.test(gate.txt()) && /199/.test(gate.txt()) && /49/.test(gate.txt()))
+  ok('the gate offers the paid tiers with their real prices', /Qalb Plus/.test(gate.txt()) && /19/.test(gate.txt()) && /49/.test(gate.txt()))
+  ok('and it says plainly that nothing is charged here', /لا بوابة دفع موصولة/.test(gate.txt()))
   gate.dom.window.close()
 
-  const sell = await render('http://localhost/sell', { 'qalb.account.v1': JSON.stringify({ ...revenueAccount, plan: 'solo' }) })
+  const sell = await render('http://localhost/sell', { 'qalb.account.v1': JSON.stringify({ ...revenueAccount, plan: 'pro' }) })
   ok(
     'the seller console shows the split to the halala before any sale: 37.25 commission and 111.75 net on the 149 default',
     /37\.25/.test(sell.txt()) && /111\.75/.test(sell.txt()),
@@ -5327,10 +5425,22 @@ for (const c of cases) {
   const pricingAr = await renderRoute({ url: '/pricing' })
   ok(
     'pricing · ar: the matrix prints its rows with real values, not a legend that promises them',
-    (pricingAr.txt().match(/بعلامة مائية|بلا علامة مائية|كامل للقالب الأول|٣ قوالب|بلا حدود/g) || []).length >= 9,
-    (pricingAr.txt().match(/بعلامة مائية|بلا علامة مائية|كامل للقالب الأول|٣ قوالب|بلا حدود/g) || []).length + ' cells',
+    (
+      pricingAr
+        .txt()
+        .match(
+          /كامل للقالب الأول|كامل لجميع القوالب|بعلامة مائية|بلا علامة مائية|قالبٌ واحد فقط|بلا سقف|في خطة Pro|من Plus وما فوقها|ميزة Pro وحدها|بعد تجاوز الفحص الآلي/g,
+        ) || []
+    ).length >= 9,
+    (
+      pricingAr
+        .txt()
+        .match(
+          /كامل للقالب الأول|كامل لجميع القوالب|بعلامة مائية|بلا علامة مائية|قالبٌ واحد فقط|بلا سقف|في خطة Pro|من Plus وما فوقها|ميزة Pro وحدها|بعد تجاوز الفحص الآلي/g,
+        ) || []
+    ).length + ' cells',
   )
-  ok('pricing · ar: the free column is named for what it is, not dressed as a paid plan', /مجاني — القالب الأول/.test(pricingAr.txt()))
+  ok('pricing · ar: the free column is named for what it is, not dressed as a paid plan', /مجاني — الباقة المجانية/.test(pricingAr.txt()))
   ok(
     'pricing · ar: the gateway line is on the page, so “subscribe” is never read as “we will charge your card”',
     /لا بوابة دفع موصولة/.test(pricingAr.txt()),
@@ -5341,8 +5451,18 @@ for (const c of cases) {
   const pricingEn = await renderRoute({ url: '/pricing', lang: 'en' })
   ok(
     'pricing · en: the same matrix renders with the same row count',
-    (pricingEn.txt().match(/First template|Up to 3|Unlimited|watermarked|Clean PDF|Paid only|not available/gi) || []).length >= 10,
-    (pricingEn.txt().match(/First template|Up to 3|Unlimited|watermarked|Clean PDF|Paid only|not available/gi) || []).length + ' cells',
+    (
+      pricingEn
+        .txt()
+        .match(/first template|every template|watermarked|no watermark|one template only|no ceiling|pro plan|from plus|pro-only|automated check/gi) ||
+      []
+    ).length >= 10,
+    (
+      pricingEn
+        .txt()
+        .match(/first template|every template|watermarked|no watermark|one template only|no ceiling|pro plan|from plus|pro-only|automated check/gi) ||
+      []
+    ).length + ' cells',
   )
   pricingEn.dom.window.close()
 
@@ -5354,25 +5474,22 @@ for (const c of cases) {
   )
   accountAr.dom.window.close()
 
-  /* ——— ١٠. مسارات النمو: ثلاثة قوالب قبل القرار، وبابان مجانيان ——— */
+  /* ——— ١٠. مسارات النمو: /create صار بابًا إلى الكتالوج، وبابا الفاحص معهما ——— */
   const createDoc = await renderRoute({ url: '/create' })
-  const cards = Array.from(createDoc.doc.querySelectorAll('#showcase article'))
-  const tplIds = cards.map((c) => c.querySelector('a[href^="/template/"]')?.getAttribute('href')?.replace('/template/', '')).filter(Boolean)
+  // v1.8.0: المُنشئ أُزيل — المسار يُحوَّل إلى الكتالوج نفسه، فيه ثلاثُ بطاقاتٍ على
+  // الأقل من قوالب حقيقية، وفيه الفلاتر التي كان المُنشئ يفتتحها على شكل أسئلة.
+  const tplLinks = [...createDoc.doc.querySelectorAll('a[href^="/template/"]')].map((a) => a.getAttribute('href').replace('/template/', ''))
   ok(
-    'growth: /create shows three real catalogue templates before the decision',
-    cards.length === 3 && tplIds.length === 3 && tplIds.every((slug) => CATALOGUE.some((t) => t.slug === slug)),
-    tplIds.join(','),
+    'growth: /create lands on the catalogue with real template cards',
+    /كل القوالب/.test(createDoc.txt()) && tplLinks.length >= 3 && tplLinks.every((slug) => CATALOGUE.some((t) => t.slug === slug)),
+    tplLinks.slice(0, 5).join(','),
   )
-  ok(
-    'growth: …and the showcase switches screen size',
-    createDoc.doc.querySelectorAll('#showcase button[aria-pressed]').length === 3,
-    String(createDoc.doc.querySelectorAll('#showcase button[aria-pressed]').length),
-  )
+  ok('growth: …and the decision is a filter, not a wizard', /الفلاتر/.test(createDoc.txt()) && /إعادة ضبط الفلاتر/.test(createDoc.txt()))
   const atsDoc = await renderRoute({ url: '/ats' })
   ok(
-    'growth: the free ATS tool upsells the full portfolio, into /create',
-    !!atsDoc.doc.querySelector('a[href="/create"][data-ats-build]'),
-    'a[href=/create][data-ats-build]',
+    'growth: the free ATS tool upsells the full portfolio, into the catalogue',
+    !!atsDoc.doc.querySelector('a[href="/templates"][data-ats-build]'),
+    'a[href=/templates][data-ats-build]',
   )
   // الشارة تُقرأ من صفحة منشورة فعلًا: سجلٌّ كامل يمرّ بـ renderSite لا كائنٌ ناقص
   const { sanitizeSite } = await import('../src/data/hosting.js')
@@ -5383,8 +5500,9 @@ for (const c of cases) {
   })
   const hostedFree = renderSite(barRec('free'), '/')
   ok(
-    'growth: every free page carries “build your own” back to /create',
-    /أنشئ نسختك مجانًا/.test(hostedFree.body) && /href="https:\/\/qalb\.store\/create"/.test(hostedFree.body),
+    // v1.8.0: الباب هو الكتالوج — /create لم يبقَ، فالرابط المكتوب لا رابطٌ يتبع تحويلًا
+    'growth: every free page carries “build your own” back to the catalogue',
+    /أنشئ نسختك مجانًا/.test(hostedFree.body) && /href="https:\/\/qalb\.store\/templates"/.test(hostedFree.body),
     /qalb-brand/.test(hostedFree.body) ? 'the bar is there but the CTA is not' : 'no bar rendered at all',
   )
   ok('growth: …and a paid plan still drops the bar entirely', !/qalb-brand/.test(renderSite(barRec('pro'), '/').body), 'pro')

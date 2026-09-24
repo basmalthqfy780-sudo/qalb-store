@@ -8,9 +8,12 @@
  *
  * الخطة تُترجم إلى سلوك لا إلى كلام: `free` تحمل شريط العلامة أدناه وسقف تعديلات
  * شهريًا يُحتسب فعلًا، و`pro` تُسقط الشريط وتفتح النطاق الخاص وتُلغي السقف.
+ * وسعرُ الدرجة المدفوعة مقروءٌ من جدول الاشتراكات الموحّد (src/data/plans.js) لا
+ * مكتوبٌ هنا: فلا يُعرض سعرُ الاستضافة برقمٍ ويُعرض سعرُ الاشتراك برقمٍ آخر.
  */
 import { PERSONAL_LIMITS, kindOf, profileFor, resumeFor, sanitizePersonal, siteCssFor, siteHtml } from './deliverable.js'
 import { byId, templates } from './templates.js'
+import { priceOf as tierPrice } from './plans.js'
 
 export const HOST_ROOT = 'qalb.store'
 // كل حقل هنا يجب أن يحرّك شيئًا في المولّد: `heading` حُذف لأنه لا يقرأه أحد،
@@ -23,7 +26,7 @@ export const PLANS = {
   free: {
     id: 'free',
     name: { ar: 'مجاني', en: 'Free' },
-    price: 0,
+    price: tierPrice('free'),
     period: null,
     brand: true,
     domain: false,
@@ -32,8 +35,8 @@ export const PLANS = {
   },
   pro: {
     id: 'pro',
-    name: { ar: 'قالب بلس', en: 'Qalb Plus' },
-    price: 19,
+    name: { ar: 'Qalb Pro', en: 'Qalb Pro' },
+    price: tierPrice('pro'),
     period: 'month',
     brand: false,
     domain: true,
@@ -175,13 +178,14 @@ export function editWindow(site, at = new Date()) {
 /** شريط العلامة: موجود في المجاني، مفقود في «بلس» — لا يُقرَّر بالذوق بل بالخطة */
 export function brandBar(site) {
   if (PLANS[planOf(recPlan(site))].brand === false) return ''
-  // الشارة رابطان لا رابط: اسمنا، ودعوةٌ صريحة للزائر — «أنشئ نسختك» إلى
-  // /create حيث القالب الأول مجاني. هذا هو مسار النمو الوحيد المسموح به هنا:
+  // الشارة رابطان لا رابط: اسمنا، ودعوةٌ صريحة للزائر — «أنشئ نسختك» إلى الكتالوج
+  // حيث يختار قالبًا ويبني صفحته مجانًا. كان الرابط /create قبل v1.8.0، فلما أُزيل
+  // المُنشئ صار المسار يحوّل إلى /templates — فالقصدُ مكتوبٌ لا رابطٌ يتبع تحويلًا.
   // كل صفحة منشورة تحمل بابًا، ومن يدفع خطة Pro تُسقطه `brandBar` نفسها.
   const ar =
-    'صُنع بقالب — <a href="https://qalb.store" rel="noopener">قوالب مواقع وسِيَر</a> · <a href="https://qalb.store/create" rel="noopener"><b>أنشئ نسختك مجانًا</b></a>'
+    'صُنع بقالب — <a href="https://qalb.store" rel="noopener">قوالب مواقع وسِيَر</a> · <a href="https://qalb.store/templates" rel="noopener"><b>أنشئ نسختك مجانًا</b></a>'
   const en =
-    'Made with Qalb — <a href="https://qalb.store" rel="noopener">portfolio &amp; résumé templates</a> · <a href="https://qalb.store/create" rel="noopener"><b>Build your own, free</b></a>'
+    'Made with Qalb — <a href="https://qalb.store" rel="noopener">portfolio &amp; résumé templates</a> · <a href="https://qalb.store/templates" rel="noopener"><b>Build your own, free</b></a>'
   const text = recLang(site) === 'en' ? en : ar
   return `<div class="qalb-brand" style="position:fixed;inset-inline:0;bottom:0;z-index:99;display:flex;justify-content:center;gap:.5rem;align-items:center;padding:.45rem .8rem;font:600 12px/1.4 system-ui;background:#0a0c11e6;color:#e8ebf2;border-top:1px solid #242b3a">${text}</div>`
 }
@@ -189,8 +193,8 @@ export function brandBar(site) {
 /** نصّ رفض التعديل الزائد: يقوله الخادم وواجهته من مكان واحد، فلا يختلف الكلامان */
 export function quotaNotice(w) {
   return {
-    ar: `انتهت تعديلات هذا الشهر (${w.max}). تُصفَّر العدّادة مع الشهر الجديد، أو انتقل إلى «قالب بلس» بتعديلات بلا سقف.`,
-    en: `No edits left this month (${w.max}). The counter resets next month, or move to Qalb Plus for unlimited edits.`,
+    ar: `انتهت تعديلات هذا الشهر (${w.max}). تُصفَّر العدّادة مع الشهر الجديد، أو انتقل إلى «Qalb Pro» بتعديلات بلا سقف.`,
+    en: `No edits left this month (${w.max}). The counter resets next month, or move to Qalb Pro for unlimited edits.`,
   }
 }
 

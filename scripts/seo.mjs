@@ -47,6 +47,11 @@ const urls = [
   { loc: '/track', pri: '0.5', freq: 'monthly' },
   { loc: '/licence', pri: '0.5', freq: 'monthly' },
   { loc: '/legal', pri: '0.3', freq: 'yearly' },
+  // الفوتر القانوني: كلُّ صفحةٍ بمسارها منذ v1.8.0
+  { loc: '/terms', pri: '0.3', freq: 'yearly' },
+  { loc: '/privacy', pri: '0.3', freq: 'yearly' },
+  { loc: '/refunds', pri: '0.3', freq: 'yearly' },
+  { loc: '/contact', pri: '0.3', freq: 'yearly' },
   { loc: '/host', pri: '0.8', freq: 'weekly' },
   { loc: '/ats', pri: '0.9', freq: 'weekly' },
   // منظومةُ التوظيف: مطابقةُ الإعلان، ملفُّ التقديم، الرابط المهني (صفحةٌ واحدة لكلِّ
@@ -57,9 +62,9 @@ const urls = [
   { loc: '/market', pri: '0.6', freq: 'monthly' },
   { loc: '/embed', pri: '0.8', freq: 'monthly' },
   { loc: '/b2b', pri: '0.8', freq: 'monthly' },
-  // نموذج الربح: الخطط وصفحة الإنشاء والسوق عامة؛ `/account` و`/sell` خاصّتان (noindex)
+  // نموذج الربح: الخطط الموحّدة والسوق عامة؛ `/account` و`/sell` خاصّتان (noindex)،
+  // و`/create` مؤجَّلٌ في v1.8.0 فليس في الخريطة
   { loc: '/pricing', pri: '0.9', freq: 'weekly' },
-  { loc: '/create', pri: '0.9', freq: 'weekly' },
   { loc: '/creators', pri: '0.8', freq: 'daily' },
   { loc: '/services', pri: '0.8', freq: 'monthly' },
   { loc: '/offers', pri: '0.8', freq: 'weekly' },

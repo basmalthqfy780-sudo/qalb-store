@@ -84,8 +84,8 @@ create policy "read own orders" on public.orders
 create table if not exists public.accounts (
   id            text primary key,                 -- QA-XXXXXX
   email         citext not null unique,
-  plan          text not null default 'free' check (plan in ('free','solo','pro')),
-  plan_pending  text          check (plan_pending in ('solo','pro')),  -- طلبٌ، لا تفعيل
+  plan          text not null default 'free' check (plan in ('free','plus','pro')),
+  plan_pending  text          check (plan_pending in ('plus','pro')),  -- طلبٌ، لا تفعيل
   plan_pending_at timestamptz,
   since         date not null default current_date,
   consent_v     text not null,                    -- نسخة نصّ الإقرار بالفحص الآلي

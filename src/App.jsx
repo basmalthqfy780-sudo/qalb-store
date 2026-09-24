@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
-import { Route, Routes, useLocation } from 'react-router-dom'
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
 import { Toasts } from './components/ui'
 import ErrorBoundary from './components/ErrorBoundary'
 import { useI18n } from './i18n'
 import { lazy, Suspense } from 'react'
-import { PreviewSkeleton } from './components/ui'
+import { TemplateCardSkeleton } from './components/ui'
 
 // Route-level splitting keeps the first paint on a light shell.
 const Home = lazy(() => import('./pages/Home'))
@@ -19,6 +19,7 @@ const Wishlist = lazy(() => import('./pages/Wishlist'))
 const Track = lazy(() => import('./pages/Track'))
 const Licence = lazy(() => import('./pages/Licence'))
 const Legal = lazy(() => import('./pages/Legal'))
+const LegalDoc = lazy(() => import('./pages/LegalDoc'))
 const Host = lazy(() => import('./pages/Host'))
 const Blog = lazy(() => import('./pages/Blog'))
 const Post = lazy(() => import('./pages/Post'))
@@ -33,7 +34,6 @@ const Embed = lazy(() => import('./pages/Embed'))
 const B2B = lazy(() => import('./pages/B2B'))
 // نموذج الربح: الخطط، إنشاء القالب الأول، الحساب، سوق المصممين، ولوحة البائع
 const Pricing = lazy(() => import('./pages/Pricing'))
-const Create = lazy(() => import('./pages/Create'))
 const Account = lazy(() => import('./pages/Account'))
 const Sell = lazy(() => import('./pages/Sell'))
 const Creators = lazy(() => import('./pages/Creators'))
@@ -43,25 +43,22 @@ const Offer = lazy(() => import('./pages/Offer'))
 const NotFound = lazy(() => import('./pages/NotFound'))
 const Admin = lazy(() => import('./pages/Admin'))
 
+/**
+ * هيكل الانتظار بين حزمتين: بطاقاتُ قوالبَ مرسومةٌ بالهيكل نفسه (`TemplateCardSkeleton`)
+ * لا نصُّ «جارٍ التحميل…» — فالزائر يرى مكانَ ما سيأتي قبل أن يأتي. والنصُّ
+ * البديل لقارئ الشاشة موجودٌ لكنه مخفيٌّ بصريًّا.
+ */
 function RouteFallback() {
   const { t } = useI18n()
   return (
-    <div
-      role="status"
-      aria-live="polite"
-      data-route-fallback
-      className="page-x mx-auto grid max-w-[1400px] gap-6 py-16 lg:grid-cols-[minmax(0,1fr)_360px]"
-    >
-      <div className="space-y-4">
-        <div className="h-9 w-2/5 animate-pulse rounded-lg bg-panel2" />
-        <div className="h-4 w-3/5 animate-pulse rounded bg-panel2/70" />
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {[0, 1, 2].map((i) => (
-            <PreviewSkeleton key={i} className="rounded-2xl" />
-          ))}
-        </div>
+    <div role="status" aria-live="polite" data-route-fallback className="page-x mx-auto max-w-[1400px] py-16">
+      <div className="h-9 w-2/5 animate-pulse rounded-lg bg-panel2" />
+      <div className="mt-3 h-4 w-3/5 animate-pulse rounded bg-panel2/70" />
+      <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        {[0, 1, 2].map((i) => (
+          <TemplateCardSkeleton key={i} />
+        ))}
       </div>
-      <div className="h-72 animate-pulse rounded-3xl bg-panel2/60" />
       <p className="sr-only">{t('misc.loading')}</p>
     </div>
   )
@@ -77,7 +74,7 @@ const smoothBehavior = () => {
 }
 
 /**
- * Links to a section — `/#bundles` من الترويسة والفوتر، و`/legal#privacy` من صفحة الحقوق.
+ * Links to a section — `/#bundles` من الترويسة والفوتر؛ وصفحاتُ القانون كلُّها بمسارٍ مستقل.
  * ثغرتان كانتا تجعلانه ميتًا أو ناجزًا إلى الخطأ:
  *   ١) المسار مُحمَّل بالكسل: في أول إطار لا يكون العنصر رُكِّب، فكان يسقط إلى أعلى
  *      الصفحة بدل أن ينتظره. نطلبه بضع إطارات (سقفٌ لا معلَّق).
@@ -163,6 +160,11 @@ export default function App() {
               <Route path="/track" element={<Track />} />
               <Route path="/licence" element={<Licence />} />
               <Route path="/legal" element={<Legal />} />
+              {/* الفوتر القانوني: كلُّ صفحةٍ على حدة بمسارها، لا قسمًا في صفحةٍ واحدة */}
+              <Route path="/terms" element={<LegalDoc section="terms" />} />
+              <Route path="/privacy" element={<LegalDoc section="privacy" />} />
+              <Route path="/refunds" element={<LegalDoc section="refunds" />} />
+              <Route path="/contact" element={<LegalDoc section="contact" />} />
               <Route path="/b2b" element={<B2B />} />
               <Route path="/services" element={<Services />} />
               <Route path="/offers" element={<Offers />} />
@@ -180,7 +182,9 @@ export default function App() {
               <Route path="/blog/:slug" element={<Post />} />
               {/* نموذج الربح: خطةٌ تُفتح، قالبٌ أول مجانًا، وسوقٌ يفحص قبل أن ينشر */}
               <Route path="/pricing" element={<Pricing />} />
-              <Route path="/create" element={<Create />} />
+              {/* «أنشئ قالبك» مؤجَّل في v1.8.0: المسار يُحوَّل إلى القوالب الجاهزة،
+                  فلا رابطٌ قديم يسقط في صفحةٍ لا وجود لها */}
+              <Route path="/create" element={<Navigate to="/templates" replace />} />
               <Route path="/account" element={<Account />} />
               <Route path="/creators" element={<Creators />} />
               <Route path="/sell" element={<Sell />} />

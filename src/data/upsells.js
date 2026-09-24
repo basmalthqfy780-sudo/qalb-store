@@ -5,7 +5,8 @@
  *   1. السلة والدفع (group: 'checkout') — إضافاتٍ تُلحَق بالطلب من صفحة السلة وخطوة الدفع.
  *   2. صفحة الخدمات /services (group: 'services') — خدمات Done-For-You يؤديها فريقنا لا ملفٌ يُنزَّل.
  *   3. فاحص ATS (group: 'ats') — التقرير التفصيلي المدفوع بعد الفحص المجاني.
- *   4. اشتراك Qalb Pro في الرئيسية (group: 'pro') — شهري وسنوي، موازيًا للشراء لمرة واحدة.
+ *   4. اشتراك Qalb Pro (group: 'pro') — شهري وسنوي، بنفس سعري الدرجة في
+ *      src/data/plans.js، فلا يظهر الاشتراك برقمين في مكانين.
  *   5. منظومةُ التوظيف (groups: 'match' و'kit' و'share' و'link' و'talent' و'linkedin'
  *      و'badge') — مطابقةُ الإعلان، ملفُّ التقديم، بطاقة المشاركة، الرابط المهني،
  *      دليل المواهب، الاستيراد من LinkedIn، وإزالة الشارة.
@@ -115,17 +116,19 @@ export const UPSELLS = [
     },
   },
   {
-    // ————— اشتراك Qalb Pro — في الرئيسية، موازيًا للشراء لمرة واحدة —————
+    // ————— اشتراك Qalb Pro — نفسُ درجة الاشتراك في جدول الخطط —————
+    // السعر هنا هو سعرُ الدرجة نفسها في src/data/plans.js (‎49‎ شهريًا / ‎349‎ سنويًا):
+    // جدولٌ واحدٌ للاشتراك، وهذه نسختُه في السلة — لا رقمَان لنفس المنتج.
     id: 'pro-month',
     groups: ['pro'],
-    price: 39,
+    price: 49,
     icon: 'refresh',
     period: 'month',
     name: { ar: 'Qalb Pro — شهري', en: 'Qalb Pro — monthly' },
-    tagline: { ar: 'كل القوالب وتحديثاتها، شهرًا بشهر', en: 'Every template and its updates, month to month' },
+    tagline: { ar: 'كل القوالب والنطاق الخاص وتصدير الملفات', en: 'Every template, your own domain, and the file export' },
     desc: {
-      ar: 'اشتراك شهر واحد: كل قوالب المتجر الحالية تصير لك ما دام اشتراكك حيًّا، وكل قالبٍ جديدٍ يُضاف في أشهرك يدخل بلا زيادة. لا تجديد تلقائي: نذكّرك قبل نهايته والتجديد بيدك.',
-      en: 'One month of Pro: every template in the store is yours while the subscription is live, and every new release during your months is included at no extra cost. No auto-renewal: we remind you before it ends, you renew by hand.',
+      ar: 'اشتراك شهر واحد: كل قوالب المتجر بلا سقف، ربط نطاقك الخاص، تصدير ملفات المصدر كاملة، وأولوية الدعم. لا تجديد تلقائي: نذكّرك قبل نهايته والتجديد بيدك.',
+      en: 'One month of Pro: every template with no ceiling, your own domain connected, the full source-file export, and priority support. No auto-renewal: we remind you before it ends, you renew by hand.',
     },
   },
   {
@@ -135,10 +138,10 @@ export const UPSELLS = [
     icon: 'crown',
     period: 'year',
     name: { ar: 'Qalb Pro — سنوي', en: 'Qalb Pro — yearly' },
-    tagline: { ar: 'سنةٌ كاملة، بسعر سبعة أشهر ونصف', en: 'A full year, priced at seven and a half months' },
+    tagline: { ar: 'سنةٌ كاملة، بسعر سبعة أشهر', en: 'A full year, priced at seven months' },
     desc: {
-      ar: 'سنة كاملة من كل القوالب والتحديثات والإصدارات الجديدة، بنسخٍ تُحمَّل مجددًا بلا إعادة شراء. لا تجديد تلقائي — يصلك تذكير قبل الشهر الأخير.',
-      en: 'A full year of every template, update and new release, with re-downloadable copies at no re-purchase. No auto-renewal — a reminder arrives before your last month.',
+      ar: 'سنة كاملة من كل القوالب والنطاق الخاص وتصدير الملفات وأولوية الدعم، بلا تجديد تلقائي — يصلك تذكير قبل الشهر الأخير.',
+      en: 'A full year of every template, your own domain, the file export and priority support, with no auto-renewal — a reminder arrives before your last month.',
     },
   },
   {

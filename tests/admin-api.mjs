@@ -830,8 +830,8 @@ try {
 
     const domFree = await siteCall('PATCH', `/sites/${SLUG}`, { domain: 'noura.sa' }, KEY)
     ok(
-      'hosting: a custom domain on the free plan costs what the storefront says — 19 SAR',
-      domFree.status === 402 && domFree.json.price === 19 && domFree.json.plan === 'free',
+      'hosting: a custom domain on the free plan costs what the storefront says — 49 SAR, on Qalb Pro',
+      domFree.status === 402 && domFree.json.price === 49 && domFree.json.plan === 'free' && /Qalb Pro/.test(domFree.json.error),
       JSON.stringify(domFree.json),
     )
     const selfUpgrade = await siteCall('PATCH', `/sites/${SLUG}`, { plan: 'pro' }, KEY)

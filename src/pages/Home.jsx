@@ -1,16 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useI18n, num } from '../i18n'
-import { brands, brandsEn, byId, categories, templates, testimonials } from '../data/templates'
-import { proPlans } from '../data/upsells'
+import { brands, brandsEn, categories, templates, testimonials } from '../data/templates'
 import { SUPPORT_MAIL, SUPPORT_MAILTO } from '../data/contact'
 import Preview, { ArtTile } from '../components/Preview'
 import TemplateCard from '../components/TemplateCard'
+import PlanCards from '../components/PlanCards'
 import QuickView from '../components/QuickView'
 import RecentlyViewed from '../components/RecentlyViewed'
 import { useSeo, siteGraph, faqLd } from '../components/Seo'
 import { Btn, Head, Icon, Money, Pill, Reveal, Stars } from '../components/ui'
-import { useStore } from '../store/StoreContext'
 
 const HERO_IDS = ['aether', 'mirrorbundle', 'nexus', 'nova']
 const FAQ_KEYS = ['1', '2', '3', '4', '5', '6']
@@ -38,12 +37,12 @@ export default function Home() {
       <Featured onQuick={setQuick} />
       <Identity />
       <HowItWorks />
+      <WhatsIncluded />
       <ProofBlock />
       <DeployBlock />
       <Features />
       <HiringSuite />
-      <Bundles />
-      <ProBand />
+      <PlanBand />
       <RecentlyViewed />
       <Testimonials />
       <Faq />
@@ -749,160 +748,85 @@ function Features() {
   )
 }
 
-/* =============================== BUNDLES =============================== */
-function Bundles() {
+/* =============================== WHAT'S INCLUDED =============================== */
+/**
+ * «ماذا ستحصل عليه؟» — مخرجات الحزمة أربعًا، مكتوبةً كما تُسلَّم فعلًا لا كما
+ * تُوصف في إعلان: موقعٌ جاهز للنشر، وسيرةٌ متوافقة مع أنظمة الفحص الآلي، ورابطٌ
+ * حيّ ودعمُ نطاقات، وترخيصٌ شخصي بتحديثات. وكلُّ بطاقةٍ تقود إلى الصفحة التي
+ * تفعل ذلك الشيء — /host تنشر، و/ats يقيس التوافق، و/licence يشرح الترخيص.
+ */
+const INCLUDED = [
+  { icon: 'globe', k: 'included.i1', d: 'included.i1d', to: '/templates?type=portfolio' },
+  { icon: 'scan', k: 'included.i2', d: 'included.i2d', to: '/ats' },
+  { icon: 'pin', k: 'included.i3', d: 'included.i3d', to: '/host' },
+  { icon: 'shield', k: 'included.i4', d: 'included.i4d', to: '/licence' },
+]
+
+function WhatsIncluded() {
   const { t } = useI18n()
-  const { add, toast } = useStore()
-  const plans = [
-    // السعرُ مشتقٌّ من مَنشورِ كل قالبٍ لا رقمٌ مكتوب تحت البطاقة: ما تراه الباقة
-    // هو ما تحسبه السلة بالضبط، وعددُ «كل القوالب» هو عددُ المتجر حقًّا.
-    ...['single', 'duo', 'career'].map((key, i) => {
-      const ids = key === 'single' ? ['folio'] : key === 'duo' ? ['mirrorbundle'] : templates.map((x) => x.id)
-      return {
-        key,
-        ids,
-        price: ids.reduce((n, id) => n + (byId(id)?.price || 0), 0),
-        icon: ['globe', 'layers', 'crown'][i],
-        pop: key === 'duo',
-      }
-    }),
-  ]
   return (
-    <section className="relative border-y border-line bg-bg2/50 py-20" id="bundles">
+    <section className="border-y border-line bg-bg2/40 py-20" id="included" data-included>
       <div className="page-x mx-auto max-w-[1400px]">
         <Reveal>
-          <Head title={t('pricing.title')} sub={t('pricing.sub')} align="center" />
+          <Head kicker={t('included.kicker')} title={t('included.title')} sub={t('included.sub')} align="center" />
         </Reveal>
-        <div className="mt-12 grid gap-5 lg:grid-cols-3">
-          {plans.map((p, k) => (
-            <Reveal key={p.key} delay={k * 90} className="h-full">
-              <div
-                className={`relative flex h-full flex-col rounded-3xl border p-7 transition-all duration-300 ${
-                  p.pop ? 'border-brand/45 bg-panel shadow-lift lg:-mt-4 lg:pb-9 lg:pt-9' : 'border-line bg-panel/60 hover:-translate-y-1'
-                }`}
-              >
-                {p.pop && (
-                  <Pill tone="brand" className="absolute -top-3 start-7">
-                    {t('pricing.popular')}
-                  </Pill>
-                )}
-                <span className={`grid size-11 place-items-center rounded-xl border border-line bg-bg ${p.pop ? 'text-brand' : 'text-dim'}`}>
-                  <Icon n={p.icon} className="size-5" />
-                </span>
-                <h3 className="mt-4 font-display text-[20px] font-extrabold">{t(`pricing.${p.key}`)}</h3>
-                <p className="mt-1.5 min-h-[44px] text-[13.5px] leading-relaxed text-dim">{t(`pricing.${p.key}Desc`)}</p>
-                <div className="mt-4 flex items-end gap-2">
-                  <Money v={p.price} size="text-4xl" />
-                  <span className="pb-2 text-[12px] font-semibold text-dim">/ {t('pricing.perOnce')}</span>
-                </div>
-                <ul className="mt-6 space-y-2.5 border-t border-line pt-6">
-                  {['f1', 'f2', 'f3', 'f4'].map((f) => (
-                    <li key={f} className="flex gap-2.5 text-[13.5px]">
-                      <Icon n="check" className="mt-0.5 size-4 shrink-0 text-brand" sw={2.6} />
-                      <span className="text-dim">{t(`pricing.${f}`)}</span>
-                    </li>
-                  ))}
-                  <li className="flex gap-2.5 text-[13.5px]">
-                    <Icon n="file" className="mt-0.5 size-4 shrink-0 text-brand" sw={2.2} />
-                    <span className="text-dim">
-                      <span className="num">{num(p.ids.length)}</span> {t('nav.templates')}
-                    </span>
-                  </li>
-                </ul>
-                <Btn
-                  variant={p.pop ? 'primary' : 'outline'}
-                  size="lg"
-                  className="mt-7 w-full"
-                  onClick={() => {
-                    p.ids.forEach((id) => add(id))
-                    toast(`${t('toast.cartAdded')} — ${p.ids.length}`)
-                  }}
+        <ul className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {INCLUDED.map((x, k) => (
+            <Reveal key={x.k} delay={k * 70} className="h-full">
+              <li className="h-full">
+                <Link
+                  to={x.to}
+                  className="group flex h-full flex-col rounded-3xl border border-line bg-panel p-6 transition-all duration-300 hover:-translate-y-1 hover:border-brand/40 hover:shadow-lift"
+                  data-included-item={x.k}
                 >
-                  {t('pricing.choose')}
-                </Btn>
-              </div>
+                  <span className="grid size-11 place-items-center rounded-2xl border border-line bg-bg text-brand">
+                    <Icon n={x.icon} className="size-5" />
+                  </span>
+                  <h3 className="mt-4 flex items-start gap-2 font-display text-[16.5px] font-extrabold leading-snug">
+                    <Icon n="check" className="mt-1 size-4 shrink-0 text-[#3ecf8e]" sw={2.6} />
+                    {t(x.k)}
+                  </h3>
+                  <p className="mt-2 text-[13px] leading-relaxed text-dim">{t(x.d)}</p>
+                  <span className="mt-4 inline-flex items-center gap-1 text-[12px] font-bold text-brand">
+                    {t('included.more')}
+                    <Icon n="arrow" className="size-3.5 transition group-hover:translate-x-1 rtl:-scale-x-100 rtl:group-hover:-translate-x-1" />
+                  </span>
+                </Link>
+              </li>
             </Reveal>
           ))}
-        </div>
+        </ul>
       </div>
     </section>
   )
 }
 
-/* =============================== QALB PRO =============================== */
+/* =============================== PLAN BAND =============================== */
 /**
- * الاشتراك، موازيًا للشراء لمرة واحدة: الأسعار من src/data/upsells.js (pro-month
- * وpro-year) لا من هذه الصفحة، فما يظهر هنا هو ما تحسب به السلة والخادم.
- * لا تجديد تلقائي: لا بوابة دفع هنا تُديمه، والنصُّ يقول ذلك.
+ * جدول الاشتراكات الموحّد على الرئيسية — نفسُ مكوّن /pricing حرفيًا (`PlanCards`)،
+ * فلا يظهر سعرٌ هنا برقمٍ وسعرٌ هناك برقمٍ آخر. ولا باقةٌ تُشترى مرة واحدة في
+ * هذه النسخة: الاشتراكُ درجةٌ متدرّجة، وما فوقه خدماتٌ Once-One في /services.
  */
-function ProBand() {
-  const { t, L } = useI18n()
-  const { toggleAddon, hasAddon, toast } = useStore()
-  const plans = proPlans()
-  const [month, year] = [plans.find((p) => p.period === 'month'), plans.find((p) => p.period === 'year')]
-
+function PlanBand() {
+  const { t } = useI18n()
   return (
-    <section className="page-x mx-auto max-w-[1400px] pt-20" id="pro" data-pro>
+    <section className="page-x mx-auto max-w-[1400px] py-20" id="bundles" data-plan-band>
       <Reveal>
-        <Head title={t('pro.title')} sub={t('pro.sub')} align="center" />
+        <Head
+          kicker={t('plans.kicker')}
+          title={t('pricing.title')}
+          sub={t('pricing.sub')}
+          align="center"
+          right={
+            <Btn to="/pricing" variant="outline" size="md">
+              {t('plans.matrixTitle')}
+              <Icon n="arrow" className="size-4 rtl:-scale-x-100" />
+            </Btn>
+          }
+        />
       </Reveal>
-      <div className="mt-12 grid gap-5 lg:grid-cols-2">
-        {[month, year].filter(Boolean).map((p, k) => {
-          const on = hasAddon(p.id)
-          return (
-            <Reveal key={p.id} delay={k * 90} className="h-full">
-              <div
-                data-pro-plan={p.period}
-                className={`relative flex h-full flex-col rounded-3xl border p-7 transition-all duration-300 ${
-                  k === 1 ? 'border-brand/45 bg-panel shadow-lift lg:-mt-4 lg:pb-9 lg:pt-9' : 'border-line bg-panel/60 hover:-translate-y-1'
-                }`}
-              >
-                {k === 1 && (
-                  <Pill tone="brand" className="absolute -top-3 start-7">
-                    {t('pro.bestValue')}
-                  </Pill>
-                )}
-                <span className={`grid size-11 place-items-center rounded-xl border border-line bg-bg ${k === 1 ? 'text-brand' : 'text-dim'}`}>
-                  <Icon n={p.icon || 'refresh'} className="size-5" />
-                </span>
-                <h3 className="mt-4 font-display text-[20px] font-extrabold">{L(p.name)}</h3>
-                <p className="mt-1.5 min-h-[44px] text-[13.5px] leading-relaxed text-dim">{L(p.tagline)}</p>
-                <div className="mt-4 flex items-end gap-2">
-                  <Money v={p.price} size="text-4xl" />
-                  <span className="pb-2 text-[12px] font-semibold text-dim">/ {p.period === 'month' ? t('pro.perMonth') : t('pro.perYear')}</span>
-                </div>
-                <ul className="mt-6 space-y-2.5 border-t border-line pt-6">
-                  {['f1', 'f2', 'f3', 'f4'].map((f) => (
-                    <li key={f} className="flex gap-2.5 text-[13.5px]">
-                      <Icon n="check" className="mt-0.5 size-4 shrink-0 text-brand" sw={2.6} />
-                      <span className="text-dim">{t(`pro.${f}`)}</span>
-                    </li>
-                  ))}
-                </ul>
-                <Btn
-                  variant={k === 1 ? 'primary' : 'outline'}
-                  size="lg"
-                  className="mt-7 w-full"
-                  onClick={() => {
-                    const added = toggleAddon(p.id)
-                    toast(added ? t('cart.addonAdded', { n: L(p.name) }) : t('cart.addonRemoved', { n: L(p.name) }))
-                  }}
-                >
-                  {on ? t('pro.inCart') : t('pro.cta')}
-                </Btn>
-              </div>
-            </Reveal>
-          )
-        })}
-      </div>
-      <p className="mx-auto mt-8 max-w-[640px] text-center text-[12px] leading-relaxed text-dim">
-        {t('pro.note')}{' '}
-        <a href="#bundles" className="font-bold text-brand hover:underline">
-          {t('pro.onceLink')}
-        </a>
-        {' · '}
-        <span className="num">{t('pro.savingNote', { n: num(month && year ? month.price * 12 - year.price : 0) })}</span>
-      </p>
+      <PlanCards />
+      <p className="mx-auto mt-8 max-w-[640px] text-center text-[12px] leading-relaxed text-dim">{t('pro.note')}</p>
     </section>
   )
 }

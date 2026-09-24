@@ -1,23 +1,28 @@
 /**
- * نموذج الربح — جدول الخطط ومصفوفة القيمة.
+ * نموذج الربح — جدول اشتراكات واحد متدرّج.
  *
- * الفكرةُ التي بُني عليها الجدول: لا تُباع «قوالب بلا حدود مجانًا» لأن ذلك يقتل
- * قيمة القالب، بل تُوزَّع القيمة: القالبُ الأول كاملٌ مجانًا ليقتنع المستخدم،
- * وما بعده (قالبٌ ثانٍ، نشرٌ احترافي، تصديرٌ بلا علامة، بيعٌ للآخرين) خلف اشتراك.
+ * بعد جولة التوحيد (v1.8.0) لم يبقَ في المتجر سعرَان لنفس الشيء: لا باقةٌ تُشترى
+ * مرة واحدة، ولا جدولُ اشتراكاتٍ قديمٌ يناقض غيره. الجدول هنا وحده هو المصدر:
+ * ثلاثُ درجاتٍ متتالية، كلٌّ منها تفتح ما فوقها ولا تُغلق ما تحته.
+ *
+ *   • مجانية ‎0‎ — قالبٌ واحدٌ للتجربة، معاينةٌ حيّة، وتصدير PDF بعلامة مائية.
+ *   • Qalb Plus ‎19‎ شهريًا / ‎149‎ سنويًا — ثلاثةُ قوالب، نشرٌ على رابط فرعي،
+ *     PDF نظيف، بلا شعار المنصة، وأداة المطابقة.
+ *   • Qalb Pro ‎49‎ شهريًا / ‎349‎ سنويًا — كلُّ القوالب بلا سقف، نطاقٌ خاص،
+ *     تصديرُ ملفات المصدر، وأولويةُ الدعم.
  *
  * ثلاثةُ مبادئَ تحكم هذا الملف، وهي نفسها التي تحكم بقية المستودع:
  *
- *   1. **رقمٌ واحد لكل سعر.** الخطط هنا، وما يتقاطع معها من إضافاتٍ موجودة
- *      (`pro-month`، `deploy-setup` في src/data/upsells.js) يُقرأ سعره من جدوله
- *      الأصلي ولا يُنسخ — فلا يختلف سعرٌ بين صفحتين.
+ *   1. **رقمٌ واحد لكل سعر.** ما يتقاطع مع هذه الدرجات من الإضافات يُقرأ سعره
+ *      من جدوله الأصلي (`pro-month` و`pro-year` في src/data/upsells.js يحملان
+ *      سعرَي Pro نفسيهما) — فلا يختلف رقمٌ بين صفحتين.
  *   2. **كلُّ صفٍّ في مصفوفة القيمة يُنفَّذ في كود.** كلُّ وعدٍ في `FEATURE_MATRIX`
  *      يحمل `enforcedBy` يشير إلى الوحدة والدالة التي تُحقّقه فعلًا، والفحص في
- *      tests/smoke.mjs يرفض صفًّا يشير إلى دالةٍ غير موجودة. الوعدُ بلا منفِّذ
- *      هو ما أسقط جولاتٍ سابقة، فلا يتكرّر هنا.
+ *      tests/smoke.mjs يرفض صفًّا يشير إلى دالةٍ غير موجودة.
  *   3. **الأسعار شاملة الضريبة** (معدّل src/data/tax.js)، كبقية المتجر.
  *
  * ما لا يفعله هذا الملف: لا يُفعّل اشتراكًا ولا يمسك مالًا. لا بوابة دفع موصولة
- * في هذه النسخة — التفعيل يُسجَّل (محليًا أو في دفتر الخادم) ويُفعَّله الموظف،
+ * في هذه النسخة — التفعيل يُسجَّل (محليًا أو في دفتر الخادم) ويُفعّله الموظف،
  * تمامًا كما تُرقّى خطة الاستضافة في server/sites.js لا من المتصفح.
  */
 import { upsellById } from './upsells.js'
@@ -27,12 +32,13 @@ export const CURRENCY = 'SAR'
 export { VAT }
 
 /**
- * الخطط الثلاث. `templates: null` تعني «بلا سقف» لا «صفر» — والفرق يظهر في
+ * الدرجات الثلاث. `templates: null` تعني «بلا سقف» لا «صفر» — والفرق يظهر في
  * `entitlements()` وفي الواجهة («قوالب غير محدودة» بدل رقم).
  *
- * المدى السعري الذي اختير منه كل رقم (مكتوب هنا لا في الذاكرة، فتُراجع الأرقام
- * أمامه): الخطة الفردية 19–79 شهريًا، وPro ‏199–249 شهريًا، والباقة لمرة واحدة
- * 249–499، وخدمة «أنشرها لك» 299–799.
+ * المدى السعري المعلَن (مكتوب هنا لا في الذاكرة، فتُراجع الأرقام أمامه):
+ * الدرجة الفردية ‎19‎، والاحترافية ‎49‎، وسنةُ الأولى ‎149‎ وسنةُ الثانية ‎349‎.
+ * ولا شيء فوق ‎49‎ في الاشتراك: ما فوقها خدماتٌ تُشترى مرةً واحدة من جدول
+ * src/data/upsells.js لا درجاتٌ في الاشتراك.
  */
 export const PLANS = [
   {
@@ -51,76 +57,60 @@ export const PLANS = [
     sell: false,
     ats: false,
     support: { ar: 'الوثائق والأسئلة الشائعة', en: 'Docs and the FAQ' },
-    name: { ar: 'القالب الأول', en: 'The first template' },
+    name: { ar: 'الباقة المجانية', en: 'Free' },
     tagline: {
-      ar: 'قالبك الأول كاملًا، ومعاينة حية، وسيرة PDF بعلامة مائية',
-      en: 'Your first template in full, a live preview, and a watermarked PDF',
+      ar: 'جرّب قالبًا واحدًا كاملًا، بمعاينة حية وتصدير PDF بعلامة مائية',
+      en: 'One template to try in full, with a live preview and a watermarked PDF',
     },
     cta: { ar: 'ابدأ مجانًا', en: 'Start free' },
     bullets: {
-      ar: [
-        'إنشاء حساب بالبريد — بريدٌ واحد، بلا كلمة سر في هذه النسخة',
-        'قالبٌ واحد تُنشئه وتعدّل نصوصه وبياناته بالكامل',
-        'معاينة حية على نطاق فرعي `اسمك.qalb.store`',
-        'تحميل السيرة PDF بعلامة «نسخة مجانية»',
-        'لا نشرٌ على Vercel ولا تصدير ملفات ولا بيع',
-      ],
-      en: [
-        'Sign up with an e-mail — one address, no password in this build',
-        'One template you build and edit in full',
-        'A live preview on a `yourname.qalb.store` subdomain',
-        'A résumé PDF carrying a “free copy” watermark',
-        'No Vercel deploy, no file export, no selling',
-      ],
+      ar: ['تجربة واستخدام قالب مجاني واحد.', 'معاينة حية متكاملة للموقع والسيرة.', 'تصدير PDF بعلامة مائية.'],
+      en: ['One free template to try and use.', 'A full live preview of the site and the résumé.', 'A PDF export carrying a watermark.'],
     },
   },
   {
-    id: 'solo',
+    id: 'plus',
     order: 1,
-    price: 49, // ضمن المدى 19–79
+    price: 19, // الدرجة الفردية المعلنة
     period: 'month',
-    yearly: 399, // ≈ ثمانية أشهر بسعر سنة
+    yearly: 149, // سنةٌ بسعر نحو ثمانية أشهر
     templates: 3,
     watermark: false,
     publish: true,
     exportSite: false,
-    badge: true,
+    badge: false,
     domain: false,
-    sell: true,
-    ats: false,
+    sell: false,
+    ats: true,
     support: { ar: 'دعمٌ بالبريد خلال يومي عمل', en: 'E-mail support within two working days' },
-    name: { ar: 'فردية', en: 'Solo' },
+    name: { ar: 'Qalb Plus', en: 'Qalb Plus' },
     tagline: {
-      ar: 'ثلاثة قوالب، سيرة بلا علامة مائية، ونشرٌ مباشر على نطاقك الفرعي',
-      en: 'Three templates, an unwatermarked résumé, and direct publishing on your subdomain',
+      ar: 'ثلاثة قوالب، نشرٌ على رابطك الفرعي، وسيرةٌ بلا علامة مائية',
+      en: 'Three templates, publishing on your own subdomain, and a clean résumé',
     },
-    cta: { ar: 'فعّل الفردية', en: 'Activate Solo' },
+    cta: { ar: 'فعّل Plus', en: 'Activate Plus' },
     bullets: {
       ar: [
-        'حتى ثلاثة قوالب — القالب الثاني والثالث مفتوحان',
-        'تعديلٌ كامل لكل قوالبك، لا للأول وحده',
-        'تحميل السيرة PDF بلا علامة مائية',
-        'نشرٌ مباشر على `اسمك.qalb.store`',
-        'بيع قوالبك في سوق المصممين بعد الفحص الآلي',
-        'دعمٌ بالبريد',
+        'فتح حتى 3 قوالب مختلفة.',
+        'نشر مباشر على رابط فرعي (name.qalb.store).',
+        'تصدير PDF نظيف وبلا علامة مائية.',
+        'إزالة شعار المنصة وتفعيل أداة المطابقة.',
       ],
       en: [
-        'Up to three templates — the second and third unlocked',
-        'Full editing on every template, not just the first',
-        'A résumé PDF with no watermark',
-        'Direct publishing on `yourname.qalb.store`',
-        'Sell your templates in the designer market after the automated check',
-        'E-mail support',
+        'Up to three different templates.',
+        'Direct publishing on a subdomain (name.qalb.store).',
+        'A clean PDF export with no watermark.',
+        'Our logo taken off, and the matching tool switched on.',
       ],
     },
   },
   {
     id: 'pro',
     order: 2,
-    price: 199, // ضمن المدى 199–249
+    price: 49, // الدرجة الاحترافية المعلنة
     period: 'month',
-    yearly: 1799, // ≈ تسعة أشهر بسعر سنة
-    templates: null,
+    yearly: 349, // سنةٌ بسعر نحو سبعة أشهر
+    templates: null, // بلا سقف
     watermark: false,
     publish: true,
     exportSite: true,
@@ -129,28 +119,24 @@ export const PLANS = [
     sell: true,
     ats: true,
     support: { ar: 'أولوية الدعم — ردٌّ خلال ساعات العمل', en: 'Priority support — a reply within working hours' },
-    name: { ar: 'Pro', en: 'Pro' },
+    name: { ar: 'Qalb Pro', en: 'Qalb Pro' },
     tagline: {
-      ar: 'قوالب غير محدودة، نطاقك الخاص، بلا شعارنا، وتصدير ملفات الموقع',
-      en: 'Unlimited templates, your own domain, no badge of ours, and a site-file export',
+      ar: 'كل القوالب بلا حدود، نطاقك الخاص، وملفات المصدر كاملة',
+      en: 'Every template with no ceiling, your own domain, and the full source files',
     },
     cta: { ar: 'فعّل Pro', en: 'Activate Pro' },
     bullets: {
       ar: [
-        'قوالب غير محدودة — لا سقف على ما تُنشئه',
-        'نطاقك الخاص يُربط بموقعك',
-        'إزالة شعار «صُنع بقالب» من الموقع والسيرة',
-        'تصدير ملفات الموقع كاملةً (ZIP) لاستضافتها أينما شئت',
-        'سيرة ATS محسّنة — نفس محرّك الفحص الذي يقيس قوالبنا',
-        'أولوية الدعم',
+        'استخدام واستعراض جميع القوالب بلا حدود.',
+        'ربط نطاق خاص مخصص (Custom Domain).',
+        'تصدير كافة ملفات المصدر بالكامل.',
+        'أولوية الدعم الفني وتحديثات مستمرة.',
       ],
       en: [
-        'Unlimited templates — no ceiling on what you build',
-        'Your own domain, pointed at your site',
-        'The “made with Qalb” badge taken off your site and résumé',
-        'A full site-file export (ZIP) to host anywhere',
-        'An ATS-optimised résumé — the same engine that scores our own templates',
-        'Priority support',
+        'Every template, used and browsed with no ceiling.',
+        'A custom domain of your own (Custom Domain).',
+        'An export of all the source files, complete.',
+        'Priority support and continuous updates.',
       ],
     },
   },
@@ -166,18 +152,17 @@ export const planOf = (v) => (planById(v) ? v : 'free')
 export const priceOf = (id) => planById(planOf(id))?.price ?? 0
 
 /**
- * اشتراك Qalb Pro القديم (كل قوالب المتجر الجاهزة) يبقى منتجًا قائمًا بسعره؛
- * يُقرأ سعره من جدول الإضافات ولا يُنسخ هنا، فتُعرض الخطتان جنبًا إلى جنب
- * بلا رقمين مختلفين لنفس الشيء.
+ * اشتراك Qalb Pro نفسه كما يُشترى من جدول الإضافات (السلة): سعره مقروءٌ من هناك
+ * لا منسوخٌ هنا، فتُعرض الدرجاتُ في /pricing والسلةُ تحسب الرقم نفسه.
  */
 export const storePro = () => upsellById('pro-month')
 export const storeProYear = () => upsellById('pro-year')
 
 /**
- * خدمة «أنشرها لك». درجتان، كلٌّ منهما من جدولها:
- *   • الخفيفة (`deploy-setup`) — تركيب Vercel والنطاق، سعرها من src/data/upsells.js.
+ * خدمة «أنشرها لك» — خدمةٌ once-one لا درجةٌ في الاشتراك: درجتان، كلٌّ منهما من
+ * جدولها (src/data/upsells.js):
+ *   • الخفيفة (`deploy-setup`) — تركيب Vercel والنطاق.
  *   • الكاملة (`publish-done`) — إعداد المحتوى + النطاق + النشر + SEO أساسي.
- * ضمن المدى المعلَن 299–799 للخدمة الكاملة.
  */
 export const PUBLISH_DONE = {
   id: 'publish-done',
@@ -204,37 +189,6 @@ export const PUBLISH_DONE = {
   },
 }
 export const publishLight = () => upsellById('deploy-setup')
-
-/**
- * باقة لمرة واحدة: قالبٌ محدد + ترخيص استخدام شخصي + ملفات المصدر + تحديثات سنة.
- * ضمن المدى المعلَن 249–499. تُعرض بجانب الاشتراك لمن يكره الاشتراكات.
- */
-export const ONE_TIME = {
-  id: 'one-time-pack',
-  price: 349,
-  updatesMonths: 12,
-  name: { ar: 'باقة لمرة واحدة', en: 'A one-time pack' },
-  tagline: {
-    ar: 'قالبٌ محدد، ترخيص شخصي، ملفات المصدر، وتحديثات سنة',
-    en: 'One template, a personal licence, the source files, and a year of updates',
-  },
-  bullets: {
-    ar: [
-      'قالبٌ واحد تختاره من الكتالوج — ملكك مدى الحياة',
-      'ترخيص استخدام شخصي (مقعد واحد) باسمك',
-      'ملفات المصدر كاملة: HTML/CSS و`content/profile.json`',
-      'تحديثات القالب لمدة سنة من تاريخ الشراء',
-      'بلا اشتراك وبلا تجديد',
-    ],
-    en: [
-      'One template from the catalogue — yours for life',
-      'A personal (single-seat) licence in your name',
-      'The full source files: HTML/CSS and `content/profile.json`',
-      'Twelve months of that template’s updates from the purchase date',
-      'No subscription, no renewal',
-    ],
-  },
-}
 
 /**
  * مصفوفة توزيع القيمة — الصفوف العشرة كما هي في نموذج الربح، بلا زيادة ولا نقصان.
@@ -274,7 +228,7 @@ export const FEATURE_MATRIX = [
     id: 'count',
     label: { ar: 'عدد القوالب المسموحة', en: 'Templates allowed' },
     free: { state: 'partial', note: { ar: 'قالبٌ واحد فقط', en: 'One template only' } },
-    paid: { state: 'yes', note: { ar: 'قوالب متعددة بالاشتراك', en: 'Multiple templates on a plan' } },
+    paid: { state: 'yes', note: { ar: 'ثلاثةٌ في Plus، وبلا سقف في Pro', en: 'Three on Plus, no ceiling on Pro' } },
     enforcedBy: 'src/data/account.js:canCreate',
   },
   {
@@ -286,7 +240,7 @@ export const FEATURE_MATRIX = [
   },
   {
     id: 'deploy',
-    label: { ar: 'نشر مباشر على Vercel أو Netlify', en: 'Direct deploy to Vercel or Netlify' },
+    label: { ar: 'نشر مباشر على رابط فرعي', en: 'Direct publishing on a subdomain' },
     free: { state: 'no' },
     paid: { state: 'yes' },
     enforcedBy: 'src/data/plans.js:canPublish',
@@ -295,14 +249,14 @@ export const FEATURE_MATRIX = [
     id: 'badge',
     label: { ar: 'إزالة شعار «صُنع بقالب»', en: 'Removing the “made with Qalb” badge' },
     free: { state: 'no' },
-    paid: { state: 'yes', note: { ar: 'في خطة Pro', en: 'On the Pro plan' } },
+    paid: { state: 'yes', note: { ar: 'من Plus وما فوقها', en: 'From Plus upward' } },
     enforcedBy: 'src/data/hosting.js:brandBar',
   },
   {
     id: 'domain',
     label: { ar: 'ربط نطاق خاص', en: 'Connecting a custom domain' },
     free: { state: 'no' },
-    paid: { state: 'yes', note: { ar: 'ميزة مدفوعة في Pro', en: 'A paid feature on Pro' } },
+    paid: { state: 'yes', note: { ar: 'ميزة Pro وحدها', en: 'A Pro-only feature' } },
     enforcedBy: 'src/data/plans.js:canUseDomain',
   },
   {
@@ -356,8 +310,10 @@ export const canExport = (planId) => !!entitlements(planId).exportSite
 export const canPublish = (planId) => !!entitlements(planId).publish
 /** النطاق الخاص: Pro وحدها */
 export const canUseDomain = (planId) => !!entitlements(planId).domain
-/** إزالة الشارة: Pro وحدها (أو إضافة `badge-off` المشتراة — انظر src/data/badge.js) */
+/** إزالة الشارة: Plus وPro (أو إضافة `badge-off` المشتراة — انظر src/data/badge.js) */
 export const badgeOff = (planId) => entitlements(planId).badge === false
+/** أداة المطابقة: Plus وPro */
+export const canMatch = (planId) => !!entitlements(planId).ats
 
 /**
  * العلامة المائية على ورقة السيرة. تُحقن في HTML المُعاد من `renderSite`
@@ -371,9 +327,7 @@ export function withWatermark(html, { on = true, label = '' } = {}) {
   if (!on || !body) return body
   const text = String(label || '').slice(0, 40)
   const esc = text.replace(/[<>&"]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' })[c])
-  const css = `.qalb-wm{position:fixed;inset:0;z-index:9998;pointer-events:none;display:grid;place-content:center;
-    transform:rotate(-28deg);font:800 clamp(2rem,9vw,6rem)/1 system-ui;color:#7c8698;opacity:.16;white-space:nowrap;
-    -webkit-print-color-adjust:exact;print-color-adjust:exact}`
+  const css = `.qalb-wm{position:fixed;inset:0;z-index:9998;pointer-events:none;display:grid;place-content:center;\n    transform:rotate(-28deg);font:800 clamp(2rem,9vw,6rem)/1 system-ui;color:#7c8698;opacity:.16;white-space:nowrap;\n    -webkit-print-color-adjust:exact;print-color-adjust:exact}`
   const layer = `<div class="qalb-wm" aria-hidden="true">${esc}</div>`
   return body.includes('</head>')
     ? body.replace('</head>', `<style>${css}</style></head>`).replace('</body>', `${layer}\n</body>`)
@@ -391,7 +345,7 @@ export function gainedBy(planId, fromId = 'free') {
   const out = []
   if (b.maxTemplates !== a.maxTemplates) out.push('templates')
   for (const k of keys) {
-    // `watermark` و`badge`: القيمة `false` هي الأفضل، فتنعقد المقارنة
+    // `watermark` و`badge`: القيمة `false` هي الأفضل، فتنعكس المقارنة
     const better = k === 'watermark' || k === 'badge' ? a[k] && !b[k] : !a[k] && b[k]
     if (better) out.push(k)
   }

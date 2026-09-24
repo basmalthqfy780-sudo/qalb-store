@@ -673,7 +673,7 @@ export default function Studio() {
           <h2 className="font-display text-[15.5px] font-extrabold">{t('studio.data.title')}</h2>
           <p className="mt-2 text-[12px] leading-relaxed text-dim">{t('studio.data.sub')}</p>
           <div className="mt-3 grid gap-2">
-            <Link to="/legal#privacy" className="text-[12px] font-bold text-brand hover:underline">
+            <Link to="/privacy" className="text-[12px] font-bold text-brand hover:underline">
               {t('studio.data.how')}
             </Link>
             {rec.email ? (

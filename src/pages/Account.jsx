@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useI18n } from '../i18n'
 import { useSeo } from '../components/Seo'
 import { Btn, Head, Icon, Money, Pill } from '../components/ui'
@@ -38,6 +38,14 @@ export default function Account() {
   const gate = useMemo(() => canCreate(rec || {}), [rec])
   const plan = planById(gate.planId)
   const summary = useMemo(() => answerSummary(rec || {}), [rec])
+  // `/account?plan=plus` يأتي من جدول الخطط: البطاقة المطلوبة تُبرز وتُمرَّر إليها
+  const [sp] = useSearchParams()
+  const want = planById(sp.get('plan'))?.id || null
+  useEffect(() => {
+    if (!want || !rec) return
+    const el = document.querySelector(`[data-plan-card="${want}"]`)
+    if (el && typeof el.scrollIntoView === 'function') el.scrollIntoView({ block: 'center' })
+  }, [want, rec])
   const say = (tone, text) => setNote({ tone, text })
 
   /** ورقة السيرة: نفس مسار `/print` في الاستضافة، مختومة بالعلامة إن كانت الخطة مجانية */
@@ -81,9 +89,41 @@ export default function Account() {
     return (
       <div className="page-x mx-auto max-w-[720px] pb-24 pt-16">
         <Head as="h1" kicker={t('account.kicker')} title={t('account.emptyTitle')} sub={t('account.emptySub')} />
-        <Btn to="/create" size="lg" className="mt-6">
-          {t('account.createCta')}
-        </Btn>
+        {/* التسجيل هنا لا في «أنشئ قالبك»: بريدٌ واحد وإقرار، ثم تفتح اللوحة.
+            ولا رسالةَ تأكيدٍ تُوعد — لا مُرسِل موصول في هذه النسخة (create.noMailer) */}
+        <form
+          className="mt-6 rounded-3xl border border-line bg-panel/60 p-5"
+          data-account-signup
+          noValidate
+          onSubmit={async (e) => {
+            e.preventDefault()
+            const mail = e.currentTarget.elements.mail?.value || ''
+            const consent = e.currentTarget.elements.consent?.checked === true
+            const r = await account.signUp({ email: mail, consent })
+            setRec(account.local())
+            say(r.ok ? 'good' : 'bad', r.ok ? t('account.planRecorded', { p: t('account.free') }) : t('account.planFail'))
+          }}
+        >
+          <label className="block text-[12.5px] font-bold" htmlFor="acc-mail">
+            {t('create.mailLabel')}
+          </label>
+          <input
+            id="acc-mail"
+            name="mail"
+            type="email"
+            required
+            placeholder="you@studio.sa"
+            className="mt-2 h-11 w-full rounded-xl border border-line bg-bg px-3 text-[13.5px] outline-none transition focus:border-brand/50"
+          />
+          <label className="mt-3 flex items-start gap-2.5 text-[12px] leading-relaxed text-dim" htmlFor="acc-consent">
+            <input id="acc-consent" name="consent" type="checkbox" className="mt-0.5 size-4 shrink-0 accent-[var(--c-brand)]" />
+            <span>{t('create.consent')}</span>
+          </label>
+          <Btn type="submit" size="lg" className="mt-4 w-full">
+            {t('create.start')}
+          </Btn>
+          <p className="mt-3 text-[11.5px] leading-relaxed text-dim">{t('create.noMailer')}</p>
+        </form>
       </div>
     )
   }
@@ -174,7 +214,7 @@ export default function Account() {
             )}
             <div className="mt-4 flex flex-wrap gap-3">
               {gate.allowed ? (
-                <Btn to="/create" size="md" variant="outline">
+                <Btn to="/templates" size="md" variant="outline">
                   {t('account.makeAnother')}
                 </Btn>
               ) : (
@@ -244,8 +284,8 @@ export default function Account() {
             <p className="mt-2 text-[12.5px] leading-relaxed text-dim">
               {t('account.answersSub', { n: summary.filled.length, c: summary.colours, l: summary.links })}
             </p>
-            <Btn to="/create" size="md" variant="outline" className="mt-4">
-              {t('account.editAnswers')}
+            <Btn to="/host" size="md" variant="outline" className="mt-4">
+              {t('account.editPage')}
             </Btn>
           </section>
         </div>
@@ -257,7 +297,11 @@ export default function Account() {
             <p className="num mt-2 text-[12.5px] text-dim">{t('account.since', { d: rec.since })}</p>
             <div className="mt-4 space-y-3">
               {PLANS.filter((p) => p.id !== rec.plan).map((p) => (
-                <div key={p.id} className="rounded-2xl border border-line bg-bg/60 p-4">
+                <div
+                  key={p.id}
+                  data-plan-card={p.id}
+                  className={`rounded-2xl border p-4 transition ${want === p.id ? 'border-brand/60 bg-brand/[0.07]' : 'border-line bg-bg/60'}`}
+                >
                   <span className="flex items-center justify-between">
                     <span className="text-[13.5px] font-extrabold">{L(p.name)}</span>
                     {p.price ? <Money v={p.price} size="text-[15px]" /> : <span className="text-[13px] font-bold text-dim">{t('account.free')}</span>}

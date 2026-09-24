@@ -301,11 +301,6 @@ export default function Navbar() {
               <Count n={totals.count} />
             </Link>
 
-            {/* مسارُ Freemium: القالب الأول مجانًا — زرٌّ دائم beside زرّ القوالب */}
-            <Btn to="/create" size="sm" variant="outline" className="hidden lg:inline-flex" data-nav-create>
-              {t('nav.create')}
-            </Btn>
-
             <Btn to="/templates" size="sm" className="hidden md:inline-flex">
               {t('hero.ctaPrimary')}
             </Btn>
@@ -365,14 +360,6 @@ export default function Navbar() {
                       <Icon n="layers" className="size-4 text-brand" />
                       {t('nav.pricing')}
                     </Link>
-                    <Link
-                      to="/#pro"
-                      onClick={() => setMenu(false)}
-                      className="flex items-center gap-2 rounded-xl px-2.5 py-2 text-[12.5px] font-semibold transition hover:bg-panel2"
-                    >
-                      <Icon n="crown" className="size-4 text-brand" />
-                      {t('footer.pro')}
-                    </Link>
                     {/* نموذج الربح: الخطط والمصفوفة، إنشاء القالب الأول، وسوق المصممين */}
                     <Link
                       to="/pricing"
@@ -381,14 +368,6 @@ export default function Navbar() {
                     >
                       <Icon n="wallet" className="size-4 text-brand" />
                       {t('nav.plans')}
-                    </Link>
-                    <Link
-                      to="/create"
-                      onClick={() => setMenu(false)}
-                      className="flex items-center gap-2 rounded-xl px-2.5 py-2 text-[12.5px] font-semibold transition hover:bg-panel2"
-                    >
-                      <Icon n="spark" className="size-4 text-brand" />
-                      {t('nav.create')}
                     </Link>
                     <Link
                       to="/creators"
@@ -499,7 +478,6 @@ export default function Navbar() {
             <p className="px-1 pb-2 pt-3 text-[11px] font-bold uppercase tracking-[0.14em] text-dim">{t('nav.templates')}</p>
             {menuRow({ to: '/templates', k: 'nav.allTemplates', icon: 'grid' })}
             {menuRow({ to: '/#bundles', k: 'nav.pricing', icon: 'layers' })}
-            {menuRow({ to: '/#pro', k: 'footer.pro', icon: 'crown' })}
             <p className="px-1 pb-2 pt-4 text-[11px] font-bold uppercase tracking-[0.14em] text-dim">{t('cats.title')}</p>
             <div className="grid grid-cols-2 gap-2">
               {categories.map((c) => (
