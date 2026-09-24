@@ -486,6 +486,41 @@ export default function Ats() {
           </section>
         )}
 
+        {/* ---------------- من أداةٍ مجانية إلى بورتفوليو كامل ----------------
+            الفاحص يجيب «هل تقرأ الآلة سيرتي؟» — ومن عرف الإجابة يسأل الذي بعده:
+            «أين أنشرها؟». القالب الأول مجاني، ولا يَعِد السطر بما لا يحدث:
+            لا بريد يُرسل، والتوليد من إجابات المستخدم لا من اختراع. */}
+        {!embedded && (
+          <Reveal className="mt-10 rounded-3xl border border-brand/35 bg-panel/60 p-5 sm:p-7" delay={60}>
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="max-w-[62ch]">
+                <Pill tone="brand">
+                  <Icon n="spark" className="size-3" />
+                  {t('ats.buildKicker')}
+                </Pill>
+                <h2 className="mt-3 text-[17px] font-extrabold text-ink">{t('ats.buildTitle')}</h2>
+                <p className="mt-2 text-[13px] leading-relaxed text-dim">{t('ats.buildSub')}</p>
+                <ul className="mt-3 space-y-1.5">
+                  {[t('ats.build1'), t('ats.build2'), t('ats.build3')].map((x, i) => (
+                    <li key={i} className="flex items-start gap-2 text-[12.5px] leading-relaxed text-dim">
+                      <Icon n="check" className="mt-0.5 size-3.5 shrink-0 text-[#3ecf8e]" />
+                      <span>{x}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="flex flex-col gap-2">
+                <Btn to="/create" size="lg" data-ats-build>
+                  {t('ats.buildCta')}
+                </Btn>
+                <Btn to="/pricing#matrix" size="sm" variant="ghost">
+                  {t('ats.buildPlans')}
+                </Btn>
+              </div>
+            </div>
+          </Reveal>
+        )}
+
         {/* ------------------------------ الأسئلة ------------------------------ */}
         {!embedded && (
           <Reveal className="mt-14 rounded-3xl border border-line bg-panel/55 p-5 sm:p-7">

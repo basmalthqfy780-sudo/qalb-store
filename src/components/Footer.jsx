@@ -21,6 +21,10 @@ export default function Footer() {
         ...categories.slice(0, 4).map((c) => ({ to: `/templates?cat=${c.id}`, label: lang === 'ar' ? c.ar : c.en })),
         { to: '/#bundles', label: t('footer.bundles') },
         { to: '/#pro', label: t('footer.pro') },
+        // نموذج الربح: الخطط، القالب الأول المجاني، وسوق المصممين
+        { to: '/pricing', label: t('footer.plans') },
+        { to: '/create', label: t('footer.create') },
+        { to: '/creators', label: t('footer.creators') },
       ],
     },
     {

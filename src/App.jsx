@@ -31,6 +31,12 @@ const Talent = lazy(() => import('./pages/Talent'))
 const Market = lazy(() => import('./pages/Market'))
 const Embed = lazy(() => import('./pages/Embed'))
 const B2B = lazy(() => import('./pages/B2B'))
+// نموذج الربح: الخطط، إنشاء القالب الأول، الحساب، سوق المصممين، ولوحة البائع
+const Pricing = lazy(() => import('./pages/Pricing'))
+const Create = lazy(() => import('./pages/Create'))
+const Account = lazy(() => import('./pages/Account'))
+const Sell = lazy(() => import('./pages/Sell'))
+const Creators = lazy(() => import('./pages/Creators'))
 const Services = lazy(() => import('./pages/Services'))
 const Offers = lazy(() => import('./pages/Offers'))
 const Offer = lazy(() => import('./pages/Offer'))
@@ -172,6 +178,12 @@ export default function App() {
               <Route path="/host" element={<Host />} />
               <Route path="/blog" element={<Blog />} />
               <Route path="/blog/:slug" element={<Post />} />
+              {/* نموذج الربح: خطةٌ تُفتح، قالبٌ أول مجانًا، وسوقٌ يفحص قبل أن ينشر */}
+              <Route path="/pricing" element={<Pricing />} />
+              <Route path="/create" element={<Create />} />
+              <Route path="/account" element={<Account />} />
+              <Route path="/creators" element={<Creators />} />
+              <Route path="/sell" element={<Sell />} />
               <Route path="/studio" element={<Studio />} />
               <Route path="/admin" element={<Admin />} />
               <Route path="*" element={<NotFound />} />

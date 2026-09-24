@@ -82,13 +82,14 @@ async function wait() {
 const ORG_RE = /^QALB-[ABCDEFGHJKLMNPQRSTUVWXYZ2-9]{4}-[ABCDEFGHJKLMNPQRSTUVWXYZ2-9]{4}$/
 
 const NL = '\n'
-const call = async (method, path, { body, token, header = true, raw = false } = {}) => {
+const call = async (method, path, { body, token, header = true, raw = false, headers = {} } = {}) => {
   const res = await fetch(BASE + path, {
     method,
     headers: {
       'content-type': 'application/json',
       ...(header ? { 'x-qalb-admin': '1' } : {}),
       ...(token ? { authorization: `Bearer ${token}` } : {}),
+      ...headers, // مفتاح الحساب مثلًا — يُضاف بلا أن يلغي ما قبله
     },
     body: body == null ? undefined : JSON.stringify(body),
   })
@@ -1340,6 +1341,221 @@ try {
     ok(
       'leads: and the whole layer can be switched off with one variable',
       /QALB_LEADS/.test(srcLeads) && /if \(!ON\(\)\) return false/.test(srcLeads),
+    )
+  }
+
+  /* --- accounts and the designer market: the pipeline runs here, not in the browser --- */
+  {
+    const health = await (await fetch(BASE + '/health')).json()
+    ok(
+      'market: health reports the layer and its ledgers',
+      health.market && health.market.files.mode === '600',
+      JSON.stringify(health.market || null).slice(0, 120),
+    )
+
+    const noConsent = await call('POST', '/accounts', { body: { email: 'no-consent@qalb.store' }, header: false })
+    ok('market: an account without the inspection consent is refused', noConsent.status === 400, noConsent.status)
+    const badMail = await call('POST', '/accounts', { body: { email: 'not-an-email', consent: true }, header: false })
+    ok('market: and so is an account without a valid e-mail', badMail.status === 400, badMail.status)
+
+    const made = await call('POST', '/accounts', {
+      body: { email: 'seller@qalb.store', consent: true, niche: 'designer', answers: { name: 'نورة', role: 'مصممة' } },
+      header: false,
+    })
+    ok(
+      'market: signing up returns the record and a key held by its owner',
+      made.status === 201 && !!made.json.key && made.json.account.plan === 'free',
+      made.status,
+    )
+    const KEY = made.json.key
+    const AID = made.json.account.id
+    const auth = { 'x-qalb-account-key': KEY }
+    const dup = await call('POST', '/accounts', { body: { email: 'seller@qalb.store', consent: true }, header: false })
+    ok('market: one e-mail holds one account', dup.status === 409, dup.status)
+    ok('market: and it says plainly that no confirmation is mailed', /no mailer/i.test(made.json.note || ''), made.json.note)
+
+    const planPatch = await call('PATCH', `/accounts/${AID}`, { body: { plan: 'pro' }, headers: auth, header: false })
+    ok('market: the plan is not patched from the browser', planPatch.status === 403, planPatch.status)
+    const planAsk = await call('POST', `/accounts/${AID}/plan`, { body: { plan: 'pro' }, headers: auth, header: false })
+    ok(
+      'market: asking for a plan records a pending request, it does not grant it',
+      planAsk.status === 202 && planAsk.json.pending === true,
+      `${planAsk.status} ${JSON.stringify(planAsk.json)}`,
+    )
+    const after = await call('GET', `/accounts/${AID}`, { headers: auth, header: false })
+    ok(
+      'market: the account is still on the free plan, with the request noted',
+      after.json.account.plan === 'free' && after.json.planPending?.plan === 'pro',
+      JSON.stringify(after.json.planPending),
+    )
+    const noKey = await call('GET', `/accounts/${AID}`, { header: false })
+    ok('market: and its record is unreadable without the key', noKey.status === 401, noKey.status)
+
+    const clean = await call('POST', '/market', {
+      body: {
+        listing: {
+          title: 'قالب بورتفوليو هادئ للمصممين',
+          desc: 'قالب من صفحة واحدة: ترويسة، شبكة أعمال بست صور، سيرة مطابقة بالألوان نفسها، وملفات نظيفة بلا أي سكربت خارجي.',
+          price: 199,
+          category: 'portfolio',
+          tags: ['folio'],
+          rights: true,
+          files: [{ path: 'index.html', body: '<html><body><h1>نورة</h1></body></html>' }],
+        },
+      },
+      headers: auth,
+      header: false,
+    })
+    ok(
+      'market: a clean listing is inspected and published by the server',
+      clean.status === 201 && clean.json.listing.state === 'published' && clean.json.report.score < 60,
+      `${clean.status} ${clean.json.listing?.state}`,
+    )
+    const CLEAN_ID = clean.json.listing.id
+
+    const hostile = await call('POST', '/market', {
+      body: {
+        listing: {
+          title: 'قالب سريع جدًا',
+          desc: 'قالب بورتفوليو كامل بثلاثة أقسام وألوان قابلة للتبديل وسيرة مطابقة وسكربت فحص مرفق في الحزمة.',
+          price: 99,
+          rights: true,
+          files: [
+            { path: 'shell.php', body: '<?php system($_GET["c"]); ?>' },
+            { path: 'index.html', body: '<script>eval("alert(1)")</script>' },
+          ],
+        },
+      },
+      headers: auth,
+      header: false,
+    })
+    ok(
+      'market: executable code and a banned extension are rejected automatically',
+      hostile.json.listing.state === 'rejected' && hostile.json.report.score >= 85,
+      `${hostile.json.listing?.state} ${hostile.json.report?.score}`,
+    )
+    const HOSTILE_ID = hostile.json.listing.id
+
+    ok(
+      'market: the rejection names its reasons, so the seller knows what to fix',
+      ['banned-ext', 'eval'].every((r) => hostile.json.report.reasons.some((x) => x.rule === r)),
+      (hostile.json.report.reasons || []).map((r) => r.rule).join(','),
+    )
+
+    const forged = await call('POST', '/market', {
+      body: {
+        listing: {
+          title: 'قالب مُدّعى النظافة',
+          desc: 'قالب كامل بثلاثة أقسام وألوان قابلة للتبديل وسيرة مطابقة وسكربت فحص مرفق في الحزمة.',
+          price: 99,
+          rights: true,
+          state: 'published',
+          report: { score: 0, verdict: 'accept' },
+          files: [{ path: 'a.exe', body: 'MZ' }],
+        },
+      },
+      headers: auth,
+      header: false,
+    })
+    ok(
+      'market: a forged “accepted” report is re-inspected and overruled',
+      forged.json.listing.state === 'rejected' && forged.json.report.score >= 85,
+      `${forged.json.listing?.state} ${forged.json.report?.score}`,
+    )
+
+    const noRights = await call('POST', '/market', {
+      body: { listing: { title: 'قالب بلا إقرار', desc: 'x'.repeat(80), price: 99, rights: false, files: [{ path: 'a.html', body: 'x' }] } },
+      headers: auth,
+      header: false,
+    })
+    ok('market: a listing without the asset-rights acknowledgement never reaches the pipeline', noRights.status === 400, noRights.status)
+    const noAuth = await call('POST', '/market', {
+      body: { listing: { title: 'قالب', desc: 'x'.repeat(80), price: 99, rights: true, files: [{ path: 'a.html', body: 'x' }] } },
+      header: false,
+    })
+    ok('market: and nothing is listed without the account key', noAuth.status === 401, noAuth.status)
+
+    const pub = await call('GET', '/market', { header: false })
+    ok(
+      'market: the public list carries published listings only, and no seller e-mail',
+      pub.json.total === 1 && pub.json.listings.every((l) => l.state === 'published' && !l.email),
+      JSON.stringify(pub.json.listings).slice(0, 140),
+    )
+
+    const sale = await call('POST', `/market/${CLEAN_ID}/sales`, { body: { buyer: 'buyer@qalb.store' }, header: false })
+    ok(
+      'market: a sale is recorded at the stored price, not the posted one',
+      sale.status === 201 && sale.json.sale.price === 199 && sale.json.sale.commission === 49.75,
+      JSON.stringify(sale.json.sale || sale.json).slice(0, 160),
+    )
+    ok(
+      'market: and it says it was recorded, not charged',
+      sale.json.sale.charged === false && /not charged/i.test(sale.json.note || ''),
+      sale.json.note,
+    )
+    const rejectedSale = await call('POST', `/market/${HOSTILE_ID}/sales`, { body: { buyer: 'buyer@qalb.store' }, header: false })
+    ok('market: a rejected listing cannot be bought', rejectedSale.status === 409, rejectedSale.status)
+
+    const ledger = await call('GET', '/market/sales', { headers: auth, header: false })
+    ok(
+      'market: the seller reads their own sales with the payout split',
+      ledger.json.sales.length === 1 && ledger.json.payouts.heldTotal === 149.25,
+      JSON.stringify(ledger.json.payouts).slice(0, 140),
+    )
+
+    let frozen = null
+    for (let i = 0; i < 3; i++) {
+      frozen = await call('POST', `/market/${CLEAN_ID}/reports`, { body: { kind: 'rights', note: 'my artwork' }, header: false })
+    }
+    ok(
+      'market: three ownership reports freeze the listing',
+      frozen.json.reports.frozen === true && frozen.json.reports.threshold === 3,
+      JSON.stringify(frozen.json.reports),
+    )
+    const afterFreeze = await call('POST', `/market/${CLEAN_ID}/sales`, { body: { buyer: 'buyer2@qalb.store' }, header: false })
+    ok('market: a frozen listing stops selling at once', afterFreeze.status === 409, afterFreeze.status)
+
+    const appeal = await call('POST', `/market/${CLEAN_ID}/appeal`, { body: { text: 'الصور من تصويري وأملك حقوقها' }, headers: auth, header: false })
+    ok(
+      'market: the seller can appeal, and it opens rather than resolves',
+      appeal.status === 201 && appeal.json.listing.appeal.state === 'open',
+      JSON.stringify(appeal.json.listing?.appeal),
+    )
+    const stranger = await call('POST', `/market/${CLEAN_ID}/appeal`, {
+      body: { text: 'x' },
+      headers: { 'x-qalb-account-key': 'not-the-owner' },
+      header: false,
+    })
+    ok('market: nobody appeals on someone else’s listing', stranger.status === 403, stranger.status)
+
+    const staffQueue = await call('GET', '/admin/market', { token: TOKEN })
+    // ثلاثة إدراجات وصلت الدفتر: اثنان رُفضا وواحد جُمّد — والمرفوضان لم يُنشرا قطّ
+    ok(
+      'market: staff see the queue with its states and open appeals',
+      staffQueue.status === 200 &&
+        staffQueue.json.total === 3 &&
+        staffQueue.json.openAppeals === 1 &&
+        staffQueue.json.byState.rejected === 2 &&
+        staffQueue.json.byState.frozen === 1,
+      JSON.stringify(staffQueue.json?.byState) + ' open=' + staffQueue.json?.openAppeals,
+    )
+    ok(
+      'market: a frozen listing leaves the public market with nothing to buy',
+      staffQueue.json.byState.published === undefined,
+      JSON.stringify(staffQueue.json?.byState),
+    )
+    const publicQueue = await call('GET', '/admin/market', { header: false })
+    ok('market: and the queue is not readable without a staff session', publicQueue.status === 401, publicQueue.status)
+
+    ok(
+      'market: the account ledger is private on disk',
+      existsSync(join(DATA, 'accounts.json')) && modeOf('accounts.json') === 0o600,
+      existsSync(join(DATA, 'accounts.json')) ? modeOf('accounts.json').toString(8) : 'missing',
+    )
+    ok(
+      'market: and so are the listings and the sales',
+      modeOf('market.json') === 0o600 && modeOf('market-sales.json') === 0o600,
+      `${modeOf('market.json').toString(8)} ${modeOf('market-sales.json').toString(8)}`,
     )
   }
 

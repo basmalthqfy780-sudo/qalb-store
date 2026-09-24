@@ -175,8 +175,13 @@ export function editWindow(site, at = new Date()) {
 /** شريط العلامة: موجود في المجاني، مفقود في «بلس» — لا يُقرَّر بالذوق بل بالخطة */
 export function brandBar(site) {
   if (PLANS[planOf(recPlan(site))].brand === false) return ''
-  const ar = 'بدعم من <a href="https://qalb.store" rel="noopener">قالب</a> — قوالب مواقع وسِيَر'
-  const en = 'Made with <a href="https://qalb.store" rel="noopener">Qalb</a> — portfolio &amp; résumé templates'
+  // الشارة رابطان لا رابط: اسمنا، ودعوةٌ صريحة للزائر — «أنشئ نسختك» إلى
+  // /create حيث القالب الأول مجاني. هذا هو مسار النمو الوحيد المسموح به هنا:
+  // كل صفحة منشورة تحمل بابًا، ومن يدفع خطة Pro تُسقطه `brandBar` نفسها.
+  const ar =
+    'صُنع بقالب — <a href="https://qalb.store" rel="noopener">قوالب مواقع وسِيَر</a> · <a href="https://qalb.store/create" rel="noopener"><b>أنشئ نسختك مجانًا</b></a>'
+  const en =
+    'Made with Qalb — <a href="https://qalb.store" rel="noopener">portfolio &amp; résumé templates</a> · <a href="https://qalb.store/create" rel="noopener"><b>Build your own, free</b></a>'
   const text = recLang(site) === 'en' ? en : ar
   return `<div class="qalb-brand" style="position:fixed;inset-inline:0;bottom:0;z-index:99;display:flex;justify-content:center;gap:.5rem;align-items:center;padding:.45rem .8rem;font:600 12px/1.4 system-ui;background:#0a0c11e6;color:#e8ebf2;border-top:1px solid #242b3a">${text}</div>`
 }

@@ -57,6 +57,10 @@ const urls = [
   { loc: '/market', pri: '0.6', freq: 'monthly' },
   { loc: '/embed', pri: '0.8', freq: 'monthly' },
   { loc: '/b2b', pri: '0.8', freq: 'monthly' },
+  // نموذج الربح: الخطط وصفحة الإنشاء والسوق عامة؛ `/account` و`/sell` خاصّتان (noindex)
+  { loc: '/pricing', pri: '0.9', freq: 'weekly' },
+  { loc: '/create', pri: '0.9', freq: 'weekly' },
+  { loc: '/creators', pri: '0.8', freq: 'daily' },
   { loc: '/services', pri: '0.8', freq: 'monthly' },
   { loc: '/offers', pri: '0.8', freq: 'weekly' },
   { loc: '/blog', pri: '0.8', freq: 'weekly' },

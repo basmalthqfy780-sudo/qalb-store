@@ -70,6 +70,7 @@ import { MARKET_MIN, aggregate, marketCsv, marketReport, marketRows, normalizeSi
 import { EMBED_TIERS, embedMailto, embedQuota, embedSnippet, embedTier, embedUsage } from '../src/data/embed.js'
 import { LINKEDIN_SAMPLE, handleFrom, missingOf, parseLinkedin, toPersonal } from '../src/data/linkedin.js'
 import { badgeHtml, badgeState, withBadge } from '../src/data/badge.js'
+import { PRIVATE_PATHS } from '../scripts/agents.mjs'
 import { couponFor, cardSvg, shareText } from '../src/data/share.js'
 
 const out = 'tests/build/app.js'
@@ -91,6 +92,29 @@ const seededCart = JSON.stringify([
   { id: 'nova', qty: 1 },
   { id: 'atlas', qty: 2 },
 ])
+
+/**
+ * حسابُ نموذج الربح: حرٌّ، أنشأ قالبه الأول، وأقرّ بالفحص الآلي. يُزرع في jsdom
+ * كما يُزرع أي سجلٍّ على الجهاز، فتُختبر البوابة والعدّاد بما يقرؤه الكود فعلًا.
+ */
+const revenueAccount = {
+  id: 'QA-TEST-1',
+  email: 'noura@qalb.store',
+  plan: 'free',
+  since: '2026-09-01',
+  consent: { v: '1', at: '2026-09-01T09:00:00.000Z' },
+  niche: 'designer',
+  answers: {
+    name: 'نورة الحربي',
+    role: 'مصممة منتجات',
+    services: 'هوية وواجهات',
+    works: 'ثلاثة مشاريع',
+    colours: ['#2f6df6'],
+    links: ['https://noura.design'],
+  },
+  created: [{ slug: 'noura-alhrbi', template: 'aether', niche: 'designer', at: '2026-09-02' }],
+  activations: [],
+}
 
 const lookupOrders = JSON.stringify([
   {
@@ -287,6 +311,84 @@ const cases = [
     lang: 'en',
     seed: { 'qalb.orders.v1': lookupOrders },
     expect: ['Verify a licence key', 'Licence key', 'Verify', 'order server when enabled'],
+  },
+
+  /* ---------------- نموذج الربح v1.7.0: خطط، إنشاء، حساب، سوق، بائع ---------------- */
+  {
+    name: 'pricing / plans and the value matrix',
+    url: 'http://localhost/pricing',
+    expect: [
+      'ما الذي نبيعه بالضبط',
+      'القالب الأول',
+      'فردية',
+      'المجاني مقابل المدفوع',
+      'إنشاء حساب بالبريد',
+      'تحميل سيرة PDF',
+      'بيع القالب للآخرين',
+      'عمولة المنصة من كل بيع',
+      'باقة لمرة واحدة',
+      '349',
+      '499',
+      'ما لا يحدث في هذه النسخة',
+    ],
+  },
+  {
+    name: 'pricing / english',
+    url: 'http://localhost/pricing',
+    lang: 'en',
+    expect: ['What we sell, exactly', 'The first template', 'Solo', 'Free against paid, row by row', 'Selling your template to others'],
+  },
+  {
+    name: 'create / the four-step wizard',
+    url: 'http://localhost/create',
+    expect: ['أنشئ قالبك من إجاباتك', 'بريدك الإلكتروني', 'بالمتابعة أُقرّ', 'لا نرسل رسالة تأكيد', 'ابدأ مجانًا'],
+  },
+  {
+    name: 'create / step two of a signed-in account',
+    url: 'http://localhost/create',
+    // المجال لم يُختَر بعد: الخطوة الثانية لا الثالثة، ولو كان الحساب قائمًا
+    seed: { 'qalb.account.v1': JSON.stringify({ ...revenueAccount, niche: null, created: [] }) },
+    expect: ['مجالك', 'مصمم', 'مصوّر', 'مبرمج', 'طالب', 'كاتب', 'مهندس', 'المرحلة الأولى', 'بدأنا بمصممين ومصورين'],
+  },
+  {
+    // البوابة نفسها: من أنشأ قالبه على المجانية يُقابل بالخطط لا بمحرّرٍ يعتذر بعده
+    name: 'create / the second template meets the plan gate',
+    url: 'http://localhost/create',
+    seed: { 'qalb.account.v1': JSON.stringify(revenueAccount) },
+    expect: ['القالب الثاني خلف اشتراك', 'قوالبك 1 من 1', 'فردية', 'Pro', 'قارن الخطط ومصفوفة القيمة', 'لا بوابة دفع موصولة'],
+  },
+  {
+    name: 'account / no account on this device',
+    url: 'http://localhost/account',
+    expect: ['لا حساب على هذا الجهاز بعد', 'أنشئ حسابك'],
+  },
+  {
+    name: 'account / a free account sees the watermark rule',
+    url: 'http://localhost/account',
+    seed: { 'qalb.account.v1': JSON.stringify(revenueAccount) },
+    expect: ['noura@qalb.store', 'القالب الأول', 'قوالبك 1 من 1', 'بعلامة مائية', 'ورقة السيرة', 'ما تفتحه خطتك', 'بيع قوالبك'],
+  },
+  {
+    name: 'creators / the market and its published rules',
+    url: 'http://localhost/creators',
+    expect: ['سوق المصممين', 'لا إدراج منشور بعد', 'القواعد المعلنة', 'ترخيص ما تشتريه', 'مفحوص آليًا'],
+  },
+  {
+    name: 'sell / needs an account first',
+    url: 'http://localhost/sell',
+    expect: ['يلزم حساب أولًا', 'أنشئ حسابك'],
+  },
+  {
+    name: 'sell / a free account meets the subscription gate',
+    url: 'http://localhost/sell',
+    seed: { 'qalb.account.v1': JSON.stringify(revenueAccount) },
+    expect: ['بِع قالبك', 'البيع مفتوح للاشتراكات', 'تقسيمك قبل البيع', 'عمولة المنصة ٢٥٪', 'عتبات القرار'],
+  },
+  {
+    name: 'sell / a paid account gets the listing form',
+    url: 'http://localhost/sell',
+    seed: { 'qalb.account.v1': JSON.stringify({ ...revenueAccount, plan: 'solo' }) },
+    expect: ['إدراج جديد', 'عنوان القالب', 'ملفات الحزمة', 'ارفع للفحص الآلي', 'مستحقاتك', 'ترخيص السوق', 'خطتك تفتح البيع'],
   },
 ]
 
@@ -1610,7 +1712,9 @@ for (const c of cases) {
     const staticRoutes = [...readFileSync('src/App.jsx', 'utf8').matchAll(/path="(\/[a-z0-9-]*)"/g)]
       .map((m) => m[1])
       .filter((p) => p === '/' || !p.endsWith('/'))
-    const privateRoutes = ['/checkout', '/cart', '/order', '/admin', '/studio'] // الاستوديو أداة خاصة: لا في الـsitemap ولا في الفهرس
+    // مصدرٌ واحد للمسارات الخاصة: agents.mjs يكتب robots.txt منه، والفحص يقرأه منه —
+    // فنسخةٌ ثانية هنا كانت ستُخفي صفحةً نُسيت من الاثنين.
+    const privateRoutes = PRIVATE_PATHS
     const publicRoutes = staticRoutes.filter((p) => !privateRoutes.includes(p))
     const notInMap = publicRoutes.filter((p) => !map.includes(`${p}</loc>`))
     ok(
@@ -4883,6 +4987,417 @@ for (const c of cases) {
   } else {
     groups++
     console.log(`✓ hiring suite · match, kit, link, directory, market, embed, linkedin, badge  (${checks.length} assertions)`)
+  }
+}
+
+/* ---------------- revenue model v1.7.0 · plans, the free-first gate, the market split, the pipeline ---------------- */
+{
+  const checks = []
+  const ok = (name, cond, extra = '') => checks.push([cond ? name : `${name} — ${extra}`, !!cond])
+
+  const { PLANS, FEATURE_MATRIX, ONE_TIME, PUBLISH_DONE, gainedBy, vatOf, withWatermark, yearlyAsMonths } = await import('../src/data/plans.js')
+  const { NICHES, QUESTIONS, ACCOUNT_LIMITS, canCreate, sanitizeAccount, sanitizeAnswers, droppedAnswers, readyToGenerate, starterFor, firstStage } =
+    await import('../src/data/account.js')
+  const {
+    COMMISSION,
+    COMMISSION_RANGE,
+    ESCROW_DAYS,
+    ESCROW_RANGE,
+    MIN_PAYOUT,
+    PRICE_MIN,
+    PRICE_MAX,
+    REPORT_FREEZE,
+    applyReports,
+    canSell,
+    listingErrors,
+    payoutState,
+    priceOk,
+    releaseDate,
+    sanitizeListing,
+    split,
+  } = await import('../src/data/marketplace.js')
+  const { BANDS, LAYERS, PIPELINE_VERSION, appealsLayer, inspectListing, policyGuard, stateFromVerdict, techLint } =
+    await import('../src/data/inspect.js')
+  const { DUP_THRESHOLD, aHash, dHash, duplicateOf, fnv1a, hamming, hashMatrix, resampleGray, similarity } = await import('../src/data/phash.js')
+  const { byId, templates: CATALOGUE } = await import('../src/data/templates.js')
+
+  /* ——— ١. الخطط: أرقام داخل المدى المعلَن، والسلوك مشتق لا مكرر ——— */
+  const free = PLANS.find((x) => x.id === 'free')
+  const solo = PLANS.find((x) => x.id === 'solo')
+  const pro = PLANS.find((x) => x.id === 'pro')
+  ok('three plans, free first and Pro last', PLANS.length === 3 && free.order < solo.order && solo.order < pro.order)
+  ok('the free plan costs nothing and allows exactly one template', free.price === 0 && free.templates === 1)
+  ok('the individual plan sits inside the published 19–79 SAR band', solo.price >= 19 && solo.price <= 79, `${solo.price}`)
+  ok('Pro sits inside the published 199–249 SAR band', pro.price >= 199 && pro.price <= 249, `${pro.price}`)
+  ok('Pro removes the ceiling entirely, it does not raise it', pro.templates === null)
+  ok(
+    'the one-time pack is inside 249–499 and the publish service inside 299–799',
+    ONE_TIME.price >= 249 && ONE_TIME.price <= 499 && PUBLISH_DONE.price >= 299 && PUBLISH_DONE.price <= 799,
+  )
+  ok('the yearly price is computed as months, not asserted', yearlyAsMonths('solo') > 6 && yearlyAsMonths('solo') < 12, `${yearlyAsMonths('solo')}`)
+  ok('VAT is extracted from the listed price, not added on top', Math.abs(vatOf(115) - 15) < 0.01, `${vatOf(115)}`)
+  ok('Pro gains eight things over free, and the list is derived from the table', gainedBy('pro').length === 8, gainedBy('pro').join(','))
+  ok('and free gains nothing over itself', gainedBy('free').length === 0)
+
+  /* ——— ٢. مصفوفة القيمة: كل وعد يشير إلى منفّذ موجود فعلًا ——— */
+  ok('the matrix holds the ten published rows', FEATURE_MATRIX.length === 10, `${FEATURE_MATRIX.length}`)
+  const enforced = []
+  for (const row of FEATURE_MATRIX) {
+    const [file, fn] = row.enforcedBy.split(':')
+    const mod = await import(`../${file}`)
+    if (typeof mod[fn] !== 'function') enforced.push(row.enforcedBy)
+  }
+  ok('every promise row names a function that exists in the repo', enforced.length === 0, enforced.join(','))
+  ok(
+    'each row states both sides and every state is a known one',
+    FEATURE_MATRIX.every((r) => ['yes', 'partial', 'no'].includes(r.free.state) && ['yes', 'partial', 'no'].includes(r.paid.state)),
+  )
+  ok(
+    'the watermark, export, domain and selling rows differ between the two columns',
+    ['pdf', 'export', 'domain', 'sell'].every((id) => {
+      const r = FEATURE_MATRIX.find((x) => x.id === id)
+      return r.free.state !== r.paid.state
+    }),
+  )
+
+  /* ——— ٣. بوابة Freemium: قالبٌ واحد مجانًا، والثاني خلف خطة ——— */
+  const base = sanitizeAccount({ email: 'A@B.co', niche: 'designer', answers: { name: 'نورة', role: 'مصممة' }, consent: { v: '1', at: 'x' } })
+  ok('a fresh account may build its first template', canCreate(base).allowed === true && canCreate(base).max === 1)
+  const usedOne = { ...base, created: [{ slug: 'noura', template: 'aether', at: '2026-09-01' }] }
+  ok(
+    'the second attempt on the free plan is refused, with the count as the reason',
+    canCreate(usedOne).allowed === false && canCreate(usedOne).reason === 'limit',
+  )
+  ok('a paid plan opens the same account', canCreate({ ...usedOne, plan: 'pro' }).allowed === true)
+  ok('an unknown plan falls back to free instead of granting the top tier', canCreate({ ...usedOne, plan: 'nope' }).max === 1)
+  ok('the six niches all point at real catalogue templates', NICHES.length === 6 && NICHES.every((n) => n.starters.every((id) => !!byId(id))))
+  ok(
+    'the first wave is designers and photographers, and the starter is a real template',
+    firstStage()
+      .map((n) => n.id)
+      .join(',') === 'designer,photographer' && starterFor('photographer').id === 'atelier',
+  )
+  ok('a niche nobody picked yields no template rather than a guess', starterFor('nobody') === null)
+  ok('the six short questions carry their own ceilings', QUESTIONS.length === 6 && QUESTIONS.every((q) => q.limit <= 420))
+  ok(
+    'answers are sanitised: a tag rejects the field, a third colour and a bad link are dropped',
+    (() => {
+      const c = sanitizeAnswers({
+        name: '<b>نورة</b>',
+        colours: ['#fff', '#000', '#111'],
+        links: ['https://ok.dev', 'ftp://no', 'x'],
+        services: 'هوية',
+      })
+      return c.name === '' && c.colours.length === 2 && c.links.length === 1 && c.services === 'هوية'
+    })(),
+  )
+  ok(
+    'and the user is told which fields were dropped',
+    droppedAnswers({ name: 'a<b', colours: ['nope'], links: ['ftp://x'] }).join(',') === 'name,colours,links',
+  )
+  ok(
+    'nothing is generated until the e-mail, the niche, the name, the role and the consent are there',
+    readyToGenerate(base).ok === true && readyToGenerate({ ...base, consent: null }).missing.includes('consent'),
+  )
+  ok('field ceilings match the personalisation ceilings they came from', ACCOUNT_LIMITS.name === 80 && ACCOUNT_LIMITS.email === 160)
+
+  /* ——— ٤. السوق: التقسيم مضبوط هللةً هللة ——— */
+  ok(
+    'the commission is 25% and inside the published 20–30% band',
+    COMMISSION === 0.25 && COMMISSION >= COMMISSION_RANGE[0] && COMMISSION <= COMMISSION_RANGE[1],
+  )
+  ok('the escrow period is inside the published 7–14 days', ESCROW_DAYS >= ESCROW_RANGE[0] && ESCROW_DAYS <= ESCROW_RANGE[1])
+  ok('the worked example is exact: 199 → 49.75 commission → 149.25 to the seller', split(199).commission === 49.75 && split(199).sellerNet === 149.25)
+  let drift = 0
+  for (let p = PRICE_MIN; p <= 400; p += 3.37) {
+    const s = split(p)
+    if (Math.abs(Math.round((s.commission + s.sellerNet) * 100) - Math.round(s.price * 100)) > 0) drift++
+  }
+  ok('commission + seller net equals the price for every price in the range, to the halala', drift === 0, `${drift} drifting`)
+  ok(
+    'processing fees are labelled an estimate, not a deduction we claim',
+    split(199).processing.labelled === true && split(199).processing.estimate > 0,
+  )
+  ok('the seller sees their net after fees, and it never goes negative', split(PRICE_MIN).sellerAfterFeesEstimate >= 0)
+  ok(
+    'a release date is exactly the escrow period after the sale',
+    releaseDate('2026-09-01', new Date('2026-09-24')) === `2026-09-${String(1 + ESCROW_DAYS).padStart(2, '0')}`,
+  )
+  const sales = [
+    { price: 199, soldAt: '2026-09-01' },
+    { price: 99, soldAt: '2026-09-20' },
+  ]
+  const pay = payoutState(sales, new Date('2026-09-24'))
+  ok('a sale older than the escrow is released and a newer one is still held', pay.released.length === 1 && pay.held.length === 1)
+  ok('the released total is the seller net, not the price', pay.releasedTotal === 149.25, `${pay.releasedTotal}`)
+  ok(
+    'eligibility is measured against the 100 SAR minimum, and the shortfall is a number',
+    payoutState([{ price: 40, soldAt: '2026-09-01' }], new Date('2026-09-24')).missing > 0 && pay.eligible === true && MIN_PAYOUT === 100,
+  )
+  ok('selling needs a paid plan, and the block says why', canSell('free') === false && canSell('solo') === true && canSell({ plan: 'pro' }) === true)
+  ok(
+    'prices outside the accepted band are refused before the pipeline runs',
+    priceOk(10) === false && priceOk(PRICE_MIN) === true && priceOk(PRICE_MAX + 1) === false,
+  )
+
+  /* ——— ٥. خط الفحص: العتبات الثلاث كلها تُبلغ فعلًا ——— */
+  ok('the pipeline publishes five layers and three bands', LAYERS.length === 5 && BANDS.length === 3 && PIPELINE_VERSION >= 1)
+  ok('the bands are the published 0–59 / 60–84 / 85–100', BANDS.map((b) => `${b.min}-${b.max}`).join(' ') === '0-59 60-84 85-100')
+  const cleanListing = sanitizeListing({
+    title: 'قالب بورتفوليو هادئ للمصممين',
+    desc: 'قالب من صفحة واحدة: ترويسة، شبكة أعمال بست صور، سيرة مطابقة بالألوان نفسها، وسكربت فحص ATS مرفق في الحزمة.',
+    price: 149,
+    rights: true,
+    files: [
+      { path: 'index.html', body: '<html><body><h1>نورة</h1></body></html>' },
+      { path: 'styles.css', body: 'body{margin:0}' },
+      { path: 'content/profile.json', body: '{"name":"نورة"}' },
+    ],
+  })
+  const accepted = inspectListing(cleanListing)
+  ok(
+    'a clean template is accepted automatically, with a zero score',
+    accepted.verdict === 'accept' && accepted.score < 60 && accepted.reasons.length === 0,
+    `${accepted.verdict}/${accepted.score}`,
+  )
+  ok('and its state is derived from the verdict, never written by hand', stateFromVerdict(accepted.verdict) === 'published')
+
+  const quarantined = inspectListing(
+    sanitizeListing({
+      title: 'أفضل قالب رقم 1 في العالم',
+      desc: 'قالب مضمون 100% اكسب دخل شهري من موقعك، بتصميم جميل وألوان رائعة وترويسة كبيرة وشبكة أعمال وسيرة مطابقة.',
+      price: 199,
+      rights: true,
+      files: [{ path: 'index.html', body: '<html><body>ok</body></html>' }],
+    }),
+  )
+  ok(
+    'unprovable claims land in quarantine, not in acceptance',
+    quarantined.verdict === 'quarantine' && quarantined.score >= 60 && quarantined.score <= 84,
+    `${quarantined.score}`,
+  )
+  ok(
+    'the report names the rules that fired, in both languages',
+    ['income-claim', 'guarantee', 'superlative'].every((r) => quarantined.reasons.some((x) => x.rule === r)) &&
+      quarantined.reasons.every((x) => x.why.ar && x.why.en),
+  )
+
+  const rejected = inspectListing(
+    sanitizeListing({
+      title: 'قالب سريع جدًا للتحميل',
+      desc: 'قالب بورتفوليو كامل بثلاثة أقسام وألوان قابلة للتبديل وسيرة ذاتية مطابقة وسكربت فحص مرفق في الحزمة.',
+      price: 99,
+      rights: true,
+      files: [
+        { path: 'index.html', body: '<html><body><script>eval("alert(1)")</script></body></html>' },
+        { path: 'shell.php', body: '<?php system($_GET["c"]); ?>' },
+        { path: '../../etc/passwd', body: 'x' },
+      ],
+    }),
+  )
+  ok('executable code and banned files are rejected automatically', rejected.verdict === 'reject' && rejected.score >= 85, `${rejected.score}`)
+  ok(
+    'a hard violation floors the score whatever else is clean',
+    rejected.hard === true && rejected.score >= 92,
+    `${rejected.rawScore}→${rejected.score}`,
+  )
+  // الأرضية تُرى وحدها: مخالفة قاسية واحدة (وزنها ٦٠) ترفع القرار فوق عتبة الرفض
+  const onlyHard = inspectListing(
+    sanitizeListing({
+      title: 'قالب بورتفوليو بسيط',
+      desc: 'قالب من صفحة واحدة بترويسة وشبكة أعمال وسيرة مطابقة بالألوان نفسها، وملفات نظيفة بلا أي سكربت خارجي.',
+      price: 99,
+      rights: true,
+      files: [{ path: 'index.html', body: '<a href="javascript:void(0)">x</a>' }],
+    }),
+  )
+  ok(
+    'one hard rule alone carries a listing from acceptance to rejection',
+    onlyHard.hard === true && onlyHard.rawScore < 85 && onlyHard.verdict === 'reject',
+    `${onlyHard.rawScore}→${onlyHard.score} ${onlyHard.verdict}`,
+  )
+  ok(
+    'tech linting catches the classes it publishes: banned extension, eval, traversal, javascript: URIs',
+    (() => {
+      const r = techLint([
+        { path: 'a.exe', body: 'x' },
+        { path: 'b.html', body: '<a href="javascript:alert(1)">x</a>' },
+        { path: '../out.html', body: 'x' },
+        { path: 'c.html', body: '<script src="https://evil.example/x.js"></script>' },
+      ])
+      return ['banned-ext', 'javascript-uri', 'path-traversal', 'external-script'].every((id) => r.violations.some((v) => v.rule === id))
+    })(),
+  )
+  ok(
+    'an off-platform payment request is a hard rejection, since it bypasses the licence',
+    policyGuard({ title: 'قالب', desc: 'ادفع عبر paypal خارج المنصة وسأرسله لك فورًا بلا عمولة ولا انتظار.' }).hard === true,
+  )
+  ok(
+    'a listing missing its rights acknowledgement never reaches the pipeline',
+    Object.keys(
+      listingErrors(sanitizeListing({ title: 'قالب جميل', desc: 'x'.repeat(60), price: 100, files: [{ path: 'a.html', body: 'x' }] })),
+    ).includes('rights'),
+  )
+
+  /* ——— ٦. البصمة البصرية: ثابتة أمام السطوع والمقاس، وترفض المعكوس ——— */
+  const gradient = (w, shift = 0) => {
+    const a = new Uint8ClampedArray(w * w * 4)
+    for (let y = 0; y < w; y++) for (let x = 0; x < w; x++) a.set([Math.min(255, (x / w) * 255 + shift), 0, 0, 255], (y * w + x) * 4)
+    return resampleGray(a, w, w, 8)
+  }
+  const inverted = (() => {
+    const w = 32
+    const a = new Uint8ClampedArray(w * w * 4)
+    for (let y = 0; y < w; y++) for (let x = 0; x < w; x++) a.set([255 - (x / w) * 255, 0, 0, 255], (y * w + x) * 4)
+    return resampleGray(a, w, w, 8)
+  })()
+  const A = hashMatrix(gradient(32))
+  const brighter = hashMatrix(gradient(32, 40))
+  const rescaled = hashMatrix(gradient(64))
+  const flipped = hashMatrix(inverted)
+  ok(
+    'the fingerprint is stable when the same image is brightened',
+    similarity(A.a, brighter.a) >= DUP_THRESHOLD && similarity(A.d, brighter.d) >= DUP_THRESHOLD,
+  )
+  ok('and stable when it is rescaled, which is the point of a perceptual hash', similarity(A.a, rescaled.a) >= DUP_THRESHOLD)
+  ok('an inverted image is not a match, so the threshold is not decoration', similarity(A.a, flipped.a) < 0.5, `${similarity(A.a, flipped.a)}`)
+  ok('hamming distance is symmetric and rejects malformed hashes', hamming(A.a, brighter.a) === hamming(brighter.a, A.a) && hamming('zz', A.a) === -1)
+  ok(
+    'aHash yields 64 bits and dHash 56 on an 8×8 matrix — hashMatrix widens it to 64 so both compare at one length',
+    aHash(gradient(32)).length === 16 && dHash(gradient(32)).length === 14 && A.a.length === 16 && A.d.length === 16,
+    `${aHash(gradient(32)).length}/${dHash(gradient(32)).length}/${A.d.length}`,
+  )
+  ok(
+    'the reference lookup returns the match with its distance',
+    duplicateOf(A, [{ ref: 'seller/old.png', a: rescaled.a, d: rescaled.d }]).similarity >= DUP_THRESHOLD,
+  )
+  ok('and says nothing when the reference is empty, instead of passing', duplicateOf(A, []) === null)
+  ok('a missing decoder is a named fallback, not a silent sha claim', fnv1a(new Uint8Array([1, 2, 3])).startsWith('fnv1a:'))
+
+  /* ——— ٧. الطبقة الخامسة: البلاغات تُجمّد عند العتبة، والتظلّم يُفتح ——— */
+  ok(
+    'one ownership report does not freeze a listing; three do',
+    applyReports([{ kind: 'rights' }, { kind: 'rights' }]).frozen === false &&
+      applyReports(Array.from({ length: REPORT_FREEZE }, () => ({ kind: 'rights' }))).frozen === true,
+  )
+  ok(
+    'a freeze outranks whatever the pipeline decided',
+    appealsLayer({ state: 'published', reports: Array.from({ length: REPORT_FREEZE }, () => ({ kind: 'rights' })) }).state === 'frozen',
+  )
+  ok(
+    'an appeal opens and is never closed automatically',
+    appealsLayer({ appeal: { state: 'open', text: 'x' } }).appeal === 'open' && appealsLayer({}).appeal === 'none',
+  )
+
+  /* ——— ٨. العلامة المائية: وعد المصفوفة يُطبع فعلًا ——— */
+  const sheet = '<html><head></head><body>سيرة</body></html>'
+  ok(
+    'the free plan stamps the sheet and a paid plan does not',
+    withWatermark(sheet, { on: true, label: 'x' }).includes('qalb-wm') && withWatermark(sheet, { on: false }) === sheet,
+  )
+  ok(
+    'and the watermark survives into print, which is where a PDF comes from',
+    withWatermark(sheet, { on: true, label: 'x' }).includes('print-color-adjust'),
+  )
+
+  /* ——— ٩. ما تعرضه الواجهة: البوابة والحاسبة ——— */
+  const renderRoute = async ({ url, storage = {}, lang = 'ar' }) => {
+    // نفس `render` الذي تصيّره بقية المجموعات — لا نافذة تنقّل مصطنعة:
+    // المسار يُحمَّل من عنوان jsdom فيمرّ بالموجّه نفسه الذي يمرّ به الزائر.
+    // واللغة تُزرع في الحافظة كما يزرعها الزائر: سمة `lang` على <html> وحدها لا تكفي.
+    return render(`http://localhost${url}`, { 'qalb.lang': lang, ...storage }, { lang })
+  }
+  const gate = await render('http://localhost/create', { 'qalb.account.v1': JSON.stringify(revenueAccount) })
+  ok(
+    'a free account that used its template meets the plan gate, not the editor',
+    /القالب الثاني خلف اشتراك/.test(gate.txt()) && !/ولّد قالبى الأول/.test(gate.txt()),
+  )
+  ok('the gate offers the two paid plans with their real prices', /فردية/.test(gate.txt()) && /199/.test(gate.txt()) && /49/.test(gate.txt()))
+  gate.dom.window.close()
+
+  const sell = await render('http://localhost/sell', { 'qalb.account.v1': JSON.stringify({ ...revenueAccount, plan: 'solo' }) })
+  ok(
+    'the seller console shows the split to the halala before any sale: 37.25 commission and 111.75 net on the 149 default',
+    /37\.25/.test(sell.txt()) && /111\.75/.test(sell.txt()),
+    (sell.txt().match(/\d+\.\d\d/g) || []).slice(0, 6).join(','),
+  )
+  ok('and it publishes the commission, the escrow days and the minimum', /25/.test(sell.txt()) && /14/.test(sell.txt()) && /100/.test(sell.txt()))
+  sell.dom.window.close()
+
+  const pricingAr = await renderRoute({ url: '/pricing' })
+  ok(
+    'pricing · ar: the matrix prints its rows with real values, not a legend that promises them',
+    (pricingAr.txt().match(/بعلامة مائية|بلا علامة مائية|كامل للقالب الأول|٣ قوالب|بلا حدود/g) || []).length >= 9,
+    (pricingAr.txt().match(/بعلامة مائية|بلا علامة مائية|كامل للقالب الأول|٣ قوالب|بلا حدود/g) || []).length + ' cells',
+  )
+  ok('pricing · ar: the free column is named for what it is, not dressed as a paid plan', /مجاني — القالب الأول/.test(pricingAr.txt()))
+  ok(
+    'pricing · ar: the gateway line is on the page, so “subscribe” is never read as “we will charge your card”',
+    /لا بوابة دفع موصولة/.test(pricingAr.txt()),
+    'لا بوابة دفع موصولة',
+  )
+  pricingAr.dom.window.close()
+
+  const pricingEn = await renderRoute({ url: '/pricing', lang: 'en' })
+  ok(
+    'pricing · en: the same matrix renders with the same row count',
+    (pricingEn.txt().match(/First template|Up to 3|Unlimited|watermarked|Clean PDF|Paid only|not available/gi) || []).length >= 10,
+    (pricingEn.txt().match(/First template|Up to 3|Unlimited|watermarked|Clean PDF|Paid only|not available/gi) || []).length + ' cells',
+  )
+  pricingEn.dom.window.close()
+
+  const accountAr = await renderRoute({ url: '/account', storage: { 'qalb.account.v1': JSON.stringify(revenueAccount) } })
+  ok(
+    'account · ar: activation says plainly that it is recorded here and nothing is deducted from a card',
+    /يُسجَّل التفعيل هنا/.test(accountAr.txt()) && /لا يُخصم من بطاقة/.test(accountAr.txt()),
+    'يُسجَّل التفعيل هنا · لا يُخصم من بطاقة',
+  )
+  accountAr.dom.window.close()
+
+  /* ——— ١٠. مسارات النمو: ثلاثة قوالب قبل القرار، وبابان مجانيان ——— */
+  const createDoc = await renderRoute({ url: '/create' })
+  const cards = Array.from(createDoc.doc.querySelectorAll('#showcase article'))
+  const tplIds = cards.map((c) => c.querySelector('a[href^="/template/"]')?.getAttribute('href')?.replace('/template/', '')).filter(Boolean)
+  ok(
+    'growth: /create shows three real catalogue templates before the decision',
+    cards.length === 3 && tplIds.length === 3 && tplIds.every((slug) => CATALOGUE.some((t) => t.slug === slug)),
+    tplIds.join(','),
+  )
+  ok(
+    'growth: …and the showcase switches screen size',
+    createDoc.doc.querySelectorAll('#showcase button[aria-pressed]').length === 3,
+    String(createDoc.doc.querySelectorAll('#showcase button[aria-pressed]').length),
+  )
+  const atsDoc = await renderRoute({ url: '/ats' })
+  ok(
+    'growth: the free ATS tool upsells the full portfolio, into /create',
+    !!atsDoc.doc.querySelector('a[href="/create"][data-ats-build]'),
+    'a[href=/create][data-ats-build]',
+  )
+  // الشارة تُقرأ من صفحة منشورة فعلًا: سجلٌّ كامل يمرّ بـ renderSite لا كائنٌ ناقص
+  const { sanitizeSite } = await import('../src/data/hosting.js')
+  const barRec = (plan) => ({
+    slug: 'noura-alhrbi',
+    plan,
+    site: sanitizeSite({ name: 'نورة الحربي', role: 'مصممة منتجات', template: 'aether', lang: 'ar', theme: 'dark' }),
+  })
+  const hostedFree = renderSite(barRec('free'), '/')
+  ok(
+    'growth: every free page carries “build your own” back to /create',
+    /أنشئ نسختك مجانًا/.test(hostedFree.body) && /href="https:\/\/qalb\.store\/create"/.test(hostedFree.body),
+    /qalb-brand/.test(hostedFree.body) ? 'the bar is there but the CTA is not' : 'no bar rendered at all',
+  )
+  ok('growth: …and a paid plan still drops the bar entirely', !/qalb-brand/.test(renderSite(barRec('pro'), '/').body), 'pro')
+
+  const bad = checks.filter(([, pass]) => !pass)
+  if (bad.length) {
+    failed++
+    groups++
+    console.log('✗ revenue model · plans, gate, market split, inspection pipeline')
+    bad.forEach(([n]) => console.log('   failed: ' + n))
+  } else {
+    groups++
+    console.log(`✓ revenue model · plans, gate, market split, inspection pipeline  (${checks.length} assertions)`)
   }
 }
 
