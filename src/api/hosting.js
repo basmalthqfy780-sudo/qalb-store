@@ -59,6 +59,8 @@ function localPub(rec, mine) {
     slug: rec.slug,
     url: `https://${rec.slug}.${HOST_ROOT}`,
     plan: planOf(rec.plan),
+    // رخصة White-label: كما يعيدها pub() في الخادم — قلبٌ من اللوحة بعد طلبٍ مدفوع
+    brandOff: !!rec.brandOff,
     template: rec.site.template,
     lang: rec.site.lang,
     domain: rec.domain || null,
@@ -99,6 +101,7 @@ function localCreate(payload) {
     key: secret(20),
     email: mail,
     plan: 'free',
+    brandOff: false, // الرخصة لا تُمنح من المتصفح — كما في الخادم: قلبُ الموظف بعد الطلب
     public: payload?.public !== false,
     planPending: !!payload?.planPending,
     domain: null,
@@ -156,6 +159,7 @@ function localPatch(slug, key, body = {}) {
   }
   if (body.public != null) rec.public = !!body.public
   if (body.planPending != null) rec.planPending = plan.id === 'free' ? !!body.planPending : false
+  // brandOff مثل plan: لا فرعَ له هنا — لا يشتري أحدٌ الرخصة من المتصفح لنفسه
   rec.updatedAt = todayS()
   map[slug] = rec
   write(SITES_KEY, map)

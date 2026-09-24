@@ -94,6 +94,8 @@ export function createSitesApi({ dir, env = process.env, admin = null } = {}) {
       slug: site.slug,
       url: `https://${site.slug}.${ROOT}`,
       plan: planOf(site.plan),
+      /** رخصة White-label على هذا الموقع: قلبها الموظف بعد طلبٍ مدفوع — تُسقط الشارة والشريط */
+      brandOff: !!site.brandOff,
       template: site.site.template,
       lang: site.site.lang,
       domain: site.domain || null,
@@ -142,6 +144,7 @@ export function createSitesApi({ dir, env = process.env, admin = null } = {}) {
         key: tok(20),
         email,
         plan: 'free', // لا تُمنح خطة مدفوعة من المتصفح: التفعيل من الطلب أو من اللوحة
+        brandOff: false, // رخصة White-label لا تُمنح من المتصفح هي الأخرى: قلبٌ من اللوحة بعد طلبٍ مدفوع
         public: b.public !== false,
         planPending: !!b.planPending, // المشتري يطلب «بلس»: لا نرفع الخطة من المتصفح، نسجّل الطلب فقط
         domain: null,
@@ -222,6 +225,11 @@ export function createSitesApi({ dir, env = process.env, admin = null } = {}) {
           if (!me) return (json(res, 403, { error: 'only staff can change a plan' }), true)
           cur.plan = planOf(b.plan)
         }
+        if (b.brandOff != null) {
+          // رخصة White-label مثل الخطة: تُقلب من اللوحة بعد طلبٍ مدفوع — لا يشتريها الموقع لنفسه
+          if (!me) return (json(res, 403, { error: 'only staff can grant the white-label licence' }), true)
+          cur.brandOff = !!b.brandOff
+        }
         cur.updatedAt = today()
         map[slug] = cur
         save(map)
@@ -289,6 +297,7 @@ export function createSitesApi({ dir, env = process.env, admin = null } = {}) {
         if (cur.plan !== 'free') cur.planPending = false // قلب الموظف للخطة يُسقط الانتظار: لا يبقى علم معلّق كاذب
       }
       if (b && b.status) cur.status = b.status === 'paused' ? 'paused' : 'live'
+      if (b && b.brandOff != null) cur.brandOff = !!b.brandOff // رخصة White-label: يقلبها الموظف عند تحصيل طلب badge-off
       cur.updatedAt = today()
       map[cur.slug] = cur
       save(map)

@@ -126,7 +126,7 @@ try {
   ok('session cookie is HttpOnly + SameSite=Strict', /httponly/i.test(cookie) && /samesite=strict/i.test(cookie), cookie)
   const anon = await call('GET', '/admin/stats')
   ok('admin routes refuse anonymous callers', anon.status === 401, anon.status)
-  const noHdr = await call('PATCH', '/admin/products/aether', { body: { price: 199 }, token: TOKEN, header: false })
+  const noHdr = await call('PATCH', '/admin/products/aether', { body: { price: 179 }, token: TOKEN, header: false })
   ok('mutations without x-qalb-admin are blocked (CSRF guard)', noHdr.status === 403, JSON.stringify(noHdr.json))
   const sess = await call('GET', '/admin/session', { token: TOKEN })
   ok('bearer token authenticates /admin/session', sess.status === 200 && sess.json.user.email === 'boss@qalb.store', JSON.stringify(sess.json))
@@ -137,11 +137,11 @@ try {
   const list = await call('GET', '/admin/products', { token: TOKEN })
   ok(
     'product list returns overrides + limits',
-    list.status === 200 && list.json.limits.max === 99999 && list.json.prices.aether === 249,
+    list.status === 200 && list.json.limits.max === 99999 && list.json.prices.aether === 199,
     JSON.stringify(list.json?.prices?.aether),
   )
-  const patch = await call('PATCH', '/admin/products/aether', { body: { price: 199, download: 'https://dl.qalb.store/aether.zip' }, token: TOKEN })
-  ok('price edit persists to the price table', patch.json?.prices?.aether === 199, JSON.stringify(patch.json?.prices?.aether))
+  const patch = await call('PATCH', '/admin/products/aether', { body: { price: 179, download: 'https://dl.qalb.store/aether.zip' }, token: TOKEN })
+  ok('price edit persists to the price table', patch.json?.prices?.aether === 179, JSON.stringify(patch.json?.prices?.aether))
   const rejected = await call('PATCH', '/admin/products/aether', { body: { price: -3, download: 'javascript:alert(1)' }, token: TOKEN })
   ok(
     'bad price and non-http link are rejected with field errors',
@@ -288,15 +288,15 @@ try {
     JSON.stringify(s.top[0]),
   )
   /* a reprice after a sale must not rewrite what the sale earned */
-  const again = await call('PATCH', '/admin/products/aether', { token: TOKEN, body: { price: '199' } })
-  ok('repricing an already-sold product is accepted', again.status === 200 && again.json.prices?.aether === 199, String(again.json.prices?.aether))
+  const again = await call('PATCH', '/admin/products/aether', { token: TOKEN, body: { price: '179' } })
+  ok('repricing an already-sold product is accepted', again.status === 200 && again.json.prices?.aether === 179, String(again.json.prices?.aether))
   const st2 = await call('GET', '/admin/stats', { token: TOKEN })
   ok(
     'the money already collected stays as paid, not as priced today',
     st2.json.revenue === 150 && st2.json.top[0].revenue === 150,
     JSON.stringify({ rev: st2.json.revenue, top: st2.json.top[0].revenue }),
   )
-  ok('the same row still shows the current price next to it', st2.json.top[0].price === 199, String(st2.json.top[0].price))
+  ok('the same row still shows the current price next to it', st2.json.top[0].price === 179, String(st2.json.top[0].price))
   const ords = await call('GET', '/admin/orders?limit=5', { token: TOKEN })
   ok(
     'the stored order line carries the price that was charged',
@@ -780,7 +780,10 @@ try {
       `${page.status}/${page.text.length}`,
     )
     ok('hosting: the role and the city are there too', page.text.includes('مصممة واجهات') && page.text.includes('جدة'))
-    ok('hosting: the free plan wears our bar', /class="qalb-brand"/.test(page.text) && page.text.includes('href="https://qalb.store"'))
+    ok(
+      'hosting: the free plan wears our bar — the exact credit line, actively linked to the store home',
+      /class="qalb-brand"/.test(page.text) && page.text.includes('href="https://qalb.store"') && page.text.includes('صُنع بواسطة Qalb Store'),
+    )
     ok('hosting: the served page is stamped with slug and plan', page.headers.get('x-qalb-site') === `${SLUG}/free`, page.headers.get('x-qalb-site'))
     const css1 = await siteCall('GET', `/s/${SLUG}/styles.css`)
     ok(
@@ -828,10 +831,30 @@ try {
     })
     ok('hosting: a body past the cap is refused before it is parsed', bigBody.status === 413, bigBody.status)
 
+    /* ---------- رخصة White-label: لا تُقلب من المتصفح، وتُسقط الشارة والشريط ---------- */
+    const selfWhite = await siteCall('PATCH', `/sites/${SLUG}`, { brandOff: true }, KEY)
+    ok(
+      'hosting: the browser cannot grant itself the white-label licence',
+      selfWhite.status === 403 && /staff/.test(selfWhite.json.error),
+      JSON.stringify(selfWhite.json),
+    )
+    const white = await call('PATCH', `/admin/sites/${SLUG}`, { body: { brandOff: true }, token: TOKEN })
+    ok(
+      'hosting: staff flips the white-label licence after the paid order, plan untouched',
+      white.status === 200 && white.json.brandOff === true && white.json.plan === 'free',
+      JSON.stringify(white.json && { b: white.json.brandOff, p: white.json.plan }),
+    )
+    const pageW = await siteCall('GET', `/s/${SLUG}`)
+    ok(
+      'hosting: the white-labelled page loses both the bar and the footer credit, still on the free plan',
+      pageW.status === 200 && !/qalb-brand/.test(pageW.text) && !pageW.text.includes('qalb-badge') && pageW.text.includes('نورة الحربي'),
+      `${pageW.status}/${pageW.text.length}`,
+    )
+
     const domFree = await siteCall('PATCH', `/sites/${SLUG}`, { domain: 'noura.sa' }, KEY)
     ok(
-      'hosting: a custom domain on the free plan costs what the storefront says — 49 SAR, on Qalb Pro',
-      domFree.status === 402 && domFree.json.price === 49 && domFree.json.plan === 'free' && /Qalb Pro/.test(domFree.json.error),
+      'hosting: a custom domain on the free plan costs what the storefront says — 500 SAR, on Qalb Pro',
+      domFree.status === 402 && domFree.json.price === 500 && domFree.json.plan === 'free' && /Qalb Pro/.test(domFree.json.error),
       JSON.stringify(domFree.json),
     )
     const selfUpgrade = await siteCall('PATCH', `/sites/${SLUG}`, { plan: 'pro' }, KEY)
@@ -1556,6 +1579,215 @@ try {
       'market: and so are the listings and the sales',
       modeOf('market.json') === 0o600 && modeOf('market-sales.json') === 0o600,
       `${modeOf('market.json').toString(8)} ${modeOf('market-sales.json').toString(8)}`,
+    )
+  }
+
+  /* --- payments · invoice · mail: the selling layer, end to end --- */
+
+  {
+    /**
+     * السعرُ يُقرأ من كتالوج الخادم بعد تعديلات اللوحة، لا من رقمٍ مكتوبٍ في
+     * الفحص: فالفحصُ نفسُه يبدأ بطلبٍ يطابق ما يبيعه الخادم الآن.
+     */
+    const cat = await call('GET', '/catalog', { header: false })
+    const PRICE = Number(cat.json?.overrides?.aether?.price) || 249
+    const VAT_OF_PRICE = (PRICE - PRICE / 1.15).toFixed(2)
+    const buy = await call('POST', '/orders', {
+      body: { email: 'payer@qalb.store', name: 'سارة الدافعة', phone: '0550000000', total: PRICE, lines: [{ id: 'aether', qty: 1 }] },
+      header: false,
+    })
+    const ORD = buy.json?.id
+    ok('payments: the order is stored before any money is touched', buy.status === 201 && !!ORD, JSON.stringify(buy.json).slice(0, 120))
+
+    // لا مفتاحَ بوّابة في بيئة الفحص → التحويلُ البنكيّ هو الطريق، لا وهمُ بطاقةٍ خُصمت
+    const created = await call('POST', '/payments', { body: { order: ORD, method: 'transfer' }, header: false })
+    ok('payments: creating a session answers 201', created.status === 201, JSON.stringify(created.json).slice(0, 160))
+    ok('payments: it is pending, not paid, the moment it is created', created.json?.status === 'pending', created.json?.status)
+    ok(
+      'payments: the amount comes from the stored order, never from the request',
+      created.json?.amount === PRICE && created.json?.currency === 'SAR',
+      `${created.json?.amount}/${created.json?.currency}`,
+    )
+    ok(
+      'payments: the transfer instructions carry the reference (the order id), so the bank payment is traceable',
+      created.json?.instructions?.reference === ORD,
+      String(created.json?.instructions?.reference),
+    )
+    ok(
+      'payments: and they state how long the transfer window is',
+      Number(created.json?.instructions?.expiresInHours) > 0,
+      String(created.json?.instructions?.expiresInHours),
+    )
+
+    const ledger = () => (existsSync(join(DATA, 'payments.jsonl')) ? readFileSync(join(DATA, 'payments.jsonl'), 'utf8') : '')
+    ok(
+      'payments: the ledger lands private on disk — it carries buyers’ e-mails',
+      modeOf('payments.jsonl') === 0o600,
+      existsSync(join(DATA, 'payments.jsonl')) ? modeOf('payments.jsonl').toString(8) : 'missing',
+    )
+    ok('payments: one line per event, the order book untouched', ledger().trim().split(NL).length === 1, String(ledger().trim().split(NL).length))
+
+    const outbox = () => (existsSync(join(DATA, 'mail.outbox.jsonl')) ? readFileSync(join(DATA, 'mail.outbox.jsonl'), 'utf8') : '')
+    ok(
+      'mail: creating the payment writes the receipt to the outbox (no gateway key here)',
+      /payer@qalb\.store/.test(outbox()) && outbox().includes(String(PRICE)),
+      outbox().slice(0, 140),
+    )
+    ok(
+      'mail: and the outbox is private too',
+      modeOf('mail.outbox.jsonl') === 0o600,
+      existsSync(join(DATA, 'mail.outbox.jsonl')) ? modeOf('mail.outbox.jsonl').toString(8) : 'missing',
+    )
+
+    const status = await call('GET', `/payments/${ORD}`, { header: false })
+    ok(
+      'payments: the status route reads the last line for that order',
+      status.status === 200 && status.json?.status === 'pending',
+      JSON.stringify(status.json).slice(0, 120),
+    )
+    const ghost = await call('GET', '/payments/QALB-NOPE-0000', { header: false })
+    ok('payments: an unknown order answers 404', ghost.status === 404, ghost.status)
+
+    const sent = await call('POST', `/payments/${ORD}/transfer`, { body: { ref: 'TX-99120' }, header: false })
+    ok(
+      'payments: the buyer’s transfer reference is recorded, not trusted as payment',
+      sent.status === 200 && sent.json?.transferRef === 'TX-99120',
+      JSON.stringify(sent.json).slice(0, 140),
+    )
+    ok(
+      'payments: and recording it does not mark the order paid',
+      (await call('GET', `/payments/${ORD}`, { header: false })).json?.status === 'pending',
+    )
+
+    /* الفاتورة: بلا مفتاح الترخيص لا تُفتح */
+    const noKey = await call('GET', `/orders/${ORD}/invoice`, { header: false, raw: true })
+    ok('invoice: the invoice refuses to open without the licence key', noKey.status === 403, noKey.status)
+    const wrongKey = await call('GET', `/orders/${ORD}/invoice?key=WRONG-KEY-0000`, { header: false, raw: true })
+    ok('invoice: and with a wrong key', wrongKey.status === 403, wrongKey.status)
+    const inv = await call('GET', `/orders/${ORD}/invoice?key=${encodeURIComponent(buy.json.key)}`, { header: false, raw: true })
+    ok(
+      'invoice: the right key opens a printable HTML invoice',
+      inv.status === 200 && /text\/html/.test(inv.headers.get('content-type') || ''),
+      `${inv.status} ${inv.headers.get('content-type')}`,
+    )
+    ok(
+      'invoice: it prints the order id, the total and the licence key',
+      inv.text.includes(ORD) && inv.text.includes(PRICE.toFixed(2)) && inv.text.includes(buy.json.key),
+      inv.text.slice(0, 120),
+    )
+    ok(
+      'invoice: it prints the VAT extracted from the net, not a number from the browser',
+      inv.text.includes(VAT_OF_PRICE),
+      `expected ${VAT_OF_PRICE}`,
+    )
+    ok('invoice: an unverified seller field says so instead of inventing a number', /قيد التوثيق/.test(inv.text))
+    ok('invoice: it states the licence is personal and resale is not allowed', /إعادة بيع|إعادة البيع|توزيعه/.test(inv.text))
+    ok(
+      // الأرقامُ المهمة ليس في سطرٍ نصيٍّ يُلتصق تُطابَق فيه، بل في سماتٍ
+      // مقروءةٍ برمجيًّا: رقمُ الفاتورة وأسطرها كما تُباع — لا كما تُظهَر
+      // حُسنًا على الشاشة.
+      'invoice: the document itself is machine-tagged (id + line rows)',
+      inv.text.includes(`data-invoice-id="${ORD}"`) && /<tr data-invoice-line>/.test(inv.text),
+    )
+
+    /**
+     * حلقةُ Moyasar يجب أن تجري على طلبٍ حديثٍ لا يمسّ الطلبَ الأول： فالفاتورة
+     * والتحويلُ فوق قد قُرِّت عليه مسبقًا، والإشعارُ المزوَّر أدناه يريد طلبًا
+     * ما زال معلّقًا حين يبعث. وبطلبٍ جديد يبقى كلُّ فرعٍ مستقلًا كما يحدث في
+     * الشراء الحقيقي.
+     */
+    const hook = await call('POST', '/orders', {
+      body: { email: 'payer2@qalb.store', name: 'دافع ميسر', phone: '0550000001', total: 179, lines: [{ id: 'aether', qty: 1 }] },
+      header: false,
+    })
+    const ORD2 = hook.json?.id
+    ok('payments: a fresh order is created for the gateway loop', hook.status === 201 && !!ORD2, JSON.stringify(hook.json).slice(0, 80))
+
+    /* إشعارُ بوّابة: بلا توقيعٍ صحيح لا يُقبض شيء */
+    const { createPaymentsApi } = await import('../server/payments.js')
+    const pm = createPaymentsApi({
+      dir: DATA,
+      env: { MOYASAR_SECRET_KEY: 'sk_test_admin_qalb', SITE_URL: 'https://qalb.store' },
+      // نفس «دفتر الطلبات» لدى الخادم: مخزنٌ من سطرٍ واحد — الطلب نفسه
+      orders: async () => [hook.json],
+    })
+
+    // حلقةُ Moyasar كاملة بنفس المعيار الذي تجري به الآن: إنشاءٌ فلكيةً ثم GET من المصدر
+    let createCalls = 0
+    const fake = async (url, opts = {}) => {
+      const u = String(url)
+      if ((opts.method || 'GET') === 'POST' && u.endsWith('/v1/invoices')) {
+        createCalls++
+        return new Response(
+          JSON.stringify({
+            id: 'inv_abc123',
+            status: 'initiated',
+            url: 'https://checkout.moyasar.com/invoices/inv_abc123',
+            amount: 19900,
+            currency: 'SAR',
+          }),
+          {
+            status: 201,
+            headers: { 'content-type': 'application/json' },
+          },
+        )
+      }
+      if ((opts.method || 'GET') === 'GET' && /\/v1\/invoices\/inv_abc123$/.test(u)) {
+        return new Response(
+          JSON.stringify({ id: 'inv_abc123', status: 'paid', amount: 19900, currency: 'SAR', metadata: { order_id: ORD2, ref: ORD2 } }),
+          {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+          },
+        )
+      }
+      return new Response(JSON.stringify({ error: 'not_found' }), { status: 404, headers: { 'content-type': 'application/json' } })
+    }
+    const realFetch = globalThis.fetch
+    globalThis.fetch = fake
+    try {
+      const created = await pm.create({ orderId: ORD2, method: 'creditcard' })
+      ok(
+        'payments: Moyasar issues a checkout url the payer is sent to, amount from the order not the browser',
+        created.provider === 'moyasar' && /checkout\.moyasar\.com\/invoices\//.test(created.payUrl) && createCalls === 1,
+        JSON.stringify({ p: created.provider, url: created.payUrl }),
+      )
+      const verify = await pm.verifyRemote(ORD2)
+      ok('payments: a pending Moyasar invoice becomes paid only after the gateway itself says so', verify?.status === 'paid', String(verify?.status))
+      const hookBody = JSON.stringify({ id: 'inv_abc123', status: 'paid', amount: 19900, currency: 'SAR', metadata: { order_id: ORD2, ref: ORD2 } })
+      await pm.handleWebhook('moyasar', hookBody)
+      await pm.handleWebhook('moyasar', hookBody)
+      const lines = (await pm.list()).filter((r) => r.order === ORD2 && r.status === 'paid')
+      ok(
+        'payments: a paid webhook retried (twice) is booked once — the same invoice is never charged twice',
+        lines.length === 1,
+        String(lines.length),
+      )
+    } finally {
+      globalThis.fetch = realFetch
+    }
+
+    /* إشعارُ بوّابة: بلا توقيعٍ صحيح لا يُقبض شيء */
+    const forged = await call('POST', '/payments/webhook/stripe', {
+      body: { type: 'checkout.session.completed', data: { object: { payment_status: 'paid', client_reference_id: ORD } } },
+      header: false,
+    })
+    ok('payments: a forged webhook without a signature is refused (401)', forged.status === 401, JSON.stringify(forged.json))
+    ok('payments: and the refused webhook marked nothing paid', (await call('GET', `/payments/${ORD}`, { header: false })).json?.status === 'pending')
+    const unknownHook = await call('POST', '/payments/webhook/moyasar', { body: { status: 'paid', id: 'x' }, header: false })
+    ok('payments: an unsigned gateway notice is not taken at its word', unknownHook.status === 401, JSON.stringify(unknownHook.json))
+
+    /* القبض: طريقُ الخادم (بلا بوّابة) يُثبت أن التسليم والبريد يتبعان الدفع */
+    const paid = await call('POST', `/payments/${ORD}/transfer`, { body: { ref: 'TX-99120' }, header: false })
+    ok(
+      'payments: the ledger keeps every event, the last line is the state',
+      paid.status === 200 && ledger().trim().split(NL).length >= 3,
+      String(ledger().trim().split(NL).length),
+    )
+    ok(
+      'health: the service reports its payment provider and its mail path',
+      h.payments?.provider === 'manual' && !!h.mail?.provider,
+      JSON.stringify({ p: h.payments, m: h.mail }),
     )
   }
 

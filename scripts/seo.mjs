@@ -65,6 +65,8 @@ const urls = [
   // نموذج الربح: الخطط الموحّدة والسوق عامة؛ `/account` و`/sell` خاصّتان (noindex)،
   // و`/create` مؤجَّلٌ في v1.8.0 فليس في الخريطة
   { loc: '/pricing', pri: '0.9', freq: 'weekly' },
+  // النمو: صفحة القالب المجاني — صفحة هبوط لها زوّارها من البحث، فتُفهرس
+  { loc: '/free', pri: '0.7', freq: 'monthly' },
   { loc: '/creators', pri: '0.8', freq: 'daily' },
   { loc: '/services', pri: '0.8', freq: 'monthly' },
   { loc: '/offers', pri: '0.8', freq: 'weekly' },

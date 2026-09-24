@@ -15,6 +15,11 @@
  *   GET  /catalog          → استثناءات الكتالوج التي تكتبها لوحة الإدارة
  *   GET  /download/:id?order=…&key=…  → رابط تسليم محمي لكل مشتري (server/deliver.js)
  *   GET  /dl/<token>       → الحزمة نفسها: qalb-<id>-<order>.zip، مرة واحدة وصالحة 10 دقائق
+ *   POST /payments         → جلسةُ دفعٍ لطلبٍ مخزَّن (server/payments.js): بوّابةٌ أو تحويل
+ *   GET  /payments/:order  → حالةُ الدفع، مع سؤالِ البوّابةِ نفسها إن كانت معلّقة
+ *   POST /payments/:order/transfer → إبلاغُ المشتري بتحويلٍ أرسله (مرجعُ التحويل)
+ *   POST /payments/webhook/:provider → إشعارُ بوّابة: توقيعٌ أو سؤالُ المصدر قبل القبض
+ *   GET  /orders/:id/invoice?key=…   → فاتورةٌ ضريبيةٌ مطبوعة، لا تُفتح بلا مفتاح الترخيص
  *   /admin/*               → لوحة الإدارة (انظر server/admin.js وserver/README.md)
  *
  * التخزين: إن ضبطتَ SUPABASE_URL + SUPABASE_SERVICE_KEY يُرسَل الطلب إلى
@@ -44,6 +49,10 @@ import { createOrgsApi } from './orgs.js'
 import { createMarketApi } from './market.js'
 import { VAT as VAT_RATE } from '../src/data/tax.js'
 import { sanitizePersonal } from '../src/data/deliverable.js'
+import { createPaymentsApi } from './payments.js'
+import { createMailApi } from './mail.js'
+import { invoiceHtml, receiptMail } from './invoice.js'
+import { createSubscribersApi } from './subscribers.js'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 loadDotEnv(ROOT) // PORT / SUPABASE_* من .env إن وُجد — node لا يقرأه وحده
@@ -74,6 +83,13 @@ const send = (res, code, body) => {
   res.end(JSON.stringify(body))
 }
 const now = () => new Date().toISOString().slice(0, 10)
+/** نصّ الطلب كاملًا (الإشعارات تُوقَّع على النصّ الخام لا على ما ينتجه JSON.parse) */
+const readBody = (req) =>
+  new Promise((r) => {
+    let b = ''
+    req.on('data', (c) => (b += c))
+    req.on('end', () => r(b))
+  })
 const rand = (n) => Array.from({ length: n }, () => Math.random().toString(36).slice(2, 6).toUpperCase()).join('-')
 const rid = () => `QALB-${rand(1)}-${Date.now().toString(36).slice(-4).toUpperCase()}`
 
@@ -181,6 +197,9 @@ function recompute(body, extra = {}) {
       .toUpperCase()
     const known = code ? coupons[code] : null
     if (code && !known) throw new Error(`unknown coupon: ${code}`)
+    // رمزٌ منتهٍ لا يُختم على الطلب: للخصم أجلٌ مكتوبٌ في جدوله (src/data/templates.js)
+    // يعرضه المتجر للزائر، فدفترُ الطلبات لا يسجّل خصمًا لم يعد قائمًا لحظة الشراء.
+    if (known && known.endsAt && now() > known.endsAt) throw new Error(`expired coupon: ${code}`)
     pct = known ? known.pct : 0
     label = pct ? `${code} ${pct}%` : body.coupon || null
   }
@@ -229,6 +248,40 @@ const leads = createLeadsApi({ dir: DATA, env: process.env, admin })
 // الحسابات وسوق المصممين: الفحص يُعاد تشغيله هنا من src/data/inspect.js، والخطة
 // لا تُرقّى من المتصفح — انظر server/market.js
 const market = createMarketApi({ dir: DATA, env: process.env, admin })
+
+/** البريد الخارج: بوّابةٌ إن وُجد مفتاح، وصندوقُ صادرٍ على القرص إن لم يوجد */
+const mail = createMailApi({ dir: DATA, env: process.env })
+
+/**
+ * رابطُ الطلب الذي يُرسل في البريد: صفحةُ الإيصال نفسها فيها روابطُ التحميل،
+ * فلا نبعثُ روابطَ موقّعةً تنتهي صلاحيتُها قبل أن يفتح المشتري بريده.
+ */
+const SITE = (process.env.SITE_URL || process.env.VITE_SITE_URL || 'http://localhost:5173').replace(/\/+$/, '')
+const API_PUBLIC = (process.env.QALB_API_PUBLIC || process.env.VITE_QALB_API_BASE || `http://localhost:${PORT}`).replace(/\/+$/, '')
+
+/**
+ * النشرة والقالب المجاني: بريدُ الزائر مقابل ملفٍ يُسلَّم. الطلبُ الصفريّ يُبنى
+ * من `makeOrder` نفسها — الطريقُ الوحيد الذي يكتب دفترَ الطلبات — فلا يمرّ
+ * مجانيٌّ من بابٍ غير بابِ الشراء.
+ */
+const subs = createSubscribersApi({ dir: DATA, env: process.env, orders: load, makeOrder, apiPublic: API_PUBLIC })
+const orderUrl = (order) => `${SITE}/order?id=${encodeURIComponent(order.id)}`
+const invoiceUrl = (order) => `${API_PUBLIC}/orders/${encodeURIComponent(order.id)}/invoice?key=${encodeURIComponent(order.key || '')}`
+
+/**
+ * المدفوعات. دفترُها مستقلٌّ عن دفتر الطلبات (سطرٌ جديدٌ لكلّ تغيير حالة)،
+ * والقبضُ يمرّ من البوّابة نفسها لا من إشعارٍ بلا مصدر. بعدَ الدفع: بريدُ
+ * إيصالٍ فيه الفاتورةُ وروابطُ التسليم — وخطؤه لا يُلغي سطرَ دفعٍ صحيح.
+ */
+const payments = createPaymentsApi({
+  dir: DATA,
+  env: process.env,
+  orders: load,
+  onPaid: async (order, payment) => {
+    const { subject, text, html } = receiptMail(order, { lang: 'ar', payment, downloadUrl: orderUrl(order), invoiceUrl: invoiceUrl(order) })
+    await mail.send({ to: order.email, subject, text, html })
+  },
+})
 
 const deliver = createDeliverApi({
   dir: DATA,
@@ -281,6 +334,9 @@ const server = createServer(async (req, res) => {
       orgs: orgs.enabled() ? orgs.stats() : false,
       leads: leads.enabled() ? leads.stats() : false,
       market: market.enabled() ? market.stats() : false,
+      payments: payments.stats(),
+      mail: mail.stats(),
+      subscribers: subs.stats(),
     })
 
   // طبقة الاستضافة خارج try/catch الأسفل: لو أخطأت هي فلا تُسقط المتجر كلّه
@@ -293,6 +349,7 @@ const server = createServer(async (req, res) => {
   if (await orgs.handle(req, res, u)) return // مقاعد المؤسسات — قبل اللوحة: /admin/orgs ملك هذه الطبقة
   if (await leads.handle(req, res, u)) return // طلبات الجهات — انظر server/leads.js
   if (await market.handle(req, res, u)) return // الحسابات والسوق — قبل اللوحة: /admin/market ملك هذه الطبقة
+  if (await subs.handle(req, res, u)) return // النشرة والقالب المجاني — انظر server/subscribers.js
   if (await admin.handle(req, res, u)) return
   if (await deliver.handle(req, res, u)) return // التسليم المحمي — انظر server/deliver.js
 
@@ -315,6 +372,55 @@ const server = createServer(async (req, res) => {
       }
 
       return send(res, 201, await makeOrder(body, { idempotency: idem || null }))
+    }
+
+    /* ——— الفاتورة: قبل مسار /orders/:id، لأنه يقرأ آخرَ مقطعٍ معرّفًا ——— */
+    if (req.method === 'GET' && /^\/orders\/[^/]+\/invoice$/.test(u.pathname)) {
+      const id = decodeURIComponent(u.pathname.split('/')[2])
+      const hit = (await load()).find((o) => o.id === id)
+      // مفتاحُ الترخيص شرطٌ: فاتورةٌ فيها اسمُ المشتري وبريده لا تُفتح برقم الطلب وحده
+      if (!hit) return send(res, 404, { error: 'not found' })
+      if (String(u.searchParams.get('key') || '').toUpperCase() !== String(hit.key || '').toUpperCase())
+        return send(res, 403, { error: 'licence key required' })
+      const payment = await payments.statusOf(id)
+      res.setHeader('access-control-allow-origin', '*')
+      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' })
+      return res.end(invoiceHtml(hit, { env: process.env, lang: u.searchParams.get('lang') === 'en' ? 'en' : 'ar', payment, siteUrl: SITE }))
+    }
+
+    /* ——— المدفوعات: إنشاءُ جلسة، وحالة، وإبلاغُ تحويل، وإشعارُ بوّابة ——— */
+    if (req.method === 'POST' && u.pathname === '/payments') {
+      const body = JSON.parse((await readBody(req)) || '{}')
+      const rec = await payments.create({ orderId: String(body.order || '').trim(), method: body.method || null })
+      // بريدٌ فوريٌّ بتعليمات الدفع قبل أن يغلق المشتري التبويب
+      const order = (await load()).find((o) => o.id === rec.order)
+      if (order && rec.status !== 'paid') {
+        const m = receiptMail(order, { lang: 'ar', payment: rec, downloadUrl: orderUrl(order), invoiceUrl: invoiceUrl(order) })
+        await mail.send({ to: order.email, subject: m.subject, text: m.text, html: m.html })
+      }
+      return send(res, 201, rec)
+    }
+
+    if (req.method === 'POST' && /^\/payments\/[^/]+\/transfer$/.test(u.pathname)) {
+      const id = decodeURIComponent(u.pathname.split('/')[2])
+      const body = JSON.parse((await readBody(req)) || '{}')
+      return send(res, 200, await payments.noteTransfer(id, body.ref))
+    }
+
+    if (req.method === 'POST' && /^\/payments\/webhook\/[^/]+$/.test(u.pathname)) {
+      const which = u.pathname.split('/').pop().toLowerCase()
+      const raw = await readBody(req) // النصّ الخام: توقيعُ Stripe يُحسَب على البايتات لا على JSON
+      const r = await payments.handleWebhook(which, raw, req.headers)
+      return send(res, r.ok ? 200 : 401, r)
+    }
+
+    if (req.method === 'GET' && u.pathname.startsWith('/payments/')) {
+      const id = decodeURIComponent(u.pathname.split('/').pop())
+      const cur = await payments.statusOf(id)
+      if (!cur) return send(res, 404, { error: 'no payment for this order' })
+      // حالةٌ معلّقة مع بوّابة: يُسأل المصدرُ نفسُه، فلا نقول «مدفوع» من دفترنا وحده
+      const fresh = cur.status === 'paid' ? cur : await payments.verifyRemote(id)
+      return send(res, 200, fresh || cur)
     }
 
     if (req.method === 'GET' && u.pathname.startsWith('/orders/')) {

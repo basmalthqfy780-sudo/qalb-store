@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useI18n } from '../i18n'
+import { subscribe, apiMode } from '../api'
 import { categories } from '../data/templates'
 import { SOCIAL, SUPPORT_MAIL } from '../data/contact'
 import { COMPANY, VAT_RATE, isSet } from '../data/company'
@@ -16,6 +17,7 @@ export default function Footer() {
       head: t('footer.shop'),
       links: [
         { to: '/templates', label: t('footer.allTemplates') },
+        { to: '/free', label: t('footer.free') },
         { to: '/services', label: t('nav.services') },
         { to: '/offers', label: t('nav.offers') },
         { to: '/host', label: t('nav.host') },
@@ -194,17 +196,27 @@ const OK_MAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
  * visitor gets a prefilled e-mail that really reaches the studio.
  */
 function Newsletter() {
-  const { t } = useI18n()
+  const { t, lang } = useI18n()
   const [saved, setSaved] = useState('')
+  const [onServer, setOnServer] = useState(false)
   const [mail, setMail] = useState('')
   const [err, setErr] = useState(false)
 
-  function ask(e) {
+  async function ask(e) {
     e.preventDefault()
     const who = mail.trim().toLowerCase()
     if (!OK_MAIL.test(who)) {
       setErr(true)
       return
+    }
+    /**
+     * بخادمٍ موصول يُكتب البريد في دفتر المشتركين على الخادم (مرةً واحدة،
+     * ومكرَّرٌ لا يُعاد)؛ وبلا خادم يبقى على الجهاز كما كان — وفي الحالتين
+     * يظلّ زرُّ البريد يعمل، فالوعدُ لا يتعلّق بمكان الحفظ.
+     */
+    if (apiMode === 'rest') {
+      const r = await subscribe(who, { source: 'newsletter', locale: lang })
+      setOnServer(!!r?.ok)
     }
     try {
       const all = JSON.parse(localStorage.getItem(LIST) || '[]')
@@ -226,9 +238,9 @@ function Newsletter() {
             className="flex items-center gap-2 rounded-xl border border-brand/30 bg-brand/10 px-3 py-2.5 text-[13px] font-bold text-brand"
           >
             <Icon n="check" className="size-4" sw={2.4} />
-            {t('footer.subscribed')}
+            {onServer ? t('footer.subscribedServer') : t('footer.subscribed')}
           </p>
-          <p className="mt-2 text-[11.5px] leading-relaxed text-dim">{t('footer.newsletterNote')}</p>
+          <p className="mt-2 text-[11.5px] leading-relaxed text-dim">{onServer ? t('footer.newsletterServerNote') : t('footer.newsletterNote')}</p>
           <Btn
             size="sm"
             variant="outline"

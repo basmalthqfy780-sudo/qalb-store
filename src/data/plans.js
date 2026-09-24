@@ -6,9 +6,9 @@
  * ثلاثُ درجاتٍ متتالية، كلٌّ منها تفتح ما فوقها ولا تُغلق ما تحته.
  *
  *   • مجانية ‎0‎ — قالبٌ واحدٌ للتجربة، معاينةٌ حيّة، وتصدير PDF بعلامة مائية.
- *   • Qalb Plus ‎19‎ شهريًا / ‎149‎ سنويًا — ثلاثةُ قوالب، نشرٌ على رابط فرعي،
+ *   • Qalb Plus ‎300‎ شهريًا / ‎3000‎ سنويًا — ثلاثةُ قوالب، نشرٌ على رابط فرعي،
  *     PDF نظيف، بلا شعار المنصة، وأداة المطابقة.
- *   • Qalb Pro ‎49‎ شهريًا / ‎349‎ سنويًا — كلُّ القوالب بلا سقف، نطاقٌ خاص،
+ *   • Qalb Pro ‎500‎ شهريًا / ‎5000‎ سنويًا — كلُّ القوالب بلا سقف، نطاقٌ خاص،
  *     تصديرُ ملفات المصدر، وأولويةُ الدعم.
  *
  * ثلاثةُ مبادئَ تحكم هذا الملف، وهي نفسها التي تحكم بقية المستودع:
@@ -36,7 +36,7 @@ export { VAT }
  * `entitlements()` وفي الواجهة («قوالب غير محدودة» بدل رقم).
  *
  * المدى السعري المعلَن (مكتوب هنا لا في الذاكرة، فتُراجع الأرقام أمامه):
- * الدرجة الفردية ‎19‎، والاحترافية ‎49‎، وسنةُ الأولى ‎149‎ وسنةُ الثانية ‎349‎.
+ * الدرجة الفردية ‎300‎، والاحترافية ‎500‎، وسنةُ الأولى ‎3000‎ وسنةُ الثانية ‎5000‎.
  * ولا شيء فوق ‎49‎ في الاشتراك: ما فوقها خدماتٌ تُشترى مرةً واحدة من جدول
  * src/data/upsells.js لا درجاتٌ في الاشتراك.
  */
@@ -52,6 +52,8 @@ export const PLANS = [
     watermark: true,
     publish: false,
     exportSite: false,
+    /** تصديرُ ملفات المصدر شهريًا: صفرٌ لمن لا يملك الميزة أصلًا */
+    sourceExports: 0,
     badge: true,
     domain: false,
     sell: false,
@@ -71,13 +73,15 @@ export const PLANS = [
   {
     id: 'plus',
     order: 1,
-    price: 19, // الدرجة الفردية المعلنة
+    price: 300, // الدرجة الفردية المعلنة
     period: 'month',
-    yearly: 149, // سنةٌ بسعر نحو ثمانية أشهر
+    yearly: 3000, // سنةٌ بسعر عشرة أشهر (١٠ × ٣٠٠)، لا اثني عشر شهرًا منفردة
     templates: 3,
     watermark: false,
     publish: true,
     exportSite: false,
+    /** Plus لا تفتح ملفات المصدر أصلًا — فالسقفُ صفر، لا «بلا سقف» */
+    sourceExports: 0,
     badge: false,
     domain: false,
     sell: false,
@@ -107,13 +111,19 @@ export const PLANS = [
   {
     id: 'pro',
     order: 2,
-    price: 49, // الدرجة الاحترافية المعلنة
+    price: 500, // الدرجة الاحترافية المعلنة
     period: 'month',
-    yearly: 349, // سنةٌ بسعر نحو سبعة أشهر
+    yearly: 5000, // سنةٌ بسعر عشرة أشهر (١٠ × ٥٠٠)، لا اثني عشر شهرًا منفردة
     templates: null, // بلا سقف
     watermark: false,
     publish: true,
     exportSite: true,
+    /**
+     * ملفاتُ المصدر مفتوحةٌ في Pro لكن بسقفٍ شهريٍّ معلن: **ثلاثةُ قوالب في
+     * الشهر**. القالبُ نفسُه لا يُحصى مرتين داخل شهره، والعدّادُ في
+     * src/data/quota.js يقرأ هذا الرقم من هنا — فلا رقمَ مكتوبٌ مرتين.
+     */
+    sourceExports: 3,
     badge: false,
     domain: true,
     sell: true,
@@ -129,13 +139,15 @@ export const PLANS = [
       ar: [
         'استخدام واستعراض جميع القوالب بلا حدود.',
         'ربط نطاق خاص مخصص (Custom Domain).',
-        'تصدير كافة ملفات المصدر بالكامل.',
+        'تصدير ملفات المصدر — حتى ثلاثة قوالب كل شهر.',
+        'إزالة «صُنع بواسطة Qalb Store» تلقائيًا — White-label بلا رسومٍ إضافية.',
         'أولوية الدعم الفني وتحديثات مستمرة.',
       ],
       en: [
         'Every template, used and browsed with no ceiling.',
         'A custom domain of your own (Custom Domain).',
-        'An export of all the source files, complete.',
+        'Source-file export — up to three templates every month.',
+        '“Made with Qalb Store” removed automatically — White-label at no extra cost.',
         'Priority support and continuous updates.',
       ],
     },
@@ -235,8 +247,12 @@ export const FEATURE_MATRIX = [
     id: 'export',
     label: { ar: 'تصدير ملفات الموقع', en: 'Site-file export' },
     free: { state: 'no' },
-    paid: { state: 'yes', note: { ar: 'في خطة Pro', en: 'On the Pro plan' } },
-    enforcedBy: 'src/data/plans.js:canExport',
+    // «٣ قوالب شهريًا» لا «بلا سقف»: ملفاتُ المصدر هي ما نبيعه، فتُسلَّم بسقفٍ معلن
+    paid: {
+      state: 'partial',
+      note: { ar: 'في Pro: ٣ قوالب كل شهر', en: 'On Pro: 3 templates a month' },
+    },
+    enforcedBy: 'src/data/quota.js:canExportSource',
   },
   {
     id: 'deploy',
@@ -247,9 +263,12 @@ export const FEATURE_MATRIX = [
   },
   {
     id: 'badge',
-    label: { ar: 'إزالة شعار «صُنع بقالب»', en: 'Removing the “made with Qalb” badge' },
+    label: { ar: 'إزالة سطر «صُنع بواسطة Qalb Store»', en: 'Removing the “Made with Qalb Store” line' },
     free: { state: 'no' },
-    paid: { state: 'yes', note: { ar: 'من Plus وما فوقها', en: 'From Plus upward' } },
+    paid: {
+      state: 'yes',
+      note: { ar: 'تلقائيًا في Pro (وفي Plus)، أو برخصة White-label', en: 'Automatic on Pro (and Plus), or a White-label licence' },
+    },
     enforcedBy: 'src/data/hosting.js:brandBar',
   },
   {
@@ -288,6 +307,7 @@ export function entitlements(planId) {
     watermark: p.watermark,
     publish: p.publish,
     exportSite: p.exportSite,
+    sourceExports: typeof p.sourceExports === 'number' ? p.sourceExports : 0,
     badge: p.badge,
     domain: p.domain,
     sell: p.sell,
@@ -305,6 +325,7 @@ export function rowState(rowId, planId) {
 }
 
 /** تصدير ملفات الموقع: Pro وحدها */
+/** هل تفتح الخطةُ الميزة أصلًا؟ (بلا نظرٍ إلى الحصّة — تلك في src/data/quota.js) */
 export const canExport = (planId) => !!entitlements(planId).exportSite
 /** النشر المباشر: أي خطة مدفوعة */
 export const canPublish = (planId) => !!entitlements(planId).publish

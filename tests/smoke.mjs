@@ -7,7 +7,7 @@ import { build } from 'esbuild'
 import { readFileSync, mkdirSync, readdirSync, existsSync } from 'node:fs'
 import { JSDOM, VirtualConsole } from 'jsdom'
 import { dict } from '../src/i18n/translations.js'
-import { byId, templates } from '../src/data/templates.js'
+import { byId, couponExpired, couponInfo, templates } from '../src/data/templates.js'
 import { PERSONAL_LIMITS, isProtectedDownload, kindOf, packageFiles, packageZip, sanitizePersonal, siteHtml } from '../src/data/deliverable.js'
 import {
   HOST_FIELDS,
@@ -153,9 +153,9 @@ const cases = [
       'قالب',
       'الأكثر رواجًا هذا الأسبوع',
       // v1.8.0: العنوان والزرّان كما كُتبا في الطلب — بلا وعدٍ بشراءٍ مرة واحدة
-      'أنشئ بورتفوليو وسيرة ذاتية',
-      'متطابقين في دقائق.',
-      'اختر قالبًا جاهزًا، عدّل محتواك، وانشر موقعك مع سيرة ATS جاهزة للتقديم.',
+      'بورتفوليو وسيرة ذاتية',
+      'بهوية واحدة.',
+      'اختر قالبًا، عدّل محتواك، وانشر موقعك مع سيرة ATS جاهزة.',
       'تصفح القوالب',
       'معاينة القوالب المجانية',
       // «ماذا ستحصل عليه؟» — أربعةُ مخرجاتٍ تُسلَّم فعلًا
@@ -185,8 +185,8 @@ const cases = [
     expect: [
       'Qalb',
       'Trending this week',
-      'Build a portfolio and a résumé',
-      'that match, in minutes.',
+      'A portfolio and a résumé',
+      'carrying one identity.',
       'Browse templates',
       'Preview free templates',
       'What’s included?',
@@ -242,12 +242,12 @@ const cases = [
       'single-use',
     ],
   },
-  { name: 'hosting', url: 'http://localhost/host', expect: ['قالبك يصير موقعًا', 'qalb.store', '49', 'مجانًا', 'تعديلات في الشهر', 'نسخ'] },
+  { name: 'hosting', url: 'http://localhost/host', expect: ['قالبك يصير موقعًا', 'qalb.store', '500', 'مجانًا', 'تعديلات في الشهر', 'نسخ'] },
   {
     name: 'hosting / english',
     url: 'http://localhost/host',
     lang: 'en',
-    expect: ['Your template becomes a site', 'subdomain', '49', 'free', 'edits a month'],
+    expect: ['Your template becomes a site', 'subdomain', '500', 'free', 'edits a month'],
   },
   { name: 'studio (nothing yet)', url: 'http://localhost/studio', expect: ['لا موقع على هذا المتصفح', 'أنشئ موقعي'] },
   {
@@ -341,6 +341,18 @@ const cases = [
 
   /* ---------------- نموذج الربح v1.7.0: خطط، إنشاء، حساب، سوق، بائع ---------------- */
   {
+    name: 'free template · the lead magnet',
+    url: 'http://localhost/free',
+    expect: [
+      'قالب «فوليو» كاملًا — مقابل بريدك فقط',
+      'والنشرة؟ اختيارٌ لا شرط',
+      'بلا بطاقة ائتمان، وبلا تجديد',
+      'رابطُ تنزيلٍ موقّع، صالحٌ عشر دقائق',
+    ],
+    // لا خادم في الفحص: الصفحةُ تقول ذلك بدل زرِّ تنزيلٍ يفتح على فراغ
+    absent: ['اشترك الآن بـ ٠ ريال'],
+  },
+  {
     name: 'pricing / plans and the value matrix',
     url: 'http://localhost/pricing',
     expect: [
@@ -354,7 +366,7 @@ const cases = [
       'تحميل سيرة PDF',
       'بيع القالب للآخرين',
       'عمولة المنصة من كل بيع',
-      '349',
+      '3,000',
       '499',
       'ما لا يحدث في هذه النسخة',
     ],
@@ -1061,7 +1073,8 @@ for (const c of cases) {
     )
     ok(
       'the tools badge counts the table’s own rows, never a typed number',
-      (panel?.querySelector('[data-menu-tools-count]')?.textContent || '').trim() === String(tools.length),
+      (panel?.querySelector('[data-menu-tools-count]')?.textContent || '').trim().startsWith(String(tools.length)) &&
+        /\D/.test((panel?.querySelector('[data-menu-tools-count]')?.textContent || '').trim()),
     )
     ok(
       'templates, services, hosting and support are gathered with them',
@@ -1124,10 +1137,10 @@ for (const c of cases) {
     Object.entries(upsellPriceTable())
       .map(([k, v]) => `${k}:${v}`)
       .join(',') ===
-      'cover-letter:39,cv-tailor:79,ats-review:149,deploy-setup:249,cv-write:299,brand-identity:899,ats-report:29,pro-month:49,pro-year:349,' +
+      'cover-letter:39,cv-tailor:79,ats-review:149,deploy-setup:249,cv-write:299,brand-identity:899,ats-report:29,pro-month:500,pro-year:5000,' +
         // منظومةُ التوظيف: مطابقة ٢٩ وباقة الخمسة ٧٩، ملف التقديم ٤٩، البطاقة الموثّقة ١٩،
-        // الرابط بلس ٢٩ شهريًا، إبراز الدليل ٢٩ شهريًا، استيراد LinkedIn ٣٩، إزالة الشارة ١٩
-        'match-report:29,match-5:79,kit-10:49,share-verified:19,link-plus:29,talent-spot:29,linkedin-import:39,badge-off:19',
+        // الرابط بلس ٢٩ شهريًا، إبراز الدليل ٢٩ شهريًا، استيراد LinkedIn ٣٩، رخصة White-label ‎٥٠‎ لمرة
+        'match-report:29,match-5:79,kit-10:49,share-verified:19,link-plus:29,talent-spot:29,linkedin-import:39,badge-off:50',
     Object.entries(upsellPriceTable())
       .map(([k, v]) => `${k}:${v}`)
       .join(','),
@@ -1243,12 +1256,12 @@ for (const c of cases) {
     ok('the three graded tiers are on the page', ids.join(',') === 'free,plus,pro', ids.join(','))
     const [m, y] = proPlans()
     ok(
-      'their prices are read from the one table: 0 · 19 · 49 a month',
-      TIERS.map((x) => x.price).join(',') === '0,19,49' && m.price === 49 && y.price === 349,
+      'their prices are read from the one table: 0 · 300 · 500 a month',
+      TIERS.map((x) => x.price).join(',') === '0,300,500' && m.price === 500 && y.price === 5000,
     )
     ok(
       'the monthly prices are printed, VAT included',
-      ['19', '49'].every((n) => (band?.textContent || '').includes(n)),
+      ['300', '500'].every((n) => (band?.textContent || '').includes(n)),
     )
     // المفتاح السنوي يحوّل السعر والسطر تحته معًا — محسوبين من الجدول لا مكتوبين
     const yearlyBtn = [...(band?.querySelectorAll('button') || [])].find((b) => /سنوي|Yearly/.test(b.textContent || ''))
@@ -1258,12 +1271,12 @@ for (const c of cases) {
     const after = band?.textContent || ''
     ok(
       'the yearly prices are printed after the toggle',
-      ['149', '349'].every((n) => after.includes(n)),
+      ['3,000', '5,000'].every((n) => after.includes(n)),
       after.replace(/\s+/g, ' ').slice(0, 120),
     )
     ok(
       'and the year is stated as months paid, computed from the table',
-      ['7.8', '7.1'].every((n) => after.includes(n)),
+      ['10', '10'].every((n) => after.includes(n)),
       after.replace(/\s+/g, ' ').slice(0, 160),
     )
     // الأزرار تقود إلى مكانٍ يفعل الشيء: المجانية إلى الاستضافة، والمدفوعة إلى الحساب
@@ -1989,8 +2002,8 @@ for (const c of cases) {
   )
   // شهريًا هو الافتراضيّ؛ السنويُّ خلف مفتاح الفوترة (يُفحَص في مجموعة النمو)
   ok(
-    'and it prices them from the one table: Plus 19 and Pro 49 a month',
-    ['19', '49'].every((n) => bundlesTxt.includes(n)),
+    'and it prices them from the one table: Plus 300 and Pro 500 a month',
+    ['300', '500'].every((n) => bundlesTxt.includes(n)),
     bundlesTxt.slice(0, 200),
   )
   ok('no invented bundle price is left standing in the page', !bundlesTxt.includes('999'), bundlesTxt.slice(0, 90))
@@ -2019,6 +2032,145 @@ for (const c of cases) {
   } else {
     groups++
     console.log(`✓ home · trust row · chip stacking  (${checks.length} assertions)`)
+  }
+}
+
+/* ---------------- cards: name · description · price, each on its own line ---------------- */
+{
+  const checks = []
+  const bad = []
+  const ok = (name, cond, extra = '') => {
+    checks.push(name)
+    if (!cond) bad.push(name + (extra ? ` (${extra})` : ''))
+  }
+
+  const g = await render('http://localhost/templates')
+  const cards = [...g.doc.querySelectorAll('[data-tpl-card]')]
+  ok('the catalogue renders cards', cards.length > 0, String(cards.length))
+
+  const parts = cards.map((c) => ({
+    id: c.getAttribute('data-tpl-card'),
+    name: (c.querySelector('[data-tpl-name]')?.textContent || '').trim(),
+    desc: (c.querySelector('[data-tpl-desc]')?.textContent || '').trim(),
+    price: (c.querySelector('[data-tpl-price]')?.textContent || '').trim(),
+  }))
+
+  ok(
+    'every card carries a name, a description and a price — none of them empty',
+    parts.length > 0 && parts.every((x) => x.name.length > 0 && x.desc.length > 8 && x.price.length > 0),
+    parts
+      .filter((x) => !x.name || x.desc.length <= 8 || !x.price)
+      .map((x) => x.id)
+      .join(','),
+  )
+  ok(
+    'the name is never glued to the description in one element',
+    parts.every((x) => !x.name.includes(x.desc) && !x.desc.includes(x.name)),
+    parts
+      .filter((x) => x.name.includes(x.desc) || x.desc.includes(x.name))
+      .map((x) => `${x.id}:${x.name}`)
+      .join(' | '),
+  )
+  ok(
+    'and the description never swallows the price',
+    parts.every((x) => !x.desc.includes(String(byId(x.id)?.price))),
+    parts
+      .filter((x) => x.desc.includes(String(byId(x.id)?.price)))
+      .map((x) => x.id)
+      .join(','),
+  )
+  ok(
+    'the price on the card is the price in the catalogue, printed with its currency',
+    parts.every((x) => {
+      const tpl = byId(x.id)
+      return tpl && x.price.replace(/\s/g, '').includes(String(tpl.price)) && /ر\.س|SAR/.test(x.price)
+    }),
+    parts
+      .map((x) => `${x.id}:${x.price}`)
+      .slice(0, 3)
+      .join(' | '),
+  )
+  ok(
+    'the old price is struck through beside the new one, when there is one',
+    parts.every((x) => {
+      const tpl = byId(x.id)
+      return !tpl.oldPrice || x.price.includes(String(tpl.oldPrice))
+    }),
+    parts
+      .filter((x) => byId(x.id)?.oldPrice && !x.price.includes(String(byId(x.id).oldPrice)))
+      .map((x) => x.id)
+      .join(','),
+  )
+  ok(
+    'fields are parted by a written separator, so a linear read never welds them together',
+    parts.every((x) => x.price.includes('·')) && parts.every((x) => /\s·\s|·/.test(x.price)),
+    parts[0]?.price || '',
+  )
+  ok(
+    'the card says what the price buys: a live preview and the licence',
+    parts.every((x) => /معاينة حية/.test(x.price)) && cards.every((c) => /ترخيص/.test(c.querySelector('[data-tpl-licence]')?.textContent || '')),
+    (cards[0]?.querySelector('[data-tpl-licence]')?.textContent || '').trim(),
+  )
+
+  /* ——— الزرّان: «عرض القالب» و«أضف للسلة»، وحالةٌ بصريةٌ بعد الإضافة ——— */
+  const card = g.doc.querySelector('[data-tpl-card="nova"]')
+  ok('a card links to its own detail page', !!card?.querySelector(`a[href="/template/${byId('nova').slug}"]`))
+  ok(
+    'and that link is labelled “view the template”, not an icon alone',
+    [...(card?.querySelectorAll('a') || [])].some(
+      (a) => a.getAttribute('href') === `/template/${byId('nova').slug}` && /عرض القالب/.test(a.textContent || ''),
+    ),
+  )
+  const addBtn = [...(card?.querySelectorAll('button') || [])].find((b) => /أضف إلى السلة/.test(b.textContent || ''))
+  ok('the second action adds to the cart', !!addBtn)
+  addBtn?.dispatchEvent(new g.win.MouseEvent('click', { bubbles: true, cancelable: true, button: 0 }))
+  await g.wait()
+  const after = g.doc.querySelector('[data-tpl-card="nova"]')
+  ok(
+    'and the button changes state: it becomes a link to the cart saying it is in there',
+    !!after?.querySelector('a[href="/cart"]') && /في السلة/.test(after?.querySelector('a[href="/cart"]')?.textContent || ''),
+    (after?.textContent || '').replace(/\s+/g, ' ').slice(-60),
+  )
+  ok('the two states look different in the markup, not only in the label', after?.querySelector('a[href="/cart"]')?.className !== addBtn?.className)
+  g.dom.window.close()
+
+  /* ——— الإنجليزية: الفصلُ نفسه، لا نسخةٌ عربيةٌ واحدة ——— */
+  const en = await render('http://localhost/templates?lang=en', { 'qalb.lang': 'en' }, { lang: 'en' })
+  const enParts = [...en.doc.querySelectorAll('[data-tpl-card]')].map((c) => ({
+    name: (c.querySelector('[data-tpl-name]')?.textContent || '').trim(),
+    desc: (c.querySelector('[data-tpl-desc]')?.textContent || '').trim(),
+    price: (c.querySelector('[data-tpl-price]')?.textContent || '').trim(),
+  }))
+  ok(
+    'the English card is separated the same way',
+    enParts.length > 0 && enParts.every((x) => x.name && x.desc.length > 8 && /SAR/.test(x.price) && x.price.includes('·')),
+    enParts[0] ? `${enParts[0].name} / ${enParts[0].price}` : 'none',
+  )
+  en.dom.window.close()
+
+  /* ——— الكوبون: أجلٌ مكتوب، ورفضٌ بعده ——— */
+  const sale = couponInfo('SALE25')
+  ok('SALE25 is declared with an end date in the table', /^\d{4}-\d{2}-\d{2}$/.test(sale?.endsAt || ''), String(sale?.endsAt))
+  ok('it states what it covers, in both languages', !!sale?.note?.ar && !!sale?.note?.en)
+  ok('a date in the future is not expired', couponExpired('SALE25', '2000-01-01') === false)
+  ok('and the same code past its date is refused', couponExpired('SALE25', '2030-01-01') === true)
+  const c = await render('http://localhost/cart', { 'qalb.cart.v1': seededCart })
+  const hint = c.doc.querySelector('[data-coupon-hint]')?.textContent || ''
+  ok(
+    'the cart explains the offer before the buyer asks: what it covers and until when',
+    /SALE25/.test(hint) && /يشمل/.test(hint) && (/\d{4}/.test(hint) || sale.expired),
+    hint.replace(/\s+/g, ' ').slice(0, 110),
+  )
+  c.dom.window.close()
+
+  if (bad.length) {
+    failed++
+    groups++
+    console.log('✗ cards · name · description · price')
+    bad.forEach((n) => console.log('   failed: ' + n))
+  } else {
+    groups++
+    console.log(`✓ cards · name · description · price  (${checks.length} assertions)`)
   }
 }
 
@@ -2253,7 +2405,8 @@ for (const c of cases) {
 
   /* --- the storefront obeys the same overrides --- */
   const seeded = {
-    'qalb.products.v1': JSON.stringify({ aether: { price: 199 }, nova: { published: false } }),
+    // ١٧٩ لا ١٩٩: سعرُ الكتالوج صار ١٩٩، فالتعديلُ يجب أن يكون مميزًا عنه
+    'qalb.products.v1': JSON.stringify({ aether: { price: 179 }, nova: { published: false } }),
     'qalb.cart.v1': JSON.stringify([{ id: 'aether', qty: 1 }]),
   }
   const cart = await render('http://localhost/cart', seeded)
@@ -2261,7 +2414,7 @@ for (const c of cases) {
   const itemText = [...(cart.doc.querySelectorAll('ul li a[href^="/template/"]') || [])].map((a) => a.closest('li')?.textContent || '').join(' ')
   ok(
     'the cart charges the price set in the panel',
-    /199/.test(cartMain) && !/249/.test(itemText) && !/249/.test(String(cart.doc.querySelector('[data-total]')?.getAttribute('data-total'))),
+    /179/.test(cartMain) && !/199/.test(itemText) && !/199/.test(String(cart.doc.querySelector('[data-total]')?.getAttribute('data-total'))),
     itemText.replace(/\s+/g, ' ').slice(0, 70),
   )
   cart.dom.window.close()
@@ -2284,12 +2437,19 @@ for (const c of cases) {
   cat.dom.window.close()
 
   const okAether = await render('http://localhost/template/aether-portfolio', {
-    'qalb.products.v1': JSON.stringify({ aether: { price: 199, download: 'https://dl.qalb.store/aether.zip' } }),
+    'qalb.products.v1': JSON.stringify({ aether: { price: 179, download: 'https://dl.qalb.store/aether.zip' } }),
   })
+  const editedPrice = okAether.doc.querySelector('[data-price]')
   ok(
     'the product page shows the edited price',
-    /199/.test(okAether.txt()) && !/249/.test(okAether.txt()),
-    okAether.txt().replace(/\s+/g, ' ').slice(0, 90),
+    editedPrice?.getAttribute('data-price') === '179',
+    editedPrice?.getAttribute('data-price') || 'no [data-price]',
+  )
+  ok(
+    // سعرُ الكتالوج (١٩٩) لا يظهر في سطر السعر بعد التعديل، والسعرُ القديمُ يبقى مشطوبًا
+    'and the catalogue price is gone from the price line while the old price stays struck',
+    !/199/.test(editedPrice?.textContent || '') && /249/.test(editedPrice?.textContent || ''),
+    (editedPrice?.textContent || '').replace(/\s+/g, ' '),
   )
   okAether.dom.window.close()
 
@@ -2390,7 +2550,15 @@ for (const c of cases) {
         /(يُرسل|نُرسل|أُرسل|تُرسل|تُرسَل|تُصدر|يصدر|sent to|are emailed|is emailed|is issued|we send|will send)/i.test(s) &&
         /(بريد|e-?mail|فاتورة|invoice|ZATCA|هيئة الزكاة)/i.test(s),
     )
-    const bare = promises.filter(([, s]) => !new RegExp(mail[lang], 'i').test(s)).map(([k]) => k)
+    /*
+     * v1.9.0: صار في المستودع ما كان معدومًا حين كُتبت هذه القاعدة — مُرسِلُ بريد
+     * (server/mail.js) ومُصدِرُ فاتورة (server/invoice.js)، وكلاهما يستدعيه
+     * الخادم لحظةَ إنشاءِ الدفع وبعدَ القبض. فالوعدُ بلا نفيٍ مقبولٌ إن كان
+     * مسنودًا بملفٍ على القرص، وما لا منفّذَ له يبقى مرفوضًا كما كان.
+     */
+    const backed = existsSync('server/mail.js') && existsSync('server/invoice.js')
+    const ALLOWED = backed ? ['pay.mailNote'] : []
+    const bare = promises.filter(([k, s]) => !new RegExp(mail[lang], 'i').test(s) && !ALLOWED.includes(k)).map(([k]) => k)
     ok(`no ${lang} line promises an e-mail or an invoice that nothing backs`, bare.length === 0, bare.slice(0, 4).join(','))
   }
   /*
@@ -3096,9 +3264,9 @@ for (const c of cases) {
   /* --- الخطط: كل رقم يراه المتجر له مقابل في الكود --- */
   const plans = Object.values(PLANS)
   ok(
-    // الاستضافة تتبع جدول الاشتراك نفسه (src/data/plans.js) بمصدرٍ واحد: مجاني 0 · Pro 49
+    // الاستضافة تتبع جدول الاشتراك نفسه (src/data/plans.js) بمصدرٍ واحد: مجاني 0 · Pro 500
     'two plans, priced exactly as the storefront promises',
-    plans.length === 2 && PLANS.free.price === 0 && priceOf('pro') === 49,
+    plans.length === 2 && PLANS.free.price === 0 && priceOf('pro') === 500,
     plans.map((p) => `${p.id}:${p.price}`).join(' '),
   )
   ok('free carries our bar, pro removes it', PLANS.free.brand === true && PLANS.pro.brand === false)
@@ -5031,39 +5199,64 @@ for (const c of cases) {
     shareText({ title: 't', scoreLabel: '92/100', bandLabel: 'b', url: 'https://qalb.store/ats', lang: 'ar' }).includes('https://qalb.store/ats'),
   )
 
-  /* ——— ٩. الشارة: تُطبع، وتُشترى إزالتها ——— */
+  /* ——— ٩. الشارة: «صُنع بواسطة Qalb Store» برابطٍ نشط، وتُشترى إزالتها ——— */
+  const badgeLine = badgeHtml({ lang: 'ar' })
   ok(
-    'the badge is a link back to us and nothing else',
-    badgeHtml({ lang: 'ar' }).includes('href="https://qalb.store"') && badgeHtml({ lang: 'ar' }).includes('بُنيَ بقالب'),
+    'every badge is the exact “صُنع بواسطة Qalb Store” line, actively linked to the store home',
+    badgeLine.includes('صُنع بواسطة Qalb Store') && badgeLine.includes('href="https://qalb.store"') && badgeLine.includes('target="_blank"'),
+  )
+  ok(
+    'and its English twin names the store the same way',
+    badgeHtml({ lang: 'en' }).includes('Made with Qalb Store') && badgeHtml({ lang: 'en' }).includes('href="https://qalb.store"'),
+  )
+  ok(
+    'the one-time white-label licence reads its price from the single table: 50',
+    (await import('../src/data/upsells.js')).badgeUpsell().price === 50,
   )
   ok(
     'it shows by default, and two honest ways take it off',
     badgeState({}).shown === true && badgeState({ addons: ['badge-off'] }).shown === false && badgeState({ plan: 'pro' }).shown === false,
   )
   ok(
-    'and the reason is recorded, so nobody is charged twice',
-    badgeState({ plan: 'pro' }).reason === 'plan' && badgeState({ addons: ['badge-off'] }).reason === 'paid',
+    'a Qalb Pro subscription removes it for free, and the reason is recorded so nobody is charged twice',
+    badgeState({ plan: 'pro' }).reason === 'plan' &&
+      badgeState({ plan: 'plus' }).shown === false &&
+      badgeState({ addons: ['badge-off'] }).reason === 'paid',
   )
   ok(
     'the printer hides it as it hides our bar',
     withBadge('<html></html>', { shown: true }).includes('qalb-badge') && withBadge('<html></html>', { shown: false }) === '<html></html>',
   )
 
-  /* ——— نفسُ الشارة في الملف المُسلَّم، تُسقطها الإضافة المشتراة ——— */
+  /* ——— نفسُ الشارة في الملف المُسلَّم، تُسقطها الرخصة أو الاشتراك ——— */
   const { byId } = await import('../src/data/templates.js')
   const { packageFiles } = await import('../src/data/deliverable.js')
   const tpl = byId('aether')
   const filesWith = Object.fromEntries(packageFiles(tpl, { id: 'Q1', key: 'K1' }).map((f) => [f.path, f.body]))
   const filesWithout = Object.fromEntries(packageFiles(tpl, { id: 'Q1', key: 'K1', addons: [{ id: 'badge-off' }] }).map((f) => [f.path, f.body]))
-  ok('every published template carries the badge in its footer', filesWith['index.html'].includes('qalb-badge'))
-  ok('and buying the removal takes it off the delivered files', !filesWithout['index.html'].includes('qalb-badge'))
+  const filesPro = Object.fromEntries(packageFiles(tpl, { id: 'Q2', key: 'K2', plan: 'pro' }).map((f) => [f.path, f.body]))
+  ok(
+    'every published template carries the credit line in its footer',
+    filesWith['index.html'].includes('qalb-badge') && filesWith['index.html'].includes('صُنع بواسطة Qalb Store'),
+  )
+  ok('and buying the white-label licence takes it off the delivered files', !filesWithout['index.html'].includes('qalb-badge'))
+  ok('and a Qalb Pro subscription takes it off automatically, no licence needed', !filesPro['index.html'].includes('qalb-badge'))
   const { siteHtml } = await import('../src/data/deliverable.js')
-  const { profileOf } = await import('../src/data/hosting.js')
+  const { profileOf, brandBar } = await import('../src/data/hosting.js')
   const freeRec = { slug: 'noura-alhrbi', plan: 'free', site: { name: 'نورة الحربي', template: 'aether' } }
   const proRec = { ...freeRec, plan: 'pro' }
+  const whiteRec = { ...freeRec, brandOff: true }
   ok(
-    'the hosted page obeys the plan: Qalb Plus prints no badge',
+    'the hosted page obeys the plan: Qalb Pro prints no badge',
     siteHtml(tpl, profileOf(freeRec)).includes('qalb-badge') && !siteHtml(tpl, profileOf(proRec)).includes('qalb-badge'),
+  )
+  ok(
+    'and the flipped white-label licence clears both the footer credit and the bottom bar',
+    !siteHtml(tpl, profileOf(whiteRec)).includes('qalb-badge') && brandBar(whiteRec) === '',
+  )
+  ok(
+    'the published-page bar carries the same line, linked to the store home, and Pro drops it',
+    brandBar(freeRec).includes('صُنع بواسطة Qalb Store') && brandBar(freeRec).includes('href="https://qalb.store"') && brandBar(proRec) === '',
   )
 
   globalThis.localStorage = before
@@ -5117,16 +5310,16 @@ for (const c of cases) {
   const pro = PLANS.find((x) => x.id === 'pro')
   ok('three graded tiers, free first and Pro last', PLANS.length === 3 && free.order < plus.order && plus.order < pro.order)
   ok('the free tier costs nothing and allows exactly one template', free.price === 0 && free.templates === 1)
-  ok('Qalb Plus is the 19 SAR a month tier', plus.price === 19 && plus.templates === 3, `${plus.price}/${plus.templates}`)
-  ok('Qalb Pro is the 49 SAR a month tier', pro.price === 49, `${pro.price}`)
+  ok('Qalb Plus is the 300 SAR a month tier', plus.price === 300 && plus.templates === 3, `${plus.price}/${plus.templates}`)
+  ok('Qalb Pro is the 500 SAR a month tier', pro.price === 500, `${pro.price}`)
   ok('Pro removes the ceiling entirely, it does not raise it', pro.templates === null)
   ok(
     'the yearly prices are the published ones, and the service sits inside its own band',
-    plus.yearly === 149 && pro.yearly === 349 && PUBLISH_DONE.price >= 299 && PUBLISH_DONE.price <= 799,
+    plus.yearly === 3000 && pro.yearly === 5000 && PUBLISH_DONE.price >= 299 && PUBLISH_DONE.price <= 799,
     `${plus.yearly}/${pro.yearly}/${PUBLISH_DONE.price}`,
   )
   ok('no one-time pack is exported any more', (await import('../src/data/plans.js')).ONE_TIME === undefined)
-  ok('the yearly price is computed as months, not asserted', yearlyAsMonths('plus') > 6 && yearlyAsMonths('plus') < 12, `${yearlyAsMonths('plus')}`)
+  ok('the yearly price is computed as months, not asserted', yearlyAsMonths('plus') > 4 && yearlyAsMonths('plus') < 12, `${yearlyAsMonths('plus')}`)
   ok('VAT is extracted from the listed price, not added on top', Math.abs(vatOf(115) - 15) < 0.01, `${vatOf(115)}`)
   ok('Pro gains eight things over free, and the list is derived from the table', gainedBy('pro').length === 8, gainedBy('pro').join(','))
   ok('and free gains nothing over itself', gainedBy('free').length === 0)
@@ -5409,7 +5602,7 @@ for (const c of cases) {
     /بلغت سقف خطتك/.test(gate.txt()) && !/ولّد قالبى الأول/.test(gate.txt()),
     gate.txt().slice(0, 60),
   )
-  ok('the gate offers the paid tiers with their real prices', /Qalb Plus/.test(gate.txt()) && /19/.test(gate.txt()) && /49/.test(gate.txt()))
+  ok('the gate offers the paid tiers with their real prices', /Qalb Plus/.test(gate.txt()) && /300/.test(gate.txt()) && /500/.test(gate.txt()))
   ok('and it says plainly that nothing is charged here', /لا بوابة دفع موصولة/.test(gate.txt()))
   gate.dom.window.close()
 
@@ -5516,6 +5709,132 @@ for (const c of cases) {
   } else {
     groups++
     console.log(`✓ revenue model · plans, gate, market split, inspection pipeline  (${checks.length} assertions)`)
+  }
+}
+
+/* ---------------- تصدير الملفات المصدرية — ثلاثة قوالب في الشهر، لا بلا سقف ---------------- */
+{
+  const checks = []
+  const ok = (name, cond, extra = '') => checks.push([cond ? name : `${name} — ${extra}`, !!cond])
+
+  const { canExportSource, nextReset, recordSourceExport, sourceLeft, sourceQuotaOf, sourceUsed } = await import('../src/data/quota.js')
+  const { FEATURE_MATRIX, canExport, entitlements } = await import('../src/data/plans.js')
+
+  /**
+   * العدّاد يعيش في `localStorage`، فالفحصُ يوفّره في Node — مخزنٌ بسيط،
+   * والمنطقُ المفحوص هو منطقُ الوحدة نفسها لا بديلٌ عنه.
+   */
+  const cell = new Map()
+  globalThis.localStorage = {
+    getItem: (k) => (cell.has(k) ? cell.get(k) : null),
+    setItem: (k, v) => cell.set(k, String(v)),
+    removeItem: (k) => cell.delete(k),
+  }
+  const mail = 'noura@qalb.store'
+  const jan = new Date(2026, 0, 15, 10, 0, 0)
+  const feb = new Date(2026, 1, 3, 10, 0, 0)
+
+  /* --- من يملك الميزة، وبأيِّ سقف --- */
+  ok('a free plan exports nothing: the feature is shut, not unlimited', sourceQuotaOf('free') === 0 && canExportSource(mail, 'free', jan) === false)
+  ok(
+    'Plus opens no source files either — the ceiling is zero, not “unmetered”',
+    sourceQuotaOf('plus') === 0 && canExportSource(mail, 'plus', jan) === false,
+  )
+  ok(
+    'Pro opens the source files at three a month, read from the plan table',
+    sourceQuotaOf('pro') === 3 && entitlements('pro').sourceExports === 3,
+    `${sourceQuotaOf('pro')} / ${entitlements('pro').sourceExports}`,
+  )
+
+  /* --- ثلاثة قوالب ثم يُغلق الباب --- */
+  ok(
+    'the first three templates of the month go through',
+    ['aether', 'atelier', 'nexus'].every((id) => recordSourceExport(mail, 'pro', id, jan).ok),
+  )
+  ok(
+    'and three used leaves nothing behind',
+    sourceLeft(mail, 'pro', jan) === 0 && canExportSource(mail, 'pro', jan) === false,
+    `${sourceLeft(mail, 'pro', jan)}`,
+  )
+  ok(
+    'the fourth template of the same month is refused, and records nothing',
+    recordSourceExport(mail, 'pro', 'quill', jan).ok === false && sourceUsed(mail, jan).length === 3,
+    sourceUsed(mail, jan).join(','),
+  )
+  ok(
+    'the same template twice in its month costs one slot, not two',
+    recordSourceExport(mail, 'pro', 'aether', jan).ok === true && sourceLeft(mail, 'pro', jan) === 0,
+    `${sourceLeft(mail, 'pro', jan)} · ${sourceUsed(mail, jan).length}`,
+  )
+
+  /* --- والشهر التالي يصفّر العدّاد --- */
+  ok(
+    'a new month resets the counter to three',
+    sourceLeft(mail, 'pro', feb) === 3 && canExportSource(mail, 'pro', feb) === true,
+    `${sourceLeft(mail, 'pro', feb)}`,
+  )
+  ok('…and the reset date is the first of the next month', nextReset(jan).getMonth() === 1 && nextReset(jan).getDate() === 1, String(nextReset(jan)))
+  delete globalThis.localStorage
+
+  /* --- الرقم مكتوبٌ مرة واحدة: الجدول، والمصفوفة، وصفحة الحساب --- */
+  const row = FEATURE_MATRIX.find((r) => r.id === 'export')
+  ok(
+    'the value matrix states the ceiling it enforces, and points at the code that enforces it',
+    /٣/.test(row.paid.note.ar) && /3/.test(row.paid.note.en) && row.enforcedBy === 'src/data/quota.js:canExportSource',
+    `${row.paid.note.ar} · ${row.enforcedBy}`,
+  )
+  ok('…and its plan-level twin still answers “does the plan open it at all”', canExport('pro') === true && canExport('plus') === false)
+
+  /**
+   * والصفحةُ تقول ما يفعله الكود: حسابٌ على Pro يُرى زرُّه ومتبقّيه،
+   * وحسابٌ استنفد حصّته يُرى زرُّه معطّلًا — والعدّاد مزروعٌ في `localStorage`
+   * كما يزرعه التطبيق نفسه، لا حالةٌ يختلقها الفحص.
+   */
+  const pro = { ...revenueAccount, plan: 'pro' }
+  const spent = { 'noura@qalb.store|2026-09': ['aether', 'atelier', 'nexus'] }
+  const openPage = await render('http://localhost/account', {
+    'qalb.account.v1': JSON.stringify(pro),
+    'qalb.source-exports.v1': JSON.stringify({}),
+  })
+  const openBtn = openPage.doc.querySelector('[data-export-source]')
+  ok(
+    'the account page offers the export and prints what is left of the three',
+    !!openBtn && openBtn.disabled === false && /3|٣/.test(openBtn.textContent || ''),
+    (openBtn?.textContent || 'no [data-export-source]').trim().slice(0, 60),
+  )
+  ok('…and the entitlement row counts usage, not a bare “yes”', /0 \/ 3/.test(openPage.txt()), openPage.txt().replace(/\s+/g, ' ').slice(0, 90))
+  openPage.dom.window.close()
+
+  const spentPage = await render('http://localhost/account', {
+    'qalb.account.v1': JSON.stringify(pro),
+    'qalb.source-exports.v1': JSON.stringify(spent),
+  })
+  const spentBtn = spentPage.doc.querySelector('[data-export-source]')
+  ok(
+    'a spent quota disables the button and says when it resets',
+    !!spentBtn && spentBtn.disabled === true,
+    (spentBtn?.textContent || 'no button').trim().slice(0, 60),
+  )
+  ok('…and the row reads 3 / 3 rather than “included”', /3 \/ 3/.test(spentPage.txt()), spentPage.txt().replace(/\s+/g, ' ').slice(0, 90))
+  spentPage.dom.window.close()
+
+  const plusPage = await render('http://localhost/account', { 'qalb.account.v1': JSON.stringify({ ...revenueAccount, plan: 'plus' }) })
+  ok(
+    'Plus sees no export button at all: the feature is closed there, not rationed',
+    !plusPage.doc.querySelector('[data-export-source]'),
+    'a button is shown for Plus',
+  )
+  plusPage.dom.window.close()
+
+  const bad = checks.filter(([, pass]) => !pass)
+  if (bad.length) {
+    failed++
+    groups++
+    console.log('✗ source export · three templates a month')
+    bad.forEach(([n]) => console.log('   failed: ' + n))
+  } else {
+    groups++
+    console.log(`✓ source export · three templates a month  (${checks.length} assertions)`)
   }
 }
 

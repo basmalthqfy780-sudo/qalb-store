@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
-import { templates, coupons } from '../data/templates'
+import { templates, couponInfo } from '../data/templates'
 import { VAT } from '../data/tax.js'
 import { applyOverlay } from '../data/catalog'
 import { upsellById } from '../data/upsells'
@@ -166,17 +166,26 @@ export function StoreProvider({ children }) {
     setWish((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]))
   }, [])
 
+  /**
+   * الكوبون يُقرأ من جدول القوالب وحده — نسبةً وأجلًا. رمزٌ منتهٍ لا يُطبَّق:
+   * خصمٌ بلا تاريخٍ يُقرأ عرضًا دائمًا، وخصمٌ منتهٍ يُطبَّق يُقرأ كذبة. النتيجة
+   * تُخبر الواجهة بالحالتين (`expired`) لتشرحهما للزائر بدل رسالةٍ واحدة مبهمة.
+   */
   const applyCoupon = useCallback((raw) => {
     const code = String(raw || '')
       .trim()
       .toUpperCase()
-    const found = coupons[code]
-    if (!found) {
+    const info = couponInfo(code)
+    if (!info) {
       setCoupon(null)
       return null
     }
-    setCoupon({ code, pct: found.pct })
-    return { code, pct: found.pct }
+    if (info.expired) {
+      setCoupon(null)
+      return { code, pct: info.pct, expired: true }
+    }
+    setCoupon({ code, pct: info.pct })
+    return { code, pct: info.pct, expired: false, info }
   }, [])
 
   const totals = useMemo(() => {

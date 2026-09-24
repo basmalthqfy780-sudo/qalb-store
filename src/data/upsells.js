@@ -117,31 +117,34 @@ export const UPSELLS = [
   },
   {
     // ————— اشتراك Qalb Pro — نفسُ درجة الاشتراك في جدول الخطط —————
-    // السعر هنا هو سعرُ الدرجة نفسها في src/data/plans.js (‎49‎ شهريًا / ‎349‎ سنويًا):
+    // السعر هنا هو سعرُ الدرجة نفسها في src/data/plans.js (‎500‎ شهريًا / ‎5000‎ سنويًا):
     // جدولٌ واحدٌ للاشتراك، وهذه نسختُه في السلة — لا رقمَان لنفس المنتج.
     id: 'pro-month',
     groups: ['pro'],
-    price: 49,
+    price: 500,
     icon: 'refresh',
     period: 'month',
     name: { ar: 'Qalb Pro — شهري', en: 'Qalb Pro — monthly' },
-    tagline: { ar: 'كل القوالب والنطاق الخاص وتصدير الملفات', en: 'Every template, your own domain, and the file export' },
+    tagline: {
+      ar: 'كل القوالب والنطاق الخاص وتصدير الملفات (٣ قوالب شهريًا)',
+      en: 'Every template, your own domain, and the file export (3 a month)',
+    },
     desc: {
-      ar: 'اشتراك شهر واحد: كل قوالب المتجر بلا سقف، ربط نطاقك الخاص، تصدير ملفات المصدر كاملة، وأولوية الدعم. لا تجديد تلقائي: نذكّرك قبل نهايته والتجديد بيدك.',
-      en: 'One month of Pro: every template with no ceiling, your own domain connected, the full source-file export, and priority support. No auto-renewal: we remind you before it ends, you renew by hand.',
+      ar: 'اشتراك شهر واحد: كل قوالب المتجر بلا سقف، ربط نطاقك الخاص، تصدير ملفات المصدر لثلاثة قوالب كل شهر، وأولوية الدعم. لا تجديد تلقائي: نذكّرك قبل نهايته والتجديد بيدك.',
+      en: 'One month of Pro: every template with no ceiling, your own domain connected, source-file export for three templates a month, and priority support. No auto-renewal: we remind you before it ends, you renew by hand.',
     },
   },
   {
     id: 'pro-year',
     groups: ['pro'],
-    price: 349,
+    price: 5000,
     icon: 'crown',
     period: 'year',
     name: { ar: 'Qalb Pro — سنوي', en: 'Qalb Pro — yearly' },
-    tagline: { ar: 'سنةٌ كاملة، بسعر سبعة أشهر', en: 'A full year, priced at seven months' },
+    tagline: { ar: 'سنةٌ كاملة، بسعر عشرة أشهر', en: 'A full year, priced at ten months' },
     desc: {
-      ar: 'سنة كاملة من كل القوالب والنطاق الخاص وتصدير الملفات وأولوية الدعم، بلا تجديد تلقائي — يصلك تذكير قبل الشهر الأخير.',
-      en: 'A full year of every template, your own domain, the file export and priority support, with no auto-renewal — a reminder arrives before your last month.',
+      ar: 'سنة كاملة من كل القوالب والنطاق الخاص وتصدير الملفات (٣ قوالب كل شهر) وأولوية الدعم، بلا تجديد تلقائي — يصلك تذكير قبل الشهر الأخير.',
+      en: 'A full year of every template, your own domain, the file export (three templates a month) and priority support, with no auto-renewal — a reminder arrives before your last month.',
     },
   },
   {
@@ -246,17 +249,21 @@ export const UPSELLS = [
     },
   },
   {
-    // ٩. إزالة شارة «بُنيَ بقالب»
+    // ٩. رخصة White-label: إزالة الشعار والحقوق — ‎50‎ ر.س لمرةٍ واحدة (كانت ‎19‎،
+    // وسُعِّرت من جديد حين صار سطرُ «صُنع بواسطة Qalb Store» في كل قالبٍ وصفحة).
     id: 'badge-off',
     groups: ['checkout', 'badge'],
-    price: 19,
+    price: 50,
     icon: 'type',
     instant: true,
-    name: { ar: 'إزالةُ شارة «بُنيَ بقالب»', en: 'Remove the “Built with Qalb” badge' },
-    tagline: { ar: 'لمرةٍ واحدة، بلا اشتراك — أو مجانًا مع «قالب بلس»', en: 'One time, no subscription — or free with Qalb Plus' },
+    name: { ar: 'رخصة White-label — إزالة الشعار والحقوق', en: 'White-label licence — the branding, removed' },
+    tagline: {
+      ar: 'لمرةٍ واحدة: تُسقط «صُنع بواسطة Qalb Store» من ملفّاتك وصفحتك المنشورة',
+      en: 'One time: drops “Made with Qalb Store” from your files and your published page',
+    },
     desc: {
-      ar: 'كلُّ قالبٍ منشور يحمل شارةً صغيرة في فوتره تعود إلينا. هذه الإضافةُ تُسقطها من سيرتك وموقعك المُولَّدين، لمرةٍ واحدة وبلا اشتراك. طريقٌ ثانٍ بلا مقابل: باقةُ «قالب بلس» تُسقطها ضمن ما تفتحه — نقولها هنا فلا يشتري أحدٌ مرتين ما يُفتح مجانًا في باقةٍ أعلى.',
-      en: 'Every published template carries a small badge in its footer that points back to us. This add-on takes it off your generated CV and site, once, with no subscription. There is a second way at no cost: Qalb Plus removes it as part of what it opens — said here so nobody buys twice what a higher tier gives free.',
+      ar: 'كلُّ قالبٍ وصفحةٍ منشورة يحمل في فوتره سطر «صُنع بواسطة Qalb Store» برابطٍ إلى متجرنا. هذه الرخصةُ تُسقطه من ملفّات القالب المُسلَّمة (‏ZIP‏) ومن صفحتك المُستضافة، لمرةٍ واحدة وبلا اشتراك. طريقٌ ثانٍ بلا مقابل: اشتراكُ «Qalb Pro» يُسقطها تلقائيًا ضمن ما يفتحه (ومثله «Qalb Plus») — نقولها هنا فلا يشتري أحدٌ مرتين ما يُفتح مجانًا في باقةٍ أعلى.',
+      en: 'Every template and published page carries a “Made with Qalb Store” line in its footer, linked back to our store. This licence takes it off the delivered template files (ZIP) and your hosted page, once, with no subscription. A second way costs nothing: a Qalb Pro subscription removes it automatically as part of what it opens (Qalb Plus likewise) — said here so nobody buys twice what a higher tier gives free.',
     },
   },
 ]
@@ -292,7 +299,7 @@ export const linkUpsell = () => upsellById('link-plus')
 export const talentUpsell = () => upsellById('talent-spot')
 /** استيرادُ السيرة من LinkedIn */
 export const linkedinUpsell = () => upsellById('linkedin-import')
-/** إزالةُ شارة «بُنيَ بقالب» من الفوتر */
+/** رخصة White-label — تُسقط سطر «صُنع بواسطة Qalb Store» من الفوتر */
 export const badgeUpsell = () => upsellById('badge-off')
 
 /**

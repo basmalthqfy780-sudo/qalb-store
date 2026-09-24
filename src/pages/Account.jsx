@@ -9,6 +9,10 @@ import { answerSummary, canCreate } from '../data/account'
 import { PLANS, planById, withWatermark } from '../data/plans'
 import { renderSite } from '../data/hosting'
 import { canSell } from '../data/marketplace'
+import { byId } from '../data/templates'
+import { packageName, packageZip } from '../data/deliverable'
+import { saveZip } from '../lib/download'
+import { canExportSource, recordSourceExport, sourceLeft, sourceQuotaOf, sourceUsed } from '../data/quota'
 
 /**
  * لوحة الحساب — ما تملكه الخطة، مترجمًا إلى أفعال لا إلى كلام.
@@ -144,11 +148,41 @@ export default function Account() {
     say('warn', t('account.forgot'))
   }
 
+  /**
+   * تصديرُ ملفات المصدر: الخطةُ تفتحه، والحصّةُ تحدّه — ثلاثةُ قوالب في الشهر
+   * (src/data/quota.js). القالبُ نفسُه لا يُحصى مرتين في شهره، والباقي معروضٌ
+   * للحساب، فلا يُفاجأ أحدٌ بزرٍّ معطّل بلا سبب.
+   */
+  const exportMax = sourceQuotaOf(rec?.plan)
+  const exportUsed = sourceUsed(rec?.email).length
+  const exportLeft = sourceLeft(rec?.email, rec?.plan)
+  const chosen = rec?.created?.find((c) => c.slug === sel)
+
+  function exportSource() {
+    if (!canExportSource(rec.email, rec.plan)) return say('bad', t('account.row.exportQuotaDone'))
+    const tpl = byId(chosen?.template)
+    if (!tpl) return say('bad', t('account.noSheet'))
+    // يُسجَّل قبل التنزيل: فإن فشل البناء لم تُخصم حصّةُ قالبٍ لم يصل
+    const r = recordSourceExport(rec.email, rec.plan, tpl.id)
+    if (!r.ok) return say('bad', t('account.row.exportQuotaDone'))
+    saveZip(
+      packageName(tpl, { id: rec.id, key: rec.id, email: rec.email, date: new Date().toISOString().slice(0, 10) }),
+      packageZip(tpl, { id: rec.id, key: rec.id, email: rec.email, date: new Date().toISOString().slice(0, 10), name: rec.email }),
+    )
+    say('good', t('account.row.exportDone', { n: r.left }))
+  }
+
   const rows = [
     { i: 'layers', k: 'account.row.templates', v: gate.max == null ? t('account.unlimited') : `${gate.used} / ${gate.max}`, open: true },
     { i: 'download', k: 'account.row.pdf', v: plan.watermark ? t('account.row.pdfWm') : t('account.row.pdfClean'), open: true },
     { i: 'rocket', k: 'account.row.publish', v: plan.publish ? t('account.row.yes') : t('account.row.no'), open: plan.publish },
-    { i: 'file', k: 'account.row.export', v: plan.exportSite ? t('account.row.yes') : t('account.row.no'), open: plan.exportSite },
+    {
+      i: 'file',
+      k: 'account.row.export',
+      // الحصّةُ تُرى لا تُحكى: «٢ / ٣ هذا الشهر» أدلُّ على السقف من «نعم»
+      v: plan.exportSite ? t('account.row.exportQuota', { used: exportUsed, max: exportMax }) : t('account.row.no'),
+      open: plan.exportSite && exportLeft > 0,
+    },
     { i: 'type', k: 'account.row.badge', v: plan.badge ? t('account.row.badgeOn') : t('account.row.badgeOff'), open: !plan.badge },
     { i: 'globe', k: 'account.row.domain', v: plan.domain ? t('account.row.yes') : t('account.row.no'), open: plan.domain },
     { i: 'wallet', k: 'account.row.sell', v: canSell(rec.plan) ? t('account.row.yes') : t('account.row.no'), open: canSell(rec.plan) },
@@ -226,6 +260,12 @@ export default function Account() {
               {sel ? (
                 <Btn to={`/studio?site=${sel}`} size="md" variant="ghost">
                   {t('account.editInStudio')}
+                </Btn>
+              ) : null}
+              {plan.exportSite && sel ? (
+                <Btn size="md" variant="outline" disabled={exportLeft <= 0} onClick={exportSource} data-export-source>
+                  <Icon n="download" className="size-4" />
+                  {exportLeft > 0 ? t('account.row.exportSource', { n: exportLeft }) : t('account.row.exportQuotaDone')}
                 </Btn>
               ) : null}
             </div>

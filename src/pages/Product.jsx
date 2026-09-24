@@ -455,7 +455,8 @@ export default function Product() {
 
               <div className="mt-5 flex items-end justify-between border-y border-line py-5">
                 <div>
-                  <div className="flex items-baseline gap-2">
+                  {/* سطرُ السعر موسومٌ بـ data-price: الفحصُ يقرأ الرقم من هنا لا من نصِّ الصفحة كلها */}
+                  <div className="flex items-baseline gap-2" data-price={tpl.price}>
                     <Money v={tpl.price} size="text-[34px]" />
                     {tpl.oldPrice && <span className="num text-[15px] font-medium text-dim line-through">{tpl.oldPrice}</span>}
                   </div>

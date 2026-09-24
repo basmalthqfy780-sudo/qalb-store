@@ -1,5 +1,5 @@
 import { useI18n, num } from '../i18n'
-import { FEATURE_MATRIX, PUBLISH_DONE, publishLight, storePro, storeProYear } from '../data/plans'
+import { FEATURE_MATRIX, PUBLISH_DONE, planById, publishLight, storePro, storeProYear } from '../data/plans'
 import { COMMISSION, ESCROW_DAYS, MIN_PAYOUT } from '../data/marketplace'
 import { useSeo, breadcrumbLd, graph } from '../components/Seo'
 import PlanCards from '../components/PlanCards'
@@ -43,6 +43,8 @@ export default function Pricing() {
   const { toggleAddon, hasAddon, toast } = useStore()
   const light = publishLight()
   const pro = storePro()
+  /** أخفُّ درجةٍ مدفوعة: النشرُ وحده بـ ١٩ — الرقمُ من الجدول لا مكتوبًا هنا */
+  const publishPlan = planById('plus')
   const year = storeProYear()
 
   useSeo(`${t('plans.seoTitle')} · ${t('brand.name')}`, t('plans.seoDesc'), {
@@ -105,6 +107,48 @@ export default function Pricing() {
             <Icon n="shield" className="mt-0.5 size-4 shrink-0 text-brand" />
             <span>{t('plans.matrixEnforced')}</span>
           </p>
+        </section>
+
+        {/* ————— خطة النشر بـ ١٩: أخفُّ درجةٍ تُدفع لمن يريد رابطًا عامًا، لا كل القوالب ————— */}
+        <section id="publish-plan" className="mt-16 scroll-mt-24">
+          <Reveal>
+            <article
+              data-publish-plan={publishPlan?.id || 'plus'}
+              className="grid gap-6 rounded-3xl border border-brand/25 bg-brand/[0.06] p-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center"
+            >
+              <div>
+                <Pill tone="brand">
+                  <Icon n="globe" className="size-3" />
+                  {t('plans.publishPlanKicker')}
+                </Pill>
+                <h2 className="mt-3 font-display text-[20px] font-extrabold">{t('plans.publishPlanTitle')}</h2>
+                <p className="mt-1.5 max-w-2xl text-[13px] leading-relaxed text-dim">
+                  {t('plans.publishPlanSub', { n: num(publishPlan?.price || 0) })}
+                </p>
+                <ul className="mt-3 grid gap-1.5 sm:grid-cols-2">
+                  {LA(publishPlan?.bullets)
+                    .slice(0, 2)
+                    .map((b, i) => (
+                      <li key={i} className="flex items-start gap-2 text-[12.5px] leading-relaxed text-ink/80">
+                        <Icon n="check" className="mt-0.5 size-3.5 shrink-0 text-brand" />
+                        <span>{b}</span>
+                      </li>
+                    ))}
+                </ul>
+              </div>
+              <div className="flex flex-col items-start gap-3 lg:items-end">
+                <div className="flex items-end gap-1.5">
+                  <Money v={publishPlan?.price || 0} size="text-[34px]" />
+                  <span className="mb-1.5 text-[12px] font-bold text-dim">{t('plans.perMonth')}</span>
+                </div>
+                <Btn to={`/account?plan=${publishPlan?.id || 'plus'}`} size="lg">
+                  {t('plans.publishPlanCta')}
+                  <Icon n="arrow" className="size-4 rtl:-scale-x-100" />
+                </Btn>
+                <p className="text-[11.5px] leading-relaxed text-dim">{t('plans.publishPlanNote', { y: num(publishPlan?.yearly || 0) })}</p>
+              </div>
+            </article>
+          </Reveal>
         </section>
 
         {/* ————— خدمة النشر: Once-One، لا درجةٌ في الاشتراك ————— */}

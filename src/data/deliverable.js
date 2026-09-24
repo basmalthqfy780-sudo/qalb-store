@@ -17,7 +17,7 @@ import { PALETTE, byId, demoFor, siteFor, accentHex, fontCss } from './templates
 import { ATS_LINKS, ATS_TARGET, atsRuleTable } from './ats-table.js'
 import { zipStore } from './zip.js'
 import { SUPPORT_MAIL } from './contact.js'
-import { badgeHtml } from './badge.js'
+import { badgeHtml, badgeState } from './badge.js'
 
 export const PROTECTED_PATH_RE = /^\/download\/[a-z0-9][a-z0-9-]{1,38}$/
 /** مسار تنزيل محمي يقدّمه الخادم بعد التحقق من الطلب — يُقبل في حقل `download` بدل رابط عام يمكن مشاركته */
@@ -224,8 +224,9 @@ export const profileFor = (tpl, k, personal = null) => {
   const demo = k !== 'site' ? demoFor(tpl) : null
   const base = site || demo || {}
   const prof = {
-    // الشارة: تُطبع في فوتر كلِّ قالب إلا أن تُشترى إزالتها (`badge-off`) أو تكون
-    // خطةُ الاستضافة «بلس» — القرارُ في badgeState، والطباعةُ هنا.
+    // الشارة: «صُنع بواسطة Qalb Store» تُطبع في فوتر كلِّ قالب إلا أن تُشترى
+    // رخصةُ White-label (`badge-off`) أو يكن اشتراكُ Pro (أو Plus) — القرارُ في
+    // badgeState، والطباعةُ هنا.
     qalb: { template: tpl.id, slug: tpl.slug || null, kind: k, seats: 1, price: tpl.price, badge: true },
     lang: 'ar',
     dir: 'rtl',
@@ -1030,9 +1031,10 @@ export function packageFiles(tpl, ctx = {}) {
   const hasCv = k !== 'site'
   const personal = sanitizePersonal(ctx.personalize)
   const p = profileFor(tpl, k, personal)
-  // إزالةُ الشارة تُشترى: إن كانت في إضافات الطلب (أو الخطةُ «بلس») سقطت من الملف
+  // إزالةُ الشعار والحقوق تُشترى: رخصة White-label في إضافات الطلب تُسقطها،
+  // واشتراك Pro (ومعه Plus) يُسقطها تلقائيًا — والقرارُ كله في badgeState لا هنا
   const bought = (Array.isArray(ctx.addons) ? ctx.addons : []).map((a) => (typeof a === 'string' ? a : a && a.id)).filter(Boolean)
-  if (bought.includes('badge-off') || ctx.plan === 'pro' || ctx.plan === 'plus') p.qalb.badge = false
+  if (!badgeState({ plan: ctx.plan || 'free', addons: bought }).shown) p.qalb.badge = false
   const mark = markOf(order)
   const out = [{ path: 'LICENSE.txt', body: licenceText(tpl, order) }]
   const add = (path, body) => out.push({ path, body: commentFor(path, mark) + body })

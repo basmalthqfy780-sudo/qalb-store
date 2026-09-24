@@ -12,16 +12,25 @@ const typeLabel = {
 }
 
 /**
- * بطاقة القالب في المعرض — ثلاثةُ سطورٍ مستقلةٍ لا سطرٌ واحدٌ متشابك.
+ * بطاقة القالب في المعرض — أربعةُ أسطرٍ مستقلة، لا سطرٌ واحدٌ متشابك.
  *
- * القاعدة التي بُنيَت عليها البطاقة بعد جولة v1.8.0: **الاسمُ والتصنيفُ والوصفُ
- * كلٌّ في عنصرٍ وحده**، يحمل سمةً برمجيةً تقرأه (`data-tpl-name` و`data-tpl-cat`
- * و`data-tpl-desc`) — فلا يلتصق تصنيفٌ باسمٍ في العربية فيظهرا ككلمةٍ واحدة،
- * ولا يُقصّ الوصف بـ`line-clamp` فيضيع نصفه. والفحص في tests/smoke.mjs يقرأ هذه
- * السمات ويتأكد أن الثلاثة منفصلة ومكتملة في اللغتين.
+ * المشكلةُ التي بُنيت عليها هذه النسخة: كان اسمُ القالب والتصنيفُ والوصفُ
+ * والسعرُ تتجاور في عناصرَ بلا فاصل، فتُقرأ عند استخراج نصِّ الصفحة ككلمةٍ
+ * واحدة («أيثربورتفوليو المصممين بنمط داكن…»). القاعدة الآن:
  *
- * والسعر يُقرأ قبل الخصم وبعده معًا: الرقمُ الكبير هو ما تُحسبه السلة، وبجانبه
- * الرقمُ القديم مشطوبًا مع وسمٍ يقول أيهما قبل وأيهما بعد.
+ *   1. **الاسمُ وحده** في `h3` — بلا تصنيفٍ يلتصق به، وبلا قصّ.
+ *   2. **الوصفُ وحده** سطرًا كاملًا يصف القالب بنفسه (لا يبدأ بـ«للمصوّرين:»).
+ *   3. **السعرُ وحده** في سطره، كبيرًا، مع السعرِ القديمِ مشطوبًا إن وُجد،
+ *      ومع ما يُسلَّم مقابله («معاينة حية»، والترخيص).
+ *   4. **زرّانِ صريحان**: «عرض القالب» و«أضف للسلة» — ولهما حالةٌ بصريةٌ مختلفة
+ *      بعد الإضافة («في السلة ✓»)، لا زرٌّ واحدٌ غامض.
+ *
+ * وكلُّ سطرٍ يحمل سمةً برمجيةً تقرأه (`data-tpl-name` و`data-tpl-desc`
+ * و`data-tpl-price` و`data-tpl-cat`)، والفحص في tests/smoke.mjs يتأكد أن الأربعة
+ * منفصلة ومكتملة في اللغتين — وأن السطرين لا يتلامسان بلا فاصل.
+ *
+ * الفواصل («·» و«—») مكتوبةٌ في النصِّ نفسه لا في تنسيقه: فالشاشةُ تراها كما
+ * تراها أيُّ قراءةٍ خطيةٍ للصفحة، بلا اعتمادٍ على الهوامش بين العناصر.
  */
 export default function TemplateCard({ tpl, onQuick, className = '' }) {
   const { t, lang, L } = useI18n()
@@ -71,70 +80,69 @@ export default function TemplateCard({ tpl, onQuick, className = '' }) {
         </span>
       </Link>
 
-      <div className="flex flex-1 flex-col px-1.5 pt-3">
-        {/* ١. الاسم — عنوان البطاقة، بلا قصّ */}
-        <h3 data-tpl-name className="font-display text-[16.5px] font-extrabold leading-tight text-ink">
+      <div className="flex flex-1 flex-col px-1.5 pt-3.5">
+        {/* ١. الاسم — عنوان البطاقة، بلا قصّ ولا تصنيفٍ ملتصق */}
+        <h3 data-tpl-name className="font-display text-[17px] font-extrabold leading-tight text-ink">
           {L(tpl.name)}
         </h3>
 
-        {/* ٢. التصنيف — المجال وحده في سطره، لا يلتصق بالاسم */}
-        <p data-tpl-cat className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[12px] font-bold text-brand">
+        {/* ٢. الوصف — سطرٌ كاملٌ يصف القالب بنفسه */}
+        <p data-tpl-desc className="mt-1 text-[12.5px] leading-relaxed text-dim">
+          {L(tpl.tagline)}
+        </p>
+
+        {/* ٣. السعر — رقمٌ كبير، والقديمُ مشطوبًا بجانبه، وما يُسلَّم مقابله */}
+        <p data-tpl-price className="mt-2.5 flex flex-wrap items-baseline gap-x-1 gap-y-0.5 text-[12px]">
+          <Money v={tpl.price} size="text-[19px]" /> <span className="font-bold text-dim">·</span>{' '}
+          <span className="font-bold text-brand">{t('card.livePreview')}</span>
+          {tpl.oldPrice ? (
+            <>
+              {' '}
+              <span className="font-bold text-dim">·</span> <span className="num font-medium text-dim line-through">{tpl.oldPrice}</span>{' '}
+              <span className="text-[10.5px] text-dim">{t('card.priceWas')}</span>
+            </>
+          ) : (
+            <>
+              {' '}
+              <span className="font-bold text-dim">·</span> <span className="text-[10.5px] text-dim">{t('card.priceNow')}</span>
+            </>
+          )}
+        </p>
+        <p data-tpl-licence className="mt-1 text-[10.5px] leading-relaxed text-dim">
+          {t('card.licenceLine')}
+        </p>
+
+        {/* التصنيف ونوع الملف — شرائح صغيرة بعد السعر، لا ملتصقةً بالاسم */}
+        <p data-tpl-cat className="mt-2.5 flex flex-wrap items-center gap-1.5 text-[11px] font-bold text-brand">
           {cat ? (
             <span className="inline-flex items-center gap-1.5">
               <Icon n={cat.icon} className="size-3.5" />
               {lang === 'ar' ? cat.ar : cat.en}
             </span>
           ) : null}
+          <span className="font-bold text-dim">·</span>
           <span className="inline-flex items-center gap-1 rounded-md border border-line bg-bg/60 px-1.5 py-0.5 text-[10.5px] font-semibold text-dim">
             <Icon n={tpl.type === 'cv' ? 'file' : tpl.type === 'bundle' ? 'layers' : 'globe'} className="size-3" />
             {lang === 'ar' ? kind.ar : kind.en}
           </span>
-        </p>
-
-        {/* ٣. الوصف المختصر — يُلَفّ كما جاء، فلا يُقطع ولا يتداخل مع ما تحته */}
-        <p data-tpl-desc className="mt-2 text-[12.5px] leading-relaxed text-dim">
-          {L(tpl.tagline)}
-        </p>
-
-        <div className="mt-2.5 mb-3 flex flex-wrap items-center gap-1.5">
-          {tpl.perf && (
-            <span className="num inline-flex items-center gap-1 rounded-md border border-brand/25 bg-brand/10 px-1.5 py-0.5 text-[10.5px] font-bold text-brand">
-              <Icon n="bolt" className="size-2.5" fill sw={0} />
-              {tpl.perf}
-            </span>
-          )}
-          {tpl.ats && (
-            <span className="num inline-flex items-center gap-1 rounded-md border border-gold/30 bg-gold/10 px-1.5 py-0.5 text-[10.5px] font-bold text-gold">
-              ATS {tpl.ats}
-            </span>
-          )}
-          <span className="num ms-auto inline-flex items-center gap-1 text-[11px] text-dim">
-            <Stars value={tpl.rating} size={11} show={false} />
-            {tpl.reviews} {t('misc.reviews')}
+          <span className="num ms-auto inline-flex items-center gap-1 text-[11px] font-semibold text-dim">
+            <Stars value={tpl.rating} size={11} show={false} /> {tpl.reviews} {t('misc.reviews')}
           </span>
-        </div>
+        </p>
 
-        {/* mt-auto: صفُ السعر يلتصق بأسفل البطاقة فيتساوى ارتفاع بطاقات الشبكة */}
-        <div className="mt-auto flex items-end justify-between gap-2 border-t border-line pt-3">
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
-              <Money v={tpl.price} size="text-[17px]" />
-              <span className="text-[10.5px] font-bold text-brand">{t('card.priceNow')}</span>
-              {tpl.oldPrice ? (
-                <>
-                  <span className="num text-[12px] font-medium text-dim line-through">{tpl.oldPrice}</span>
-                  <span className="text-[10.5px] text-dim">{t('card.priceWas')}</span>
-                </>
-              ) : null}
-            </div>
-            <p className="num mt-0.5 text-[10.5px] text-dim">
-              {tpl.sales.toLocaleString('en-US')} {t('misc.sold')}
-            </p>
-          </div>
+        {/* ٤. زرّانِ صريحان — mt-auto: يلتصقان بأسفل البطاقة فتتساوى ارتفاعات الشبكة */}
+        <div className="mt-auto grid grid-cols-2 gap-2 border-t border-line pt-3">
+          <Link
+            to={`/template/${tpl.slug}`}
+            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-line bg-bg/60 text-[12.5px] font-bold text-ink transition hover:border-brand/40 hover:text-brand"
+          >
+            <Icon n="eye" className="size-3.5" />
+            {t('card.view')}
+          </Link>
           {hasCart ? (
             <Link
               to="/cart"
-              className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-brand/40 bg-brand/12 px-3 text-[12.5px] font-bold text-brand transition hover:bg-brand/20"
+              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-brand/50 bg-brand/15 text-[12.5px] font-bold text-brand transition hover:bg-brand/25"
             >
               <Icon n="check" className="size-3.5" sw={2.6} />
               {t('catalog.inCart')}
@@ -143,7 +151,7 @@ export default function TemplateCard({ tpl, onQuick, className = '' }) {
             <button
               type="button"
               onClick={doAdd}
-              className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg bg-ink px-3 text-[12.5px] font-bold text-bg transition hover:bg-brand light:bg-brand light:text-brandink"
+              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-ink text-[12.5px] font-bold text-bg transition hover:bg-brand light:bg-brand light:text-brandink"
             >
               <Icon n="cart" className="size-3.5" />
               {t('product.addCart')}

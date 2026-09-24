@@ -42,6 +42,8 @@ const Offers = lazy(() => import('./pages/Offers'))
 const Offer = lazy(() => import('./pages/Offer'))
 const NotFound = lazy(() => import('./pages/NotFound'))
 const Admin = lazy(() => import('./pages/Admin'))
+// النمو: القالب المجاني مقابل البريد — يُحمَّل مع صفحته وحدها
+const Free = lazy(() => import('./pages/Free'))
 
 /**
  * هيكل الانتظار بين حزمتين: بطاقاتُ قوالبَ مرسومةٌ بالهيكل نفسه (`TemplateCardSkeleton`)
@@ -182,6 +184,7 @@ export default function App() {
               <Route path="/blog/:slug" element={<Post />} />
               {/* نموذج الربح: خطةٌ تُفتح، قالبٌ أول مجانًا، وسوقٌ يفحص قبل أن ينشر */}
               <Route path="/pricing" element={<Pricing />} />
+              <Route path="/free" element={<Free />} />
               {/* «أنشئ قالبك» مؤجَّل في v1.8.0: المسار يُحوَّل إلى القوالب الجاهزة،
                   فلا رابطٌ قديم يسقط في صفحةٍ لا وجود لها */}
               <Route path="/create" element={<Navigate to="/templates" replace />} />

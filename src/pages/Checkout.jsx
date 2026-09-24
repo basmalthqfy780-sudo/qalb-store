@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { submitOrder, apiMode } from '../api'
+import { submitOrder, apiMode, createPayment } from '../api'
 import { Link, useNavigate } from 'react-router-dom'
 import { useI18n, num, dec } from '../i18n'
 import { useStore, VAT } from '../store/StoreContext'
@@ -110,9 +110,26 @@ export default function Checkout() {
     }
 
     submitOrder(draft)
-      .then((order) => {
+      .then(async (order) => {
         clear()
-        nav('/order', { state: { order } })
+        /**
+         * الدفع خطوةٌ تاليةٌ لتسجيل الطلب، لا جزءٌ منه: الطلبُ يبقى مسجَّلًا
+         * بمجاميعه المختومة إن تعذّرت البوّابة، والمشتري يرى على صفحة الإيصال
+         * إمّا زرَّ إحالةٍ إلى بوّابة، وإمّا تعليمات تحويل — لا شاشةً فارغة.
+         */
+        let payment = null
+        if (apiMode === 'rest') {
+          try {
+            payment = await createPayment(order.id, f.method)
+          } catch {
+            payment = null // لا بوّابة تجيب: صفحة الإيصال تُكمل بالتسليم المحلي
+          }
+        }
+        if (payment?.payUrl && typeof window !== 'undefined') {
+          window.location.href = payment.payUrl // إحالةٌ إلى صفحة الدفع لدى البوّابة
+          return
+        }
+        nav('/order', { state: { order, payment } })
       })
       .catch(() => {
         // a failed call must never eat the cart
