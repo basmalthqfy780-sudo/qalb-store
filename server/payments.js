@@ -275,6 +275,15 @@ export function createPaymentsApi({ dir, env = process.env, orders, onPaid } = {
   async function markPaid(orderId, ref, meta = {}) {
     const all = await orders()
     const order = all.find((o) => o.id === orderId)
+    /**
+     * إعادةُ إرسال الويب هوَك حقيقةً في كل بوّابةِ دفع، ولا تُقبَض فاتورةٌ مرتين
+     * مهما تكرَّر إعلانُها: سطرٌ محفوظٌ يحمل نفسَ المرجع علامةٌ على أن الحدث
+     * قُبِضَ أولًا، فنُرجعه كما هو بدل كتابة سطرٍ ثانٍ وإرسال إيصالٍ ثانٍ.
+     */
+    if (meta?.via === 'webhook' && ref) {
+      const before = (await load()).find((r) => r.order === orderId && r.status === 'paid' && String(r.ref) === String(ref))
+      if (before) return before
+    }
     const rec = {
       order: orderId,
       email: order?.email || null,
@@ -365,13 +374,23 @@ export function createPaymentsApi({ dir, env = process.env, orders, onPaid } = {
       payload?.data?.object?.id || payload?.id || payload?.data?.object?.charge_id || payload?.charge_id || payload?.data?.id || null
     if (!orderId) return { ok: false, why: 'no order reference' }
 
+    /**
+     * Moyasar يرسل الـobject نفسه (فاتورةً عند «invoice_paid»): لا envelope
+     * إلزامي كباب Stripe. فنقرأ الطبقةَ العريضة منها ثم ما بداخلها — والقاعدة
+     * الواحدة: تُقبَض عاصفةٌ بعد أن يصحّ المبلغ، لا بعد أن يقول النصّ «paid».
+     */
+    const obj = payload?.data?.object || payload?.data || payload || {}
+    const status = String(obj?.status || '').toLowerCase()
+    const amount = Number(obj?.amount || 0)
+    const paidAmt = Number(obj?.amount_paid ?? obj?.paid_amount ?? obj?.amount_received ?? 0)
+    const statusOfOrder = { stripe: 'paid', moyasar: 'paid', tap: 'captured' }
     const paid =
       which === 'stripe'
-        ? payload?.type === 'checkout.session.completed' && payload?.data?.object?.payment_status === 'paid'
-        : which === 'moyasar'
-          ? payload?.status === 'paid'
-          : payload?.status === 'CAPTURED'
+        ? payload?.type === 'checkout.session.completed' && String(obj?.payment_status || '').toLowerCase() === 'paid'
+        : status === statusOfOrder[which] || (paidAmt > 0 && amount > 0 && paidAmt >= amount)
     if (!paid) return { ok: true, ignored: true }
+    // مرجعُ البوابة يصدق الحدث نفسه عند تكراره: الفاتورةُ نفسها لا تُقبَض مرتين
+    const ref = String(obj?.id || payload?.id || '').slice(0, 64) || providerRef
 
     // Moyasar وTap بلا توقيعٍ في هذا المسار: نسأل البوّابةَ عن المعرّف قبل القبض
     if (which !== 'stripe') {
@@ -379,7 +398,7 @@ export function createPaymentsApi({ dir, env = process.env, orders, onPaid } = {
       if (check?.status !== 'paid') return { ok: false, why: 'provider did not confirm' }
       return { ok: true, payment: check }
     }
-    const rec = await markPaid(orderId, providerRef, { via: 'webhook' })
+    const rec = await markPaid(orderId, ref, { via: 'webhook' })
     return { ok: true, payment: rec }
   }
 

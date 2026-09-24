@@ -1659,6 +1659,90 @@ try {
     )
     ok('invoice: an unverified seller field says so instead of inventing a number', /قيد التوثيق/.test(inv.text))
     ok('invoice: it states the licence is personal and resale is not allowed', /إعادة بيع|إعادة البيع|توزيعه/.test(inv.text))
+    ok(
+      // الأرقامُ المهمة ليس في سطرٍ نصيٍّ يُلتصق تُطابَق فيه، بل في سماتٍ
+      // مقروءةٍ برمجيًّا: رقمُ الفاتورة وأسطرها كما تُباع — لا كما تُظهَر
+      // حُسنًا على الشاشة.
+      'invoice: the document itself is machine-tagged (id + line rows)',
+      inv.text.includes(`data-invoice-id="${ORD}"`) && /<tr data-invoice-line>/.test(inv.text),
+    )
+
+    /**
+     * حلقةُ Moyasar يجب أن تجري على طلبٍ حديثٍ لا يمسّ الطلبَ الأول： فالفاتورة
+     * والتحويلُ فوق قد قُرِّت عليه مسبقًا، والإشعارُ المزوَّر أدناه يريد طلبًا
+     * ما زال معلّقًا حين يبعث. وبطلبٍ جديد يبقى كلُّ فرعٍ مستقلًا كما يحدث في
+     * الشراء الحقيقي.
+     */
+    const hook = await call('POST', '/orders', {
+      body: { email: 'payer2@qalb.store', name: 'دافع ميسر', phone: '0550000001', total: 179, lines: [{ id: 'aether', qty: 1 }] },
+      header: false,
+    })
+    const ORD2 = hook.json?.id
+    ok('payments: a fresh order is created for the gateway loop', hook.status === 201 && !!ORD2, JSON.stringify(hook.json).slice(0, 80))
+
+    /* إشعارُ بوّابة: بلا توقيعٍ صحيح لا يُقبض شيء */
+    const { createPaymentsApi } = await import('../server/payments.js')
+    const pm = createPaymentsApi({
+      dir: DATA,
+      env: { MOYASAR_SECRET_KEY: 'sk_test_admin_qalb', SITE_URL: 'https://qalb.store' },
+      // نفس «دفتر الطلبات» لدى الخادم: مخزنٌ من سطرٍ واحد — الطلب نفسه
+      orders: async () => [hook.json],
+    })
+
+    // حلقةُ Moyasar كاملة بنفس المعيار الذي تجري به الآن: إنشاءٌ فلكيةً ثم GET من المصدر
+    let createCalls = 0
+    const fake = async (url, opts = {}) => {
+      const u = String(url)
+      if ((opts.method || 'GET') === 'POST' && u.endsWith('/v1/invoices')) {
+        createCalls++
+        return new Response(
+          JSON.stringify({
+            id: 'inv_abc123',
+            status: 'initiated',
+            url: 'https://checkout.moyasar.com/invoices/inv_abc123',
+            amount: 19900,
+            currency: 'SAR',
+          }),
+          {
+            status: 201,
+            headers: { 'content-type': 'application/json' },
+          },
+        )
+      }
+      if ((opts.method || 'GET') === 'GET' && /\/v1\/invoices\/inv_abc123$/.test(u)) {
+        return new Response(
+          JSON.stringify({ id: 'inv_abc123', status: 'paid', amount: 19900, currency: 'SAR', metadata: { order_id: ORD2, ref: ORD2 } }),
+          {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+          },
+        )
+      }
+      return new Response(JSON.stringify({ error: 'not_found' }), { status: 404, headers: { 'content-type': 'application/json' } })
+    }
+    const realFetch = globalThis.fetch
+    globalThis.fetch = fake
+    try {
+      const created = await pm.create({ orderId: ORD2, method: 'creditcard' })
+      ok(
+        'payments: Moyasar issues a checkout url the payer is sent to, amount from the order not the browser',
+        created.provider === 'moyasar' && /checkout\.moyasar\.com\/invoices\//.test(created.payUrl) && createCalls === 1,
+        JSON.stringify({ p: created.provider, url: created.payUrl }),
+      )
+      const verify = await pm.verifyRemote(ORD2)
+      ok('payments: a pending Moyasar invoice becomes paid only after the gateway itself says so', verify?.status === 'paid', String(verify?.status))
+      const hookBody = JSON.stringify({ id: 'inv_abc123', status: 'paid', amount: 19900, currency: 'SAR', metadata: { order_id: ORD2, ref: ORD2 } })
+      await pm.handleWebhook('moyasar', hookBody)
+      await pm.handleWebhook('moyasar', hookBody)
+      const lines = (await pm.list()).filter((r) => r.order === ORD2 && r.status === 'paid')
+      ok(
+        'payments: a paid webhook retried (twice) is booked once — the same invoice is never charged twice',
+        lines.length === 1,
+        String(lines.length),
+      )
+    } finally {
+      globalThis.fetch = realFetch
+    }
 
     /* إشعارُ بوّابة: بلا توقيعٍ صحيح لا يُقبض شيء */
     const forged = await call('POST', '/payments/webhook/stripe', {

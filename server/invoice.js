@@ -62,15 +62,17 @@ export function invoiceLines(order, lang = 'ar') {
  * برقمِ الطلب وحده.
  */
 export function invoiceHtml(order, { env = process.env, lang = 'ar', payment = null, siteUrl = '' } = {}) {
+  // `<html data-invoice-id>` هو ما تقرؤه الفحوص وما تقرأه الشاشة معًا — والصفوف
+  // موسومة بـ[data-invoice-line] فلا يُحصَى البند مرةً اثنتين بالسواكي.
   const s = seller(env)
   const rows = invoiceLines(order, lang)
   const rate = Number(order.vatRate ?? VAT_RATE) || VAT_RATE
   const statusLabel = payment?.status === 'paid' ? (lang === 'ar' ? 'مدفوعة' : 'Paid') : lang === 'ar' ? 'بانتظار الدفع' : 'Awaiting payment'
   const cell = (k) => (s[k] ? esc(s[k]) : `<span class="pending">قيد التوثيق</span>`)
   const row = (r) =>
-    `<tr><td>${esc(r.name)}</td><td class="num">${r.qty}</td><td class="num">${money(r.unit)}</td><td class="num">${money(r.total)}</td></tr>`
+    `<tr data-invoice-line><td>${esc(r.name)}</td><td class="num">${r.qty}</td><td class="num">${money(r.unit)}</td><td class="num">${money(r.total)}</td></tr>`
   return `<!doctype html>
-<html lang="${lang}" dir="${lang === 'ar' ? 'rtl' : 'ltr'}">
+<html lang="${lang}" dir="${lang === 'ar' ? 'rtl' : 'ltr'}" data-invoice data-invoice-id="${esc(order.id)}">
 <head>
 <meta charset="utf-8">
 <meta name="robots" content="noindex,nofollow">
