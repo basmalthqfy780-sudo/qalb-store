@@ -242,12 +242,12 @@ const cases = [
       'single-use',
     ],
   },
-  { name: 'hosting', url: 'http://localhost/host', expect: ['قالبك يصير موقعًا', 'qalb.store', '49', 'مجانًا', 'تعديلات في الشهر', 'نسخ'] },
+  { name: 'hosting', url: 'http://localhost/host', expect: ['قالبك يصير موقعًا', 'qalb.store', '500', 'مجانًا', 'تعديلات في الشهر', 'نسخ'] },
   {
     name: 'hosting / english',
     url: 'http://localhost/host',
     lang: 'en',
-    expect: ['Your template becomes a site', 'subdomain', '49', 'free', 'edits a month'],
+    expect: ['Your template becomes a site', 'subdomain', '500', 'free', 'edits a month'],
   },
   { name: 'studio (nothing yet)', url: 'http://localhost/studio', expect: ['لا موقع على هذا المتصفح', 'أنشئ موقعي'] },
   {
@@ -366,7 +366,7 @@ const cases = [
       'تحميل سيرة PDF',
       'بيع القالب للآخرين',
       'عمولة المنصة من كل بيع',
-      '299',
+      '3,000',
       '499',
       'ما لا يحدث في هذه النسخة',
     ],
@@ -1137,7 +1137,7 @@ for (const c of cases) {
     Object.entries(upsellPriceTable())
       .map(([k, v]) => `${k}:${v}`)
       .join(',') ===
-      'cover-letter:39,cv-tailor:79,ats-review:149,deploy-setup:249,cv-write:299,brand-identity:899,ats-report:29,pro-month:49,pro-year:299,' +
+      'cover-letter:39,cv-tailor:79,ats-review:149,deploy-setup:249,cv-write:299,brand-identity:899,ats-report:29,pro-month:500,pro-year:5000,' +
         // منظومةُ التوظيف: مطابقة ٢٩ وباقة الخمسة ٧٩، ملف التقديم ٤٩، البطاقة الموثّقة ١٩،
         // الرابط بلس ٢٩ شهريًا، إبراز الدليل ٢٩ شهريًا، استيراد LinkedIn ٣٩، إزالة الشارة ١٩
         'match-report:29,match-5:79,kit-10:49,share-verified:19,link-plus:29,talent-spot:29,linkedin-import:39,badge-off:19',
@@ -1256,12 +1256,12 @@ for (const c of cases) {
     ok('the three graded tiers are on the page', ids.join(',') === 'free,plus,pro', ids.join(','))
     const [m, y] = proPlans()
     ok(
-      'their prices are read from the one table: 0 · 19 · 49 a month',
-      TIERS.map((x) => x.price).join(',') === '0,19,49' && m.price === 49 && y.price === 299,
+      'their prices are read from the one table: 0 · 300 · 500 a month',
+      TIERS.map((x) => x.price).join(',') === '0,300,500' && m.price === 500 && y.price === 5000,
     )
     ok(
       'the monthly prices are printed, VAT included',
-      ['19', '49'].every((n) => (band?.textContent || '').includes(n)),
+      ['300', '500'].every((n) => (band?.textContent || '').includes(n)),
     )
     // المفتاح السنوي يحوّل السعر والسطر تحته معًا — محسوبين من الجدول لا مكتوبين
     const yearlyBtn = [...(band?.querySelectorAll('button') || [])].find((b) => /سنوي|Yearly/.test(b.textContent || ''))
@@ -1271,12 +1271,12 @@ for (const c of cases) {
     const after = band?.textContent || ''
     ok(
       'the yearly prices are printed after the toggle',
-      ['100', '299'].every((n) => after.includes(n)),
+      ['3,000', '5,000'].every((n) => after.includes(n)),
       after.replace(/\s+/g, ' ').slice(0, 120),
     )
     ok(
       'and the year is stated as months paid, computed from the table',
-      ['5.3', '6.1'].every((n) => after.includes(n)),
+      ['10', '10'].every((n) => after.includes(n)),
       after.replace(/\s+/g, ' ').slice(0, 160),
     )
     // الأزرار تقود إلى مكانٍ يفعل الشيء: المجانية إلى الاستضافة، والمدفوعة إلى الحساب
@@ -2002,8 +2002,8 @@ for (const c of cases) {
   )
   // شهريًا هو الافتراضيّ؛ السنويُّ خلف مفتاح الفوترة (يُفحَص في مجموعة النمو)
   ok(
-    'and it prices them from the one table: Plus 19 and Pro 49 a month',
-    ['19', '49'].every((n) => bundlesTxt.includes(n)),
+    'and it prices them from the one table: Plus 300 and Pro 500 a month',
+    ['300', '500'].every((n) => bundlesTxt.includes(n)),
     bundlesTxt.slice(0, 200),
   )
   ok('no invented bundle price is left standing in the page', !bundlesTxt.includes('999'), bundlesTxt.slice(0, 90))
@@ -2405,7 +2405,8 @@ for (const c of cases) {
 
   /* --- the storefront obeys the same overrides --- */
   const seeded = {
-    'qalb.products.v1': JSON.stringify({ aether: { price: 199 }, nova: { published: false } }),
+    // ١٧٩ لا ١٩٩: سعرُ الكتالوج صار ١٩٩، فالتعديلُ يجب أن يكون مميزًا عنه
+    'qalb.products.v1': JSON.stringify({ aether: { price: 179 }, nova: { published: false } }),
     'qalb.cart.v1': JSON.stringify([{ id: 'aether', qty: 1 }]),
   }
   const cart = await render('http://localhost/cart', seeded)
@@ -2413,7 +2414,7 @@ for (const c of cases) {
   const itemText = [...(cart.doc.querySelectorAll('ul li a[href^="/template/"]') || [])].map((a) => a.closest('li')?.textContent || '').join(' ')
   ok(
     'the cart charges the price set in the panel',
-    /199/.test(cartMain) && !/249/.test(itemText) && !/249/.test(String(cart.doc.querySelector('[data-total]')?.getAttribute('data-total'))),
+    /179/.test(cartMain) && !/199/.test(itemText) && !/199/.test(String(cart.doc.querySelector('[data-total]')?.getAttribute('data-total'))),
     itemText.replace(/\s+/g, ' ').slice(0, 70),
   )
   cart.dom.window.close()
@@ -2436,12 +2437,19 @@ for (const c of cases) {
   cat.dom.window.close()
 
   const okAether = await render('http://localhost/template/aether-portfolio', {
-    'qalb.products.v1': JSON.stringify({ aether: { price: 199, download: 'https://dl.qalb.store/aether.zip' } }),
+    'qalb.products.v1': JSON.stringify({ aether: { price: 179, download: 'https://dl.qalb.store/aether.zip' } }),
   })
+  const editedPrice = okAether.doc.querySelector('[data-price]')
   ok(
     'the product page shows the edited price',
-    /199/.test(okAether.txt()) && !/249/.test(okAether.txt()),
-    okAether.txt().replace(/\s+/g, ' ').slice(0, 90),
+    editedPrice?.getAttribute('data-price') === '179',
+    editedPrice?.getAttribute('data-price') || 'no [data-price]',
+  )
+  ok(
+    // سعرُ الكتالوج (١٩٩) لا يظهر في سطر السعر بعد التعديل، والسعرُ القديمُ يبقى مشطوبًا
+    'and the catalogue price is gone from the price line while the old price stays struck',
+    !/199/.test(editedPrice?.textContent || '') && /249/.test(editedPrice?.textContent || ''),
+    (editedPrice?.textContent || '').replace(/\s+/g, ' '),
   )
   okAether.dom.window.close()
 
@@ -3256,9 +3264,9 @@ for (const c of cases) {
   /* --- الخطط: كل رقم يراه المتجر له مقابل في الكود --- */
   const plans = Object.values(PLANS)
   ok(
-    // الاستضافة تتبع جدول الاشتراك نفسه (src/data/plans.js) بمصدرٍ واحد: مجاني 0 · Pro 49
+    // الاستضافة تتبع جدول الاشتراك نفسه (src/data/plans.js) بمصدرٍ واحد: مجاني 0 · Pro 500
     'two plans, priced exactly as the storefront promises',
-    plans.length === 2 && PLANS.free.price === 0 && priceOf('pro') === 49,
+    plans.length === 2 && PLANS.free.price === 0 && priceOf('pro') === 500,
     plans.map((p) => `${p.id}:${p.price}`).join(' '),
   )
   ok('free carries our bar, pro removes it', PLANS.free.brand === true && PLANS.pro.brand === false)
@@ -5277,12 +5285,12 @@ for (const c of cases) {
   const pro = PLANS.find((x) => x.id === 'pro')
   ok('three graded tiers, free first and Pro last', PLANS.length === 3 && free.order < plus.order && plus.order < pro.order)
   ok('the free tier costs nothing and allows exactly one template', free.price === 0 && free.templates === 1)
-  ok('Qalb Plus is the 19 SAR a month tier', plus.price === 19 && plus.templates === 3, `${plus.price}/${plus.templates}`)
-  ok('Qalb Pro is the 49 SAR a month tier', pro.price === 49, `${pro.price}`)
+  ok('Qalb Plus is the 300 SAR a month tier', plus.price === 300 && plus.templates === 3, `${plus.price}/${plus.templates}`)
+  ok('Qalb Pro is the 500 SAR a month tier', pro.price === 500, `${pro.price}`)
   ok('Pro removes the ceiling entirely, it does not raise it', pro.templates === null)
   ok(
     'the yearly prices are the published ones, and the service sits inside its own band',
-    plus.yearly === 100 && pro.yearly === 299 && PUBLISH_DONE.price >= 299 && PUBLISH_DONE.price <= 799,
+    plus.yearly === 3000 && pro.yearly === 5000 && PUBLISH_DONE.price >= 299 && PUBLISH_DONE.price <= 799,
     `${plus.yearly}/${pro.yearly}/${PUBLISH_DONE.price}`,
   )
   ok('no one-time pack is exported any more', (await import('../src/data/plans.js')).ONE_TIME === undefined)
@@ -5569,7 +5577,7 @@ for (const c of cases) {
     /بلغت سقف خطتك/.test(gate.txt()) && !/ولّد قالبى الأول/.test(gate.txt()),
     gate.txt().slice(0, 60),
   )
-  ok('the gate offers the paid tiers with their real prices', /Qalb Plus/.test(gate.txt()) && /19/.test(gate.txt()) && /49/.test(gate.txt()))
+  ok('the gate offers the paid tiers with their real prices', /Qalb Plus/.test(gate.txt()) && /300/.test(gate.txt()) && /500/.test(gate.txt()))
   ok('and it says plainly that nothing is charged here', /لا بوابة دفع موصولة/.test(gate.txt()))
   gate.dom.window.close()
 
@@ -5676,6 +5684,132 @@ for (const c of cases) {
   } else {
     groups++
     console.log(`✓ revenue model · plans, gate, market split, inspection pipeline  (${checks.length} assertions)`)
+  }
+}
+
+/* ---------------- تصدير الملفات المصدرية — ثلاثة قوالب في الشهر، لا بلا سقف ---------------- */
+{
+  const checks = []
+  const ok = (name, cond, extra = '') => checks.push([cond ? name : `${name} — ${extra}`, !!cond])
+
+  const { canExportSource, nextReset, recordSourceExport, sourceLeft, sourceQuotaOf, sourceUsed } = await import('../src/data/quota.js')
+  const { FEATURE_MATRIX, canExport, entitlements } = await import('../src/data/plans.js')
+
+  /**
+   * العدّاد يعيش في `localStorage`، فالفحصُ يوفّره في Node — مخزنٌ بسيط،
+   * والمنطقُ المفحوص هو منطقُ الوحدة نفسها لا بديلٌ عنه.
+   */
+  const cell = new Map()
+  globalThis.localStorage = {
+    getItem: (k) => (cell.has(k) ? cell.get(k) : null),
+    setItem: (k, v) => cell.set(k, String(v)),
+    removeItem: (k) => cell.delete(k),
+  }
+  const mail = 'noura@qalb.store'
+  const jan = new Date(2026, 0, 15, 10, 0, 0)
+  const feb = new Date(2026, 1, 3, 10, 0, 0)
+
+  /* --- من يملك الميزة، وبأيِّ سقف --- */
+  ok('a free plan exports nothing: the feature is shut, not unlimited', sourceQuotaOf('free') === 0 && canExportSource(mail, 'free', jan) === false)
+  ok(
+    'Plus opens no source files either — the ceiling is zero, not “unmetered”',
+    sourceQuotaOf('plus') === 0 && canExportSource(mail, 'plus', jan) === false,
+  )
+  ok(
+    'Pro opens the source files at three a month, read from the plan table',
+    sourceQuotaOf('pro') === 3 && entitlements('pro').sourceExports === 3,
+    `${sourceQuotaOf('pro')} / ${entitlements('pro').sourceExports}`,
+  )
+
+  /* --- ثلاثة قوالب ثم يُغلق الباب --- */
+  ok(
+    'the first three templates of the month go through',
+    ['aether', 'atelier', 'nexus'].every((id) => recordSourceExport(mail, 'pro', id, jan).ok),
+  )
+  ok(
+    'and three used leaves nothing behind',
+    sourceLeft(mail, 'pro', jan) === 0 && canExportSource(mail, 'pro', jan) === false,
+    `${sourceLeft(mail, 'pro', jan)}`,
+  )
+  ok(
+    'the fourth template of the same month is refused, and records nothing',
+    recordSourceExport(mail, 'pro', 'quill', jan).ok === false && sourceUsed(mail, jan).length === 3,
+    sourceUsed(mail, jan).join(','),
+  )
+  ok(
+    'the same template twice in its month costs one slot, not two',
+    recordSourceExport(mail, 'pro', 'aether', jan).ok === true && sourceLeft(mail, 'pro', jan) === 0,
+    `${sourceLeft(mail, 'pro', jan)} · ${sourceUsed(mail, jan).length}`,
+  )
+
+  /* --- والشهر التالي يصفّر العدّاد --- */
+  ok(
+    'a new month resets the counter to three',
+    sourceLeft(mail, 'pro', feb) === 3 && canExportSource(mail, 'pro', feb) === true,
+    `${sourceLeft(mail, 'pro', feb)}`,
+  )
+  ok('…and the reset date is the first of the next month', nextReset(jan).getMonth() === 1 && nextReset(jan).getDate() === 1, String(nextReset(jan)))
+  delete globalThis.localStorage
+
+  /* --- الرقم مكتوبٌ مرة واحدة: الجدول، والمصفوفة، وصفحة الحساب --- */
+  const row = FEATURE_MATRIX.find((r) => r.id === 'export')
+  ok(
+    'the value matrix states the ceiling it enforces, and points at the code that enforces it',
+    /٣/.test(row.paid.note.ar) && /3/.test(row.paid.note.en) && row.enforcedBy === 'src/data/quota.js:canExportSource',
+    `${row.paid.note.ar} · ${row.enforcedBy}`,
+  )
+  ok('…and its plan-level twin still answers “does the plan open it at all”', canExport('pro') === true && canExport('plus') === false)
+
+  /**
+   * والصفحةُ تقول ما يفعله الكود: حسابٌ على Pro يُرى زرُّه ومتبقّيه،
+   * وحسابٌ استنفد حصّته يُرى زرُّه معطّلًا — والعدّاد مزروعٌ في `localStorage`
+   * كما يزرعه التطبيق نفسه، لا حالةٌ يختلقها الفحص.
+   */
+  const pro = { ...revenueAccount, plan: 'pro' }
+  const spent = { 'noura@qalb.store|2026-09': ['aether', 'atelier', 'nexus'] }
+  const openPage = await render('http://localhost/account', {
+    'qalb.account.v1': JSON.stringify(pro),
+    'qalb.source-exports.v1': JSON.stringify({}),
+  })
+  const openBtn = openPage.doc.querySelector('[data-export-source]')
+  ok(
+    'the account page offers the export and prints what is left of the three',
+    !!openBtn && openBtn.disabled === false && /3|٣/.test(openBtn.textContent || ''),
+    (openBtn?.textContent || 'no [data-export-source]').trim().slice(0, 60),
+  )
+  ok('…and the entitlement row counts usage, not a bare “yes”', /0 \/ 3/.test(openPage.txt()), openPage.txt().replace(/\s+/g, ' ').slice(0, 90))
+  openPage.dom.window.close()
+
+  const spentPage = await render('http://localhost/account', {
+    'qalb.account.v1': JSON.stringify(pro),
+    'qalb.source-exports.v1': JSON.stringify(spent),
+  })
+  const spentBtn = spentPage.doc.querySelector('[data-export-source]')
+  ok(
+    'a spent quota disables the button and says when it resets',
+    !!spentBtn && spentBtn.disabled === true,
+    (spentBtn?.textContent || 'no button').trim().slice(0, 60),
+  )
+  ok('…and the row reads 3 / 3 rather than “included”', /3 \/ 3/.test(spentPage.txt()), spentPage.txt().replace(/\s+/g, ' ').slice(0, 90))
+  spentPage.dom.window.close()
+
+  const plusPage = await render('http://localhost/account', { 'qalb.account.v1': JSON.stringify({ ...revenueAccount, plan: 'plus' }) })
+  ok(
+    'Plus sees no export button at all: the feature is closed there, not rationed',
+    !plusPage.doc.querySelector('[data-export-source]'),
+    'a button is shown for Plus',
+  )
+  plusPage.dom.window.close()
+
+  const bad = checks.filter(([, pass]) => !pass)
+  if (bad.length) {
+    failed++
+    groups++
+    console.log('✗ source export · three templates a month')
+    bad.forEach(([n]) => console.log('   failed: ' + n))
+  } else {
+    groups++
+    console.log(`✓ source export · three templates a month  (${checks.length} assertions)`)
   }
 }
 

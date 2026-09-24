@@ -9,6 +9,7 @@ import { kitGrantFor } from '../data/kit'
 import { SUPPORT_MAIL } from '../data/contact'
 import { Btn, Icon, Money, Pill } from '../components/ui'
 import { useSeo } from '../components/Seo'
+import { saveZip as libSaveZip, saveFile as libSaveFile } from '../lib/download'
 
 export default function Success() {
   const { t, lang, L } = useI18n()
@@ -104,17 +105,6 @@ export default function Success() {
     setTimeout(() => setCopyState(''), 2400)
   }
 
-  const saveFile = (filename, body, mime) => {
-    const url = URL.createObjectURL(new Blob([body], { type: mime }))
-    const a = document.createElement('a')
-    a.href = url
-    a.download = filename
-    document.body.appendChild(a)
-    a.click()
-    a.remove()
-    setTimeout(() => URL.revokeObjectURL(url), 1500)
-  }
-
   /** ما في هذا الطلب فعلًا: تُقرأ الحزمة من نفس مولّد التسليم، فلا وعود بلا ملفات */
   const rows = (order.lines || [])
     .map((l) => {
@@ -143,16 +133,9 @@ export default function Success() {
     })
     .filter(Boolean)
 
-  const saveZip = (filename, bytes) => {
-    const url = URL.createObjectURL(new Blob([bytes], { type: 'application/zip' }))
-    const a = document.createElement('a')
-    a.href = url
-    a.download = filename
-    document.body.appendChild(a)
-    a.click()
-    a.remove()
-    setTimeout(() => URL.revokeObjectURL(url), 1500)
-  }
+  /** التنزيلُ مكانه src/lib/download.js: نسخةٌ واحدة تُستعمل في الإيصال والحساب */
+  const saveZip = libSaveZip
+  const saveFile = libSaveFile
 
   /** في وضع محلي بلا خادم: الحزمة تُبنى داخل المتصفح من بيانات الطلب نفسها */
   const grabPackage = async (tpl) => {

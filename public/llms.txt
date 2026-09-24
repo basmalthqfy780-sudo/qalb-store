@@ -9,9 +9,9 @@ Every address below is written raw (`https://qalb.store/template/nova-cv`), neve
 20 published templates, SAR 49–449 each. 10 of them also produce an ATS-readable CV, and that subset is what an institutional seat unlocks: a seat buys a machine-readable document, not decoration.
 
 ### Templates
-- Aether — https://qalb.store/template/aether-portfolio — Portfolio for designers — dark mode — SAR 249, site only
-- Atelier — https://qalb.store/template/atelier-photography — Photography template — images lead — SAR 279, site only
-- Nexus — https://qalb.store/template/nexus-engineer — Site for engineers — numbers before images — SAR 219, site only
+- Aether — https://qalb.store/template/aether-portfolio — Portfolio for designers — dark mode — SAR 199, site only
+- Atelier — https://qalb.store/template/atelier-photography — Photography template — images lead — SAR 249, site only
+- Nexus — https://qalb.store/template/nexus-engineer — Site for engineers — numbers before images — SAR 199, site only
 - Folio — https://qalb.store/template/folio-minimal — The simplest honest start — SAR 149, site only
 - Reel — https://qalb.store/template/reel-motion — Motion and video, unstuttered — SAR 299, site only
 - Quill — https://qalb.store/template/quill-writer — Site for writers — reading first — SAR 179, site only
@@ -71,23 +71,23 @@ No sales phone number and no booking link are published, because none is configu
 ## Services, subscriptions and seasonal offers
 
 Done-for-you services on https://qalb.store/services, priced in the same table the cart prices: Site setup on Vercel + your domain at SAR 249 (delivered by e-mail within 72 working hours), A CV written from scratch at SAR 299 (delivered by e-mail within 120 working hours), The full identity at SAR 899 (delivered by e-mail within 240 working hours). They are paid in the same cart as templates, but nothing is auto-delivered: a person reads the order and writes the reply, which is why each card prints a deadline instead of “instant”.
-One subscription table, shown by the same component on the home page and on https://qalb.store/pricing: SAR 49 a month or SAR 299 a year for every template, a custom domain, the source-file export and priority support. There is no auto-renewal and no card on file: a reminder is sent before it ends, and renewing is the buyer’s own action.
+One subscription table, shown by the same component on the home page and on https://qalb.store/pricing: SAR 500 a month or SAR 5,000 a year for every template, a custom domain, the source-file export and priority support. There is no auto-renewal and no card on file: a reminder is sent before it ends, and renewing is the buyer’s own action.
 Seasonal offer pages on https://qalb.store/offers: Co-op training season (5/6/7); Career-day season (2/3); Graduation season (4/5); The new work year (9/10/11) — each recommends real catalogue products and runs on the coupon FRIEND20.
 Coupons the store actually honours: SALE25 −25%, WELCOME10 −10%, QALB30 −30%, FRIEND20 −20%, COACH20 −20%, COACH30 −30%. A coach code (COACH20/COACH30) is stamped on the order ledger so a coach’s referral is settled manually from the ledger — no commission moves automatically.
 Order add-ons offered in the cart and checkout: A cover letter, written at SAR 39, A CV matched to the post at SAR 79, A human ATS review at SAR 149, Site setup on Vercel + your domain at SAR 249, Build your CV from LinkedIn at SAR 39, Remove the “Built with Qalb” badge at SAR 19. The server re-prices every add-on from the same table and rejects unknown ones, exactly as it does for templates.
 
 ## Personal hosting
 
-A hosted page on `<name>.qalb.store`: free with 10 edits a month and a made-with bar, or SAR 49/month with your own domain, no branding bar and no edit ceiling. Pages are static HTML generated from the same record as the CV, so the printed A4 sheet and the browser page are the same file.
+A hosted page on `<name>.qalb.store`: free with 10 edits a month and a made-with bar, or SAR 500/month with your own domain, no branding bar and no edit ceiling. Pages are static HTML generated from the same record as the CV, so the printed A4 sheet and the browser page are the same file.
 
 ## Graded subscription tiers and the designer market
 
 - Free: free · 1 template · watermarked résumé PDF
-- Qalb Plus: SAR 19/month · 3 templates · direct publishing · no badge
-- Qalb Pro: SAR 49/month · unlimited templates · direct publishing · site-file export · custom domain · no badge · selling allowed
+- Qalb Plus: SAR 300/month · 3 templates · direct publishing · no badge
+- Qalb Pro: SAR 500/month · unlimited templates · direct publishing · site-file export · custom domain · no badge · selling allowed
 - The free tier is one template to try and use: a full live preview of the site and the résumé, and a résumé PDF carrying a watermark. More templates, publishing on a subdomain, the clean PDF export and the matching tool sit on Qalb Plus at SAR 19 a month; every template, a custom domain, the source-file export and priority support sit on Qalb Pro at SAR 49 a month (SAR 349 a year). This build sells no one-time pack.
 - The value matrix has 10 rows (signup, preview, edit, pdf, count, export, deploy, badge, domain, sell). Each row names the module and function that enforces it, and the test suite rejects a row pointing at a function that does not exist.
-- There is no one-time pack in this build: the subscription is one graded ladder (Free · Plus · Pro) that can be stopped any month, and the yearly prices are SAR 100 and SAR 299. What sits above the subscription is a once-one service: “We publish it for you” — full at SAR 499, delivered within 168 hours.
+- There is no one-time pack in this build: the subscription is one graded ladder (Free · Plus · Pro) that can be stopped any month, and the yearly prices are SAR 3,000 and SAR 5,000. What sits above the subscription is a once-one service: “We publish it for you” — full at SAR 499, delivered within 168 hours.
 - Designer market: a platform commission of 25% per sale (published range 20–30%). Example at SAR 199: commission SAR 49.75, seller net SAR 149.25, shown before the sale completes. Processing fees are deducted by the payment provider (Stripe · Tap · Moyasar), not by us; the displayed figure is a labelled estimate.
 - Payouts: a minimum of SAR 100, and a seller's amount is held 14 days after a sale to reduce refunds. Licence qalb-market-v1: no resale, no sharing, no use across multiple projects without an extra licence; delivered files carry a tracking line with the buyer's name and key.
 - Every submitted template runs a 5-layer automated inspection pipeline: file and code linting (banned extensions, eval/new Function/javascript: URIs, external scripts, path traversal, size ceilings), perceptual-hash image fingerprints, a deterministic policy guard (no LLM call — no model key is wired here), and a verdict from the risk score: 0–59 → accept; 60–84 → quarantine; 85–100 → reject. A listing freezes at 3 ownership reports, and appeals are opened but never closed automatically.
@@ -136,9 +136,9 @@ No VAT registration number, commercial-registration number, IBAN or bank name is
 20 قالبًا منشورًا من ٤٩ إلى ٤٤٩ ريالًا؛ 10 منها يُخرِج مع الموقع سيرةً ذاتيةً بمعايير الفرز الآلي، وهذا الجزءُ وحدَه هو ما تفتحه المقاعدُ المؤسسية: المقعدُ يشتري وثيقةً تقرؤها الآلة، لا زينةً.
 
 ### القوالب
-- أيثر — https://qalb.store/template/aether-portfolio — بورتفوليو للمصممين — نمط داكن — ٢٤٩ ريالًا · موقعٌ فقط
-- أتيلييه — https://qalb.store/template/atelier-photography — قالب للتصوير — الصور تتحدث أولًا — ٢٧٩ ريالًا · موقعٌ فقط
-- نِكسَس — https://qalb.store/template/nexus-engineer — موقع للمهندسين — أرقام قبل الصور — ٢١٩ ريالًا · موقعٌ فقط
+- أيثر — https://qalb.store/template/aether-portfolio — بورتفوليو للمصممين — نمط داكن — ١٩٩ ريالًا · موقعٌ فقط
+- أتيلييه — https://qalb.store/template/atelier-photography — قالب للتصوير — الصور تتحدث أولًا — ٢٤٩ ريالًا · موقعٌ فقط
+- نِكسَس — https://qalb.store/template/nexus-engineer — موقع للمهندسين — أرقام قبل الصور — ١٩٩ ريالًا · موقعٌ فقط
 - فوليو — https://qalb.store/template/folio-minimal — أبسط بداية لمعرض أعمال — ١٤٩ ريالًا · موقعٌ فقط
 - ريل — https://qalb.store/template/reel-motion — موشن وفديو بدون تقطيع — ٢٩٩ ريالًا · موقعٌ فقط
 - كوِل — https://qalb.store/template/quill-writer — موقع للكتّاب — قراءة قبل زخرفة — ١٧٩ ريالًا · موقعٌ فقط
@@ -198,23 +198,23 @@ https://qalb.store/embed — الفاحصُ نفسُه إطارًا واحدًا
 ## الخدماتُ والاشتراكُ والعروضُ الموسمية
 
 خدماتٌ نؤديها نحن في https://qalb.store/services، مُسعَّرةٌ من الجدول نفسه الذي تُحسب به السلة: تركيب الموقع ونطاقك بـ٢٤٩ ريالًا (تُسلَّم بالبريد خلال ٧٢ ساعة عمل)، كتابة السيرة من الصفر بـ٢٩٩ ريالًا (تُسلَّم بالبريد خلال ١٢٠ ساعة عمل)، الهوية كاملة بـ٨٩٩ ريالًا (تُسلَّم بالبريد خلال ٢٤٠ ساعة عمل). تُدفع في السلة نفسها مع القوالب، لكن لا شيء يُسلَّم آليًا: إنسانٌ يقرأ الطلب ويكتب الرد — ولهذا تطبع كلُّ بطاقةٍ مهلةً لا «فورًا».
-اشتراك Qalb Pro في الرئيسية، موازيًا للشراء لمرة واحدة: ٤٩ ريالًا شهريًا أو ٢٩٩ ريالًا سنويًا لكل قوالب المتجر وكل إصدارٍ في أشهر الاشتراك. لا تجديدَ تلقائي ولا بطاقة محفوظة: يصلك تذكيرٌ قبل النهاية والتجديدُ فعلُ المشتري.
+اشتراك Qalb Pro في الرئيسية، موازيًا للشراء لمرة واحدة: ٥٠٠ ريالًا شهريًا أو ٥,٠٠٠ ريالًا سنويًا لكل قوالب المتجر وكل إصدارٍ في أشهر الاشتراك. لا تجديدَ تلقائي ولا بطاقة محفوظة: يصلك تذكيرٌ قبل النهاية والتجديدُ فعلُ المشتري.
 صفحاتُ العروض الموسمية في https://qalb.store/offers: موسم التدريب التعاوني، موسم يوم المهنة، موسم التخرج، بداية السنة الوظيفية — كلٌّ منها يوصي بمنتجاتٍ حقيقية من الكتالوج ويعمل بكوبون FRIEND20.
 الكوبونات التي يعرفها المتجر فعلًا: SALE25 بخصم ٢٥٪، WELCOME10 بخصم ١٠٪، QALB30 بخصم ٣٠٪، FRIEND20 بخصم ٢٠٪، COACH20 بخصم ٢٠٪، COACH30 بخصم ٣٠٪. ورمزُ المدرّب (COACH20/COACH30) يُختم على سجلِّ الطلب فتُسوّى عمولتُه من الدفتر يدويًا — لا عمولة تُحوَّل آليًا.
 إضافاتُ الطلب في السلة والدفع: خطاب تقديم مكتوب بـ٣٩ ريالًا، سيرة مطابقة للإعلان بـ٧٩ ريالًا، مراجعة ATS بشرية بـ١٤٩ ريالًا، تركيب الموقع ونطاقك بـ٢٤٩ ريالًا، ابنِ سيرتك من LinkedIn بـ٣٩ ريالًا، إزالةُ شارة «بُنيَ بقالب» بـ١٩ ريالًا. الخادم يُعيد تسعيرَ كل إضافةٍ من الجدول نفسه ويرفض المجهول منها، كما يفعل مع القوالب تمامًا.
 
 ## الاستضافة الشخصية
 
-صفحةٌ مستضافةٌ على `<الاسم>.qalb.store`: بالمجان مع ١٠ تعديلاتٍ في الشهر وشريطِ العلامة، أو بـ٤٩ ريالًا في الشهر لنطاقِكَ الخاصّ بلا شريطِ علامة وبلا سقفِ تعديل. الصفحاتُ HTML ثابتةٌ تُولَّد من سجلِّ بيانات الطالب نفسِه، فورقةُ A4 المطبوعة والصفحةُ في المتصفح ملفٌّ واحد.
+صفحةٌ مستضافةٌ على `<الاسم>.qalb.store`: بالمجان مع ١٠ تعديلاتٍ في الشهر وشريطِ العلامة، أو بـ٥٠٠ ريالًا في الشهر لنطاقِكَ الخاصّ بلا شريطِ علامة وبلا سقفِ تعديل. الصفحاتُ HTML ثابتةٌ تُولَّد من سجلِّ بيانات الطالب نفسِه، فورقةُ A4 المطبوعة والصفحةُ في المتصفح ملفٌّ واحد.
 
 ## الخططُ المتدرّجة وسوقُ المصممين
 
 - الباقة المجانية: مجانًا · ١ قالبًا · سيرة PDF بعلامة مائية
-- Qalb Plus: ١٩ ريالًا/شهرًا · ٣ قالبًا · نشر مباشر · بلا شارة
-- Qalb Pro: ٤٩ ريالًا/شهرًا · قوالب غير محدودة · نشر مباشر · تصدير ملفات الموقع · نطاق خاص · بلا شارة · يُسمح بالبيع
+- Qalb Plus: ٣٠٠ ريالًا/شهرًا · ٣ قالبًا · نشر مباشر · بلا شارة
+- Qalb Pro: ٥٠٠ ريالًا/شهرًا · قوالب غير محدودة · نشر مباشر · تصدير ملفات الموقع · نطاق خاص · بلا شارة · يُسمح بالبيع
 - الدرجةُ المجانية قالبٌ واحدٌ تُجرّبه وتستخدمه: معاينةٌ حيّةٌ متكاملةٌ للموقع والسيرة، وسيرةُ PDF بعلامةٍ مائية. والقوالبُ الإضافية والنشرُ على رابطٍ فرعي وتصديرُ PDF نظيفٌ وأداةُ المطابقة في Qalb Plus بـ١٩ ريالًا شهريًا؛ وكلُّ القوالب والنطاقُ الخاص وتصديرُ ملفات المصدر وأولويةُ الدعم في Qalb Pro بـ٤٩ ريالًا شهريًا (٣٤٩ سنويًا). ولا باقةَ تُشترى مرة واحدة في هذه النسخة.
 - مصفوفةُ القيمة ١٠ صفوفٍ (signup، preview، edit، pdf، count، export، deploy، badge، domain، sell). كلُّ صفٍّ يحمل اسمَ الوحدة والدالة التي تُنفّذه، والفحصُ يرفض صفًّا يشير إلى دالةٍ غير موجودة.
-- لا باقةً تُشترى مرة واحدة في هذه النسخة: الاشتراكُ درجةٌ واحدة متدرّجة (مجاني · Plus · Pro) تُوقَف في أي شهر، وسنتاها ١٠٠ و٢٩٩ ريالًا. وما فوق الاشتراك خدمةٌ Once-One: «أنشرها لك» — كاملة بـ٤٩٩ ريالًا خلال ١٦٨ ساعة.
+- لا باقةً تُشترى مرة واحدة في هذه النسخة: الاشتراكُ درجةٌ واحدة متدرّجة (مجاني · Plus · Pro) تُوقَف في أي شهر، وسنتاها ٣,٠٠٠ و٥,٠٠٠ ريالًا. وما فوق الاشتراك خدمةٌ Once-One: «أنشرها لك» — كاملة بـ٤٩٩ ريالًا خلال ١٦٨ ساعة.
 - سوقُ المصممين: عمولةُ المنصة ٢٥٪ من كلِّ بيع (المدى المعلَن ٢٠–٣٠٪). مثالٌ على ١٩٩ ريالًا: العمولةُ ٤٩.٧٥ ريالًا، وصافي البائع ١٤٩.٢٥ ريالًا، ويُعرضان قبل إتمام البيع. رسومُ المعالجة يخصمها مزوّدُ الدفع (Stripe · Tap · Moyasar) لا نحن، والمعروضُ تقديرٌ موسوم.
 - السحب: حدٌّ أدنى ١٠٠ ريالًا، ومبلغُ البائع مؤمَّنٌ ١٤ يومًا بعد البيع لتقليل الاسترجاع. الترخيص qalb-market-v1: لا إعادةَ بيع، ولا مشاركة، ولا مشاريعَ متعددةً بلا ترخيصٍ إضافي، والملفاتُ المُسلَّمة تحمل سطرَ تتبّعٍ باسم المشتري ومفتاحه.
 - كلُّ قالبٍ مرفوع يمرُّ بخطِّ فحصٍ آليٍّ من NaN طبقات: فحصُ الملفات والكود (الامتداداتُ المحظورة، وeval وnew Function وروابط javascript:، والسكربتاتُ الخارجية، ومسارات ../، وسقوفُ الحجم)، وبصمةُ الصور الإدراكية، وحارسُ سياسةٍ حتميُّ القواعد (بلا نداءٍ لنموذجِ لغة — لا مفتاحَ موصول هنا)، وقرارٌ من درجةِ الخطر: 0–59 → accept; 60–84 → quarantine; 85–100 → reject. ويتجمّد الإدراجُ عند ٣ بلاغاتِ ملكية، والتظلّمُ يُفتح ولا يُغلق آليًا.

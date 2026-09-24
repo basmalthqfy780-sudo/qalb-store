@@ -126,7 +126,7 @@ try {
   ok('session cookie is HttpOnly + SameSite=Strict', /httponly/i.test(cookie) && /samesite=strict/i.test(cookie), cookie)
   const anon = await call('GET', '/admin/stats')
   ok('admin routes refuse anonymous callers', anon.status === 401, anon.status)
-  const noHdr = await call('PATCH', '/admin/products/aether', { body: { price: 199 }, token: TOKEN, header: false })
+  const noHdr = await call('PATCH', '/admin/products/aether', { body: { price: 179 }, token: TOKEN, header: false })
   ok('mutations without x-qalb-admin are blocked (CSRF guard)', noHdr.status === 403, JSON.stringify(noHdr.json))
   const sess = await call('GET', '/admin/session', { token: TOKEN })
   ok('bearer token authenticates /admin/session', sess.status === 200 && sess.json.user.email === 'boss@qalb.store', JSON.stringify(sess.json))
@@ -137,11 +137,11 @@ try {
   const list = await call('GET', '/admin/products', { token: TOKEN })
   ok(
     'product list returns overrides + limits',
-    list.status === 200 && list.json.limits.max === 99999 && list.json.prices.aether === 249,
+    list.status === 200 && list.json.limits.max === 99999 && list.json.prices.aether === 199,
     JSON.stringify(list.json?.prices?.aether),
   )
-  const patch = await call('PATCH', '/admin/products/aether', { body: { price: 199, download: 'https://dl.qalb.store/aether.zip' }, token: TOKEN })
-  ok('price edit persists to the price table', patch.json?.prices?.aether === 199, JSON.stringify(patch.json?.prices?.aether))
+  const patch = await call('PATCH', '/admin/products/aether', { body: { price: 179, download: 'https://dl.qalb.store/aether.zip' }, token: TOKEN })
+  ok('price edit persists to the price table', patch.json?.prices?.aether === 179, JSON.stringify(patch.json?.prices?.aether))
   const rejected = await call('PATCH', '/admin/products/aether', { body: { price: -3, download: 'javascript:alert(1)' }, token: TOKEN })
   ok(
     'bad price and non-http link are rejected with field errors',
@@ -288,15 +288,15 @@ try {
     JSON.stringify(s.top[0]),
   )
   /* a reprice after a sale must not rewrite what the sale earned */
-  const again = await call('PATCH', '/admin/products/aether', { token: TOKEN, body: { price: '199' } })
-  ok('repricing an already-sold product is accepted', again.status === 200 && again.json.prices?.aether === 199, String(again.json.prices?.aether))
+  const again = await call('PATCH', '/admin/products/aether', { token: TOKEN, body: { price: '179' } })
+  ok('repricing an already-sold product is accepted', again.status === 200 && again.json.prices?.aether === 179, String(again.json.prices?.aether))
   const st2 = await call('GET', '/admin/stats', { token: TOKEN })
   ok(
     'the money already collected stays as paid, not as priced today',
     st2.json.revenue === 150 && st2.json.top[0].revenue === 150,
     JSON.stringify({ rev: st2.json.revenue, top: st2.json.top[0].revenue }),
   )
-  ok('the same row still shows the current price next to it', st2.json.top[0].price === 199, String(st2.json.top[0].price))
+  ok('the same row still shows the current price next to it', st2.json.top[0].price === 179, String(st2.json.top[0].price))
   const ords = await call('GET', '/admin/orders?limit=5', { token: TOKEN })
   ok(
     'the stored order line carries the price that was charged',
@@ -830,8 +830,8 @@ try {
 
     const domFree = await siteCall('PATCH', `/sites/${SLUG}`, { domain: 'noura.sa' }, KEY)
     ok(
-      'hosting: a custom domain on the free plan costs what the storefront says — 49 SAR, on Qalb Pro',
-      domFree.status === 402 && domFree.json.price === 49 && domFree.json.plan === 'free' && /Qalb Pro/.test(domFree.json.error),
+      'hosting: a custom domain on the free plan costs what the storefront says — 500 SAR, on Qalb Pro',
+      domFree.status === 402 && domFree.json.price === 500 && domFree.json.plan === 'free' && /Qalb Pro/.test(domFree.json.error),
       JSON.stringify(domFree.json),
     )
     const selfUpgrade = await siteCall('PATCH', `/sites/${SLUG}`, { plan: 'pro' }, KEY)

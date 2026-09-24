@@ -117,31 +117,34 @@ export const UPSELLS = [
   },
   {
     // ————— اشتراك Qalb Pro — نفسُ درجة الاشتراك في جدول الخطط —————
-    // السعر هنا هو سعرُ الدرجة نفسها في src/data/plans.js (‎49‎ شهريًا / ‎299‎ سنويًا):
+    // السعر هنا هو سعرُ الدرجة نفسها في src/data/plans.js (‎500‎ شهريًا / ‎5000‎ سنويًا):
     // جدولٌ واحدٌ للاشتراك، وهذه نسختُه في السلة — لا رقمَان لنفس المنتج.
     id: 'pro-month',
     groups: ['pro'],
-    price: 49,
+    price: 500,
     icon: 'refresh',
     period: 'month',
     name: { ar: 'Qalb Pro — شهري', en: 'Qalb Pro — monthly' },
-    tagline: { ar: 'كل القوالب والنطاق الخاص وتصدير الملفات', en: 'Every template, your own domain, and the file export' },
+    tagline: {
+      ar: 'كل القوالب والنطاق الخاص وتصدير الملفات (٣ قوالب شهريًا)',
+      en: 'Every template, your own domain, and the file export (3 a month)',
+    },
     desc: {
-      ar: 'اشتراك شهر واحد: كل قوالب المتجر بلا سقف، ربط نطاقك الخاص، تصدير ملفات المصدر كاملة، وأولوية الدعم. لا تجديد تلقائي: نذكّرك قبل نهايته والتجديد بيدك.',
-      en: 'One month of Pro: every template with no ceiling, your own domain connected, the full source-file export, and priority support. No auto-renewal: we remind you before it ends, you renew by hand.',
+      ar: 'اشتراك شهر واحد: كل قوالب المتجر بلا سقف، ربط نطاقك الخاص، تصدير ملفات المصدر لثلاثة قوالب كل شهر، وأولوية الدعم. لا تجديد تلقائي: نذكّرك قبل نهايته والتجديد بيدك.',
+      en: 'One month of Pro: every template with no ceiling, your own domain connected, source-file export for three templates a month, and priority support. No auto-renewal: we remind you before it ends, you renew by hand.',
     },
   },
   {
     id: 'pro-year',
     groups: ['pro'],
-    price: 299,
+    price: 5000,
     icon: 'crown',
     period: 'year',
     name: { ar: 'Qalb Pro — سنوي', en: 'Qalb Pro — yearly' },
-    tagline: { ar: 'سنةٌ كاملة، بسعر ستة أشهر', en: 'A full year, priced at six months' },
+    tagline: { ar: 'سنةٌ كاملة، بسعر عشرة أشهر', en: 'A full year, priced at ten months' },
     desc: {
-      ar: 'سنة كاملة من كل القوالب والنطاق الخاص وتصدير الملفات وأولوية الدعم، بلا تجديد تلقائي — يصلك تذكير قبل الشهر الأخير.',
-      en: 'A full year of every template, your own domain, the file export and priority support, with no auto-renewal — a reminder arrives before your last month.',
+      ar: 'سنة كاملة من كل القوالب والنطاق الخاص وتصدير الملفات (٣ قوالب كل شهر) وأولوية الدعم، بلا تجديد تلقائي — يصلك تذكير قبل الشهر الأخير.',
+      en: 'A full year of every template, your own domain, the file export (three templates a month) and priority support, with no auto-renewal — a reminder arrives before your last month.',
     },
   },
   {
