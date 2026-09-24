@@ -75,10 +75,14 @@ export function createMailApi({ dir, env = process.env } = {}) {
         return { ok: true, queued: false, id: j.id || null }
       } catch (e) {
         // بوّابةٌ مقطوعة: تُكتب الرسالة على القرص بدل أن تضيع
-        await appendFile(FILE, (endsWithNewline(FILE) ? '' : '\n') + JSON.stringify({ ...rec, failed: String(e.message || e).slice(0, 160) }) + '\n', {
-          encoding: 'utf8',
-          mode: PRIVATE,
-        })
+        await appendFile(
+          FILE,
+          (endsWithNewline(FILE) ? '' : '\n') + JSON.stringify({ ...rec, failed: String(e.message || e).slice(0, 160) }) + '\n',
+          {
+            encoding: 'utf8',
+            mode: PRIVATE,
+          },
+        )
         return { ok: false, queued: true, why: String(e.message || e).slice(0, 160) }
       }
     }

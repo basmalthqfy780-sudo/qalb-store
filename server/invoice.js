@@ -65,14 +65,7 @@ export function invoiceHtml(order, { env = process.env, lang = 'ar', payment = n
   const s = seller(env)
   const rows = invoiceLines(order, lang)
   const rate = Number(order.vatRate ?? VAT_RATE) || VAT_RATE
-  const statusLabel =
-    payment?.status === 'paid'
-      ? lang === 'ar'
-        ? 'مدفوعة'
-        : 'Paid'
-      : lang === 'ar'
-        ? 'بانتظار الدفع'
-        : 'Awaiting payment'
+  const statusLabel = payment?.status === 'paid' ? (lang === 'ar' ? 'مدفوعة' : 'Paid') : lang === 'ar' ? 'بانتظار الدفع' : 'Awaiting payment'
   const cell = (k) => (s[k] ? esc(s[k]) : `<span class="pending">قيد التوثيق</span>`)
   const row = (r) =>
     `<tr><td>${esc(r.name)}</td><td class="num">${r.qty}</td><td class="num">${money(r.unit)}</td><td class="num">${money(r.total)}</td></tr>`
@@ -143,9 +136,11 @@ export function invoiceHtml(order, { env = process.env, lang = 'ar', payment = n
     ${lang === 'ar' ? 'طريقة الدفع' : 'Payment method'}: ${esc(order.methodLabel || order.method || '—')}${
       payment?.transferRef ? ` · ${lang === 'ar' ? 'مرجع التحويل' : 'Transfer ref'}: ${esc(payment.transferRef)}` : ''
     }<br>
-    ${lang === 'ar'
-      ? 'الأسعار شاملة ضريبة القيمة المضافة. الترخيص شخصيٌّ لملفٍّ مهنيٍّ واحد، ولا يجوز إعادة بيع القالب أو توزيعه.'
-      : 'Prices include VAT. The licence is personal, for one professional profile; resale or redistribution is not permitted.'}
+    ${
+      lang === 'ar'
+        ? 'الأسعار شاملة ضريبة القيمة المضافة. الترخيص شخصيٌّ لملفٍّ مهنيٍّ واحد، ولا يجوز إعادة بيع القالب أو توزيعه.'
+        : 'Prices include VAT. The licence is personal, for one professional profile; resale or redistribution is not permitted.'
+    }
     ${siteUrl ? `<br>${esc(siteUrl)}` : ''}
   </div>
 </div>
@@ -178,7 +173,9 @@ export function receiptMail(order, { lang = 'ar', payment = null, downloadUrl = 
     '',
     list,
     '',
-    ar ? `الخصم: ${order.coupon ? `${order.coupon} (− ${money(order.discount)})` : '—'}` : `Discount: ${order.coupon ? `${order.coupon} (− ${money(order.discount)})` : '—'}`,
+    ar
+      ? `الخصم: ${order.coupon ? `${order.coupon} (− ${money(order.discount)})` : '—'}`
+      : `Discount: ${order.coupon ? `${order.coupon} (− ${money(order.discount)})` : '—'}`,
     ar ? `الضريبة (١٥٪) من الصافي: ${money(order.vat)}` : `VAT (15%) included: ${money(order.vat)}`,
     ar ? `الإجمالي: ${money(order.total)} ${order.currency || 'SAR'}` : `Total: ${money(order.total)} ${order.currency || 'SAR'}`,
     '',
@@ -205,7 +202,9 @@ export function receiptMail(order, { lang = 'ar', payment = null, downloadUrl = 
           ].join('\n')
       : '',
     '',
-    ar ? 'الترخيص شخصيٌّ لملفٍّ مهنيٍّ واحد، ولا يجوز إعادة البيع.' : 'The licence is personal, for one professional profile; resale is not permitted.',
+    ar
+      ? 'الترخيص شخصيٌّ لملفٍّ مهنيٍّ واحد، ولا يجوز إعادة البيع.'
+      : 'The licence is personal, for one professional profile; resale is not permitted.',
   ]
     .filter(Boolean)
     .join('\n')
@@ -216,14 +215,16 @@ export function receiptMail(order, { lang = 'ar', payment = null, downloadUrl = 
     <ul>${rows.map((r) => `<li>${esc(r.name)} × ${r.qty} — ${money(r.total)}</li>`).join('')}</ul>
     ${downloadUrl ? `<p><a href="${esc(downloadUrl)}">${ar ? 'تحميل القوالب' : 'Download your templates'}</a></p>` : ''}
     ${invoiceUrl ? `<p><a href="${esc(invoiceUrl)}">${ar ? 'الفاتورة' : 'Invoice'}</a></p>` : ''}
-    ${payment?.instructions?.iban
-      ? `<p style="background:#f4f6fa;padding:12px;border-radius:10px">
+    ${
+      payment?.instructions?.iban
+        ? `<p style="background:#f4f6fa;padding:12px;border-radius:10px">
       <b>${ar ? 'تحويل بنكي' : 'Bank transfer'}</b><br>
       ${ar ? 'البنك' : 'Bank'}: ${esc(payment.instructions.bank || '—')}<br>
       IBAN: <b>${esc(payment.instructions.iban)}</b><br>
       ${ar ? 'المبلغ' : 'Amount'}: <b>${money(payment.instructions.amount)} SAR</b><br>
       ${ar ? 'المرجع' : 'Reference'}: <b>${esc(payment.instructions.reference)}</b></p>`
-      : ''}
+        : ''
+    }
     <p style="color:#5b6472;font-size:12.5px">${ar ? 'مفتاح الترخيص' : 'Licence key'}: <code>${esc(order.key)}</code></p>
   </div>`
   return { subject, text, html }

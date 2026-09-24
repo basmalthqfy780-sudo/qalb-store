@@ -56,7 +56,9 @@ const envOf = (env, ...keys) => {
 export function createPaymentsApi({ dir, env = process.env, orders, onPaid } = {}) {
   const FILE = path.join(dir, 'payments.jsonl')
   const secretOf = (p) => envOf(env, `${p.toUpperCase()}_SECRET_KEY`, `QALB_PAY_${p.toUpperCase()}_KEY`)
-  const chosen = String(env.QALB_PAY_PROVIDER || '').trim().toLowerCase()
+  const chosen = String(env.QALB_PAY_PROVIDER || '')
+    .trim()
+    .toLowerCase()
   const provider = PROVIDERS.includes(chosen)
     ? chosen
     : secretOf('moyasar')
@@ -130,7 +132,17 @@ export function createPaymentsApi({ dir, env = process.env, orders, onPaid } = {
       body: JSON.stringify({
         amount: Number(order.total),
         currency,
-        customer: { first_name: String(order.name || 'Qalb').slice(0, 30), email: order.email, phone: { country_code: '966', number: String(order.phone || '').replace(/\D/g, '').slice(-9) || '500000000' } },
+        customer: {
+          first_name: String(order.name || 'Qalb').slice(0, 30),
+          email: order.email,
+          phone: {
+            country_code: '966',
+            number:
+              String(order.phone || '')
+                .replace(/\D/g, '')
+                .slice(-9) || '500000000',
+          },
+        },
         source: { id: 'src_all' },
         redirect: { url: `${siteUrl}/order?id=${encodeURIComponent(order.id)}` },
         reference: { order: order.id, transaction: ref },
@@ -300,7 +312,10 @@ export function createPaymentsApi({ dir, env = process.env, orders, onPaid } = {
       amount: order.total,
       currency,
       status: cur?.status === 'paid' ? 'paid' : 'pending',
-      transferRef: String(transferRef || '').trim().slice(0, 60) || null,
+      transferRef:
+        String(transferRef || '')
+          .trim()
+          .slice(0, 60) || null,
       note: 'buyer reported a bank transfer — awaiting confirmation',
       at: new Date().toISOString(),
     })
@@ -311,7 +326,11 @@ export function createPaymentsApi({ dir, env = process.env, orders, onPaid } = {
   /** توقيع Stripe: `t=<timestamp>,v1=<hmac>` على النصّ الخام — بخمسِ دقائقِ سماح */
   const stripeSignatureOk = (raw, header, secret, tolerance = 300) => {
     if (!header || !secret) return false
-    const parts = Object.fromEntries(String(header).split(',').map((x) => x.split('=')))
+    const parts = Object.fromEntries(
+      String(header)
+        .split(',')
+        .map((x) => x.split('=')),
+    )
     const t = Number(parts.t)
     const v1 = parts.v1 || ''
     if (!t || !v1) return false

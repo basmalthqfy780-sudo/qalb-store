@@ -1531,7 +1531,12 @@ export const today = () => new Date().toISOString().slice(0, 10)
 
 /** هل انتهى الرمز؟ `endsAt: null` = بلا أجل. */
 export const couponExpired = (code, at = today()) => {
-  const c = coupons[String(code || '').trim().toUpperCase()]
+  const c =
+    coupons[
+      String(code || '')
+        .trim()
+        .toUpperCase()
+    ]
   return !!(c && c.endsAt && String(at) > c.endsAt)
 }
 
@@ -1540,7 +1545,9 @@ export const couponExpired = (code, at = today()) => {
  * مكتوبةٍ في صفحةٍ ثانية. `expired` يُحسَب من اليوم، و`daysLeft` صفرٌ إن انتهى.
  */
 export const couponInfo = (code, at = today()) => {
-  const key = String(code || '').trim().toUpperCase()
+  const key = String(code || '')
+    .trim()
+    .toUpperCase()
   const c = coupons[key]
   if (!c) return null
   const expired = !!(c.endsAt && String(at) > c.endsAt)

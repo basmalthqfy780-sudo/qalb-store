@@ -139,12 +139,7 @@ export default function Free() {
                 />
               </label>
               <label className="mt-4 flex items-start gap-2.5">
-                <input
-                  type="checkbox"
-                  checked={wantNews}
-                  onChange={(e) => setWantNews(e.target.checked)}
-                  className="mt-0.5 size-4 accent-brand"
-                />
+                <input type="checkbox" checked={wantNews} onChange={(e) => setWantNews(e.target.checked)} className="mt-0.5 size-4 accent-brand" />
                 <span className="text-[12px] leading-relaxed text-dim">{t('freebie.optIn')}</span>
               </label>
               {err ? (

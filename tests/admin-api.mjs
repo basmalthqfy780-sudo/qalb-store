@@ -1597,7 +1597,11 @@ try {
     )
 
     const ledger = () => (existsSync(join(DATA, 'payments.jsonl')) ? readFileSync(join(DATA, 'payments.jsonl'), 'utf8') : '')
-    ok('payments: the ledger lands private on disk — it carries buyers’ e-mails', modeOf('payments.jsonl') === 0o600, existsSync(join(DATA, 'payments.jsonl')) ? modeOf('payments.jsonl').toString(8) : 'missing')
+    ok(
+      'payments: the ledger lands private on disk — it carries buyers’ e-mails',
+      modeOf('payments.jsonl') === 0o600,
+      existsSync(join(DATA, 'payments.jsonl')) ? modeOf('payments.jsonl').toString(8) : 'missing',
+    )
     ok('payments: one line per event, the order book untouched', ledger().trim().split(NL).length === 1, String(ledger().trim().split(NL).length))
 
     const outbox = () => (existsSync(join(DATA, 'mail.outbox.jsonl')) ? readFileSync(join(DATA, 'mail.outbox.jsonl'), 'utf8') : '')
@@ -1606,15 +1610,27 @@ try {
       /payer@qalb\.store/.test(outbox()) && outbox().includes(String(PRICE)),
       outbox().slice(0, 140),
     )
-    ok('mail: and the outbox is private too', modeOf('mail.outbox.jsonl') === 0o600, existsSync(join(DATA, 'mail.outbox.jsonl')) ? modeOf('mail.outbox.jsonl').toString(8) : 'missing')
+    ok(
+      'mail: and the outbox is private too',
+      modeOf('mail.outbox.jsonl') === 0o600,
+      existsSync(join(DATA, 'mail.outbox.jsonl')) ? modeOf('mail.outbox.jsonl').toString(8) : 'missing',
+    )
 
     const status = await call('GET', `/payments/${ORD}`, { header: false })
-    ok('payments: the status route reads the last line for that order', status.status === 200 && status.json?.status === 'pending', JSON.stringify(status.json).slice(0, 120))
+    ok(
+      'payments: the status route reads the last line for that order',
+      status.status === 200 && status.json?.status === 'pending',
+      JSON.stringify(status.json).slice(0, 120),
+    )
     const ghost = await call('GET', '/payments/QALB-NOPE-0000', { header: false })
     ok('payments: an unknown order answers 404', ghost.status === 404, ghost.status)
 
     const sent = await call('POST', `/payments/${ORD}/transfer`, { body: { ref: 'TX-99120' }, header: false })
-    ok('payments: the buyer’s transfer reference is recorded, not trusted as payment', sent.status === 200 && sent.json?.transferRef === 'TX-99120', JSON.stringify(sent.json).slice(0, 140))
+    ok(
+      'payments: the buyer’s transfer reference is recorded, not trusted as payment',
+      sent.status === 200 && sent.json?.transferRef === 'TX-99120',
+      JSON.stringify(sent.json).slice(0, 140),
+    )
     ok(
       'payments: and recording it does not mark the order paid',
       (await call('GET', `/payments/${ORD}`, { header: false })).json?.status === 'pending',
@@ -1626,7 +1642,11 @@ try {
     const wrongKey = await call('GET', `/orders/${ORD}/invoice?key=WRONG-KEY-0000`, { header: false, raw: true })
     ok('invoice: and with a wrong key', wrongKey.status === 403, wrongKey.status)
     const inv = await call('GET', `/orders/${ORD}/invoice?key=${encodeURIComponent(buy.json.key)}`, { header: false, raw: true })
-    ok('invoice: the right key opens a printable HTML invoice', inv.status === 200 && /text\/html/.test(inv.headers.get('content-type') || ''), `${inv.status} ${inv.headers.get('content-type')}`)
+    ok(
+      'invoice: the right key opens a printable HTML invoice',
+      inv.status === 200 && /text\/html/.test(inv.headers.get('content-type') || ''),
+      `${inv.status} ${inv.headers.get('content-type')}`,
+    )
     ok(
       'invoice: it prints the order id, the total and the licence key',
       inv.text.includes(ORD) && inv.text.includes(PRICE.toFixed(2)) && inv.text.includes(buy.json.key),
@@ -1646,17 +1666,22 @@ try {
       header: false,
     })
     ok('payments: a forged webhook without a signature is refused (401)', forged.status === 401, JSON.stringify(forged.json))
-    ok(
-      'payments: and the refused webhook marked nothing paid',
-      (await call('GET', `/payments/${ORD}`, { header: false })).json?.status === 'pending',
-    )
+    ok('payments: and the refused webhook marked nothing paid', (await call('GET', `/payments/${ORD}`, { header: false })).json?.status === 'pending')
     const unknownHook = await call('POST', '/payments/webhook/moyasar', { body: { status: 'paid', id: 'x' }, header: false })
     ok('payments: an unsigned gateway notice is not taken at its word', unknownHook.status === 401, JSON.stringify(unknownHook.json))
 
     /* القبض: طريقُ الخادم (بلا بوّابة) يُثبت أن التسليم والبريد يتبعان الدفع */
     const paid = await call('POST', `/payments/${ORD}/transfer`, { body: { ref: 'TX-99120' }, header: false })
-    ok('payments: the ledger keeps every event, the last line is the state', paid.status === 200 && ledger().trim().split(NL).length >= 3, String(ledger().trim().split(NL).length))
-    ok('health: the service reports its payment provider and its mail path', h.payments?.provider === 'manual' && !!h.mail?.provider, JSON.stringify({ p: h.payments, m: h.mail }))
+    ok(
+      'payments: the ledger keeps every event, the last line is the state',
+      paid.status === 200 && ledger().trim().split(NL).length >= 3,
+      String(ledger().trim().split(NL).length),
+    )
+    ok(
+      'health: the service reports its payment provider and its mail path',
+      h.payments?.provider === 'manual' && !!h.mail?.provider,
+      JSON.stringify({ p: h.payments, m: h.mail }),
+    )
   }
 
   /* --- throttling --- */

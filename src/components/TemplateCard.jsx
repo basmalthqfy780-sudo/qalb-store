@@ -63,11 +63,7 @@ export default function TemplateCard({ tpl, onQuick, className = '' }) {
         <Heart id={tpl.id} className="pointer-events-auto" />
       </div>
 
-      <Link
-        to={`/template/${tpl.slug}`}
-        className="relative block overflow-hidden rounded-xl"
-        aria-label={`${t('card.view')} — ${L(tpl.name)}`}
-      >
+      <Link to={`/template/${tpl.slug}`} className="relative block overflow-hidden rounded-xl" aria-label={`${t('card.view')} — ${L(tpl.name)}`}>
         <Preview tpl={tpl} device="desktop" className="transition-transform duration-500 group-hover:scale-[1.02]" style={{ borderRadius: 10 }} />
         <span className="pointer-events-none absolute inset-x-0 bottom-0 flex h-1/2 items-end justify-center bg-gradient-to-t from-black/50 to-transparent p-2 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
           <button
@@ -97,13 +93,13 @@ export default function TemplateCard({ tpl, onQuick, className = '' }) {
 
         {/* ٣. السعر — رقمٌ كبير، والقديمُ مشطوبًا بجانبه، وما يُسلَّم مقابله */}
         <p data-tpl-price className="mt-2.5 flex flex-wrap items-baseline gap-x-1 gap-y-0.5 text-[12px]">
-          <Money v={tpl.price} size="text-[19px]" />{' '}
-          <span className="font-bold text-dim">·</span> <span className="font-bold text-brand">{t('card.livePreview')}</span>
+          <Money v={tpl.price} size="text-[19px]" /> <span className="font-bold text-dim">·</span>{' '}
+          <span className="font-bold text-brand">{t('card.livePreview')}</span>
           {tpl.oldPrice ? (
             <>
               {' '}
-              <span className="font-bold text-dim">·</span>{' '}
-              <span className="num font-medium text-dim line-through">{tpl.oldPrice}</span> <span className="text-[10.5px] text-dim">{t('card.priceWas')}</span>
+              <span className="font-bold text-dim">·</span> <span className="num font-medium text-dim line-through">{tpl.oldPrice}</span>{' '}
+              <span className="text-[10.5px] text-dim">{t('card.priceWas')}</span>
             </>
           ) : (
             <>

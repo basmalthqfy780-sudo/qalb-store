@@ -63,10 +63,17 @@ export function createSubscribersApi({ dir, env = process.env, orders = async ()
     return rows
   }
 
-  const ipOf = (req) => String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket?.remoteAddress || ''
+  const ipOf = (req) =>
+    String(req.headers['x-forwarded-for'] || '')
+      .split(',')[0]
+      .trim() ||
+    req.socket?.remoteAddress ||
+    ''
 
   async function subscribe({ email, name, source, locale }) {
-    const who = String(email || '').trim().toLowerCase()
+    const who = String(email || '')
+      .trim()
+      .toLowerCase()
     if (!MAIL_RE.test(who)) return { ok: false, why: 'bad email' }
     const subs = await loadSubs()
     const first = !subs.some((s) => s.email === who)
@@ -75,7 +82,10 @@ export function createSubscribersApi({ dir, env = process.env, orders = async ()
       (endsWithNewline(FILE) ? '' : '\n') +
         JSON.stringify({
           email: who,
-          name: String(name || '').trim().slice(0, 80) || null,
+          name:
+            String(name || '')
+              .trim()
+              .slice(0, 80) || null,
           source: String(source || 'newsletter').slice(0, 40),
           locale: String(locale || 'ar').slice(0, 5),
           at: new Date().toISOString(),
@@ -91,19 +101,35 @@ export function createSubscribersApi({ dir, env = process.env, orders = async ()
    * تمرّ في `extra` لأنها ثمنُ شيءٍ نمنحه نحن، لا خصمًا يختاره الزائر.
    */
   async function claim({ email, name, template }) {
-    const who = String(email || '').trim().toLowerCase()
+    const who = String(email || '')
+      .trim()
+      .toLowerCase()
     if (!MAIL_RE.test(who)) return { ok: false, why: 'bad email' }
     const id = String(template || FREE).trim()
     const all = await orders()
-    const before = all.find((o) => String(o.email || '').toLowerCase() === who && Array.isArray(o.lines) && o.lines.some((l) => l.id === id) && o.source === 'lead-magnet')
-    const order = before || (await makeOrder({ email: who, name: String(name || '').trim() || 'صديق قالب', total: 0, lines: [{ id, qty: 1 }], method: 'free', methodLabel: 'قالب مجاني' }, { couponPct: 100, coupon: 'FREE-TEMPLATE', source: 'lead-magnet' }))
+    const before = all.find(
+      (o) => String(o.email || '').toLowerCase() === who && Array.isArray(o.lines) && o.lines.some((l) => l.id === id) && o.source === 'lead-magnet',
+    )
+    const order =
+      before ||
+      (await makeOrder(
+        { email: who, name: String(name || '').trim() || 'صديق قالب', total: 0, lines: [{ id, qty: 1 }], method: 'free', methodLabel: 'قالب مجاني' },
+        { couponPct: 100, coupon: 'FREE-TEMPLATE', source: 'lead-magnet' },
+      ))
     await subscribe({ email: who, name, source: 'free-template' })
     return {
       ok: true,
       repeat: !!before,
       template: id,
       order: { id: order.id, key: order.key, date: order.date, total: order.total },
-      download: `${apiPublic}/download/${encodeURIComponent(id)}?order=${encodeURIComponent(order.id)}&key=${encodeURIComponent(order.key)}`,
+      /**
+       * رابطٌ نسبيّ لا مطلق: المتصفحُ يخاطب الخادم من نفس الأصل (وكيلٌ في التطوير،
+       * ونطاقٌ واحد في الإنتاج). ولو كتبنا هنا مضيفًا بعينه لانكسر الرابط عند كل
+       * نشرٍ على نطاقٍ آخر — ولأخذ الزائر إلى عنوانٍ لا يملكه أحد من الخارج.
+       */
+      download: `/download/${encodeURIComponent(id)}?order=${encodeURIComponent(order.id)}&key=${encodeURIComponent(order.key)}`,
+      /** والنسخةُ المطلقة للبريد وحده: من يفتح الرسالة ليس على أصل الموقع، فلا يصلح فيها مسارٌ نسبيّ */
+      downloadUrl: `${apiPublic}/download/${encodeURIComponent(id)}?order=${encodeURIComponent(order.id)}&key=${encodeURIComponent(order.key)}`,
     }
   }
 
@@ -117,7 +143,8 @@ export function createSubscribersApi({ dir, env = process.env, orders = async ()
 
   async function handle(req, res, u) {
     if (req.method !== 'POST') return false
-    if (u.pathname !== '/subscribe' && u.pathname !== '/free') return false
+    // تحت /api: فالمسار /free صفحةٌ في المتجر، ولو حُوِّل إلى الخادم لابتلعها الوكيل
+    if (u.pathname !== '/api/subscribe' && u.pathname !== '/api/free') return false
     if (throttled(ipOf(req))) return (json(res, 429, { ok: false, error: 'too many requests — wait a minute' }), true)
     const raw = await new Promise((r) => {
       let b = ''
@@ -130,7 +157,7 @@ export function createSubscribersApi({ dir, env = process.env, orders = async ()
     } catch {
       return (json(res, 400, { ok: false, error: 'json body required' }), true)
     }
-    if (u.pathname === '/subscribe') {
+    if (u.pathname === '/api/subscribe') {
       const r = await subscribe(body)
       return (json(res, r.ok ? 201 : 400, r), true)
     }

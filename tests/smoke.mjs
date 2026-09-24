@@ -2058,17 +2058,26 @@ for (const c of cases) {
   ok(
     'every card carries a name, a description and a price — none of them empty',
     parts.length > 0 && parts.every((x) => x.name.length > 0 && x.desc.length > 8 && x.price.length > 0),
-    parts.filter((x) => !x.name || x.desc.length <= 8 || !x.price).map((x) => x.id).join(','),
+    parts
+      .filter((x) => !x.name || x.desc.length <= 8 || !x.price)
+      .map((x) => x.id)
+      .join(','),
   )
   ok(
     'the name is never glued to the description in one element',
     parts.every((x) => !x.name.includes(x.desc) && !x.desc.includes(x.name)),
-    parts.filter((x) => x.name.includes(x.desc) || x.desc.includes(x.name)).map((x) => `${x.id}:${x.name}`).join(' | '),
+    parts
+      .filter((x) => x.name.includes(x.desc) || x.desc.includes(x.name))
+      .map((x) => `${x.id}:${x.name}`)
+      .join(' | '),
   )
   ok(
     'and the description never swallows the price',
     parts.every((x) => !x.desc.includes(String(byId(x.id)?.price))),
-    parts.filter((x) => x.desc.includes(String(byId(x.id)?.price))).map((x) => x.id).join(','),
+    parts
+      .filter((x) => x.desc.includes(String(byId(x.id)?.price)))
+      .map((x) => x.id)
+      .join(','),
   )
   ok(
     'the price on the card is the price in the catalogue, printed with its currency',
@@ -2076,7 +2085,10 @@ for (const c of cases) {
       const tpl = byId(x.id)
       return tpl && x.price.replace(/\s/g, '').includes(String(tpl.price)) && /ر\.س|SAR/.test(x.price)
     }),
-    parts.map((x) => `${x.id}:${x.price}`).slice(0, 3).join(' | '),
+    parts
+      .map((x) => `${x.id}:${x.price}`)
+      .slice(0, 3)
+      .join(' | '),
   )
   ok(
     'the old price is struck through beside the new one, when there is one',
@@ -2084,7 +2096,10 @@ for (const c of cases) {
       const tpl = byId(x.id)
       return !tpl.oldPrice || x.price.includes(String(tpl.oldPrice))
     }),
-    parts.filter((x) => byId(x.id)?.oldPrice && !x.price.includes(String(byId(x.id).oldPrice))).map((x) => x.id).join(','),
+    parts
+      .filter((x) => byId(x.id)?.oldPrice && !x.price.includes(String(byId(x.id).oldPrice)))
+      .map((x) => x.id)
+      .join(','),
   )
   ok(
     'fields are parted by a written separator, so a linear read never welds them together',
@@ -2093,8 +2108,7 @@ for (const c of cases) {
   )
   ok(
     'the card says what the price buys: a live preview and the licence',
-    parts.every((x) => /معاينة حية/.test(x.price)) &&
-      cards.every((c) => /ترخيص/.test(c.querySelector('[data-tpl-licence]')?.textContent || '')),
+    parts.every((x) => /معاينة حية/.test(x.price)) && cards.every((c) => /ترخيص/.test(c.querySelector('[data-tpl-licence]')?.textContent || '')),
     (cards[0]?.querySelector('[data-tpl-licence]')?.textContent || '').trim(),
   )
 
@@ -2103,7 +2117,9 @@ for (const c of cases) {
   ok('a card links to its own detail page', !!card?.querySelector(`a[href="/template/${byId('nova').slug}"]`))
   ok(
     'and that link is labelled “view the template”, not an icon alone',
-    [...(card?.querySelectorAll('a') || [])].some((a) => a.getAttribute('href') === `/template/${byId('nova').slug}` && /عرض القالب/.test(a.textContent || '')),
+    [...(card?.querySelectorAll('a') || [])].some(
+      (a) => a.getAttribute('href') === `/template/${byId('nova').slug}` && /عرض القالب/.test(a.textContent || ''),
+    ),
   )
   const addBtn = [...(card?.querySelectorAll('button') || [])].find((b) => /أضف إلى السلة/.test(b.textContent || ''))
   ok('the second action adds to the cart', !!addBtn)
@@ -2115,10 +2131,7 @@ for (const c of cases) {
     !!after?.querySelector('a[href="/cart"]') && /في السلة/.test(after?.querySelector('a[href="/cart"]')?.textContent || ''),
     (after?.textContent || '').replace(/\s+/g, ' ').slice(-60),
   )
-  ok(
-    'the two states look different in the markup, not only in the label',
-    after?.querySelector('a[href="/cart"]')?.className !== addBtn?.className,
-  )
+  ok('the two states look different in the markup, not only in the label', after?.querySelector('a[href="/cart"]')?.className !== addBtn?.className)
   g.dom.window.close()
 
   /* ——— الإنجليزية: الفصلُ نفسه، لا نسخةٌ عربيةٌ واحدة ——— */

@@ -495,7 +495,10 @@ export default function Navbar() {
             {/* درجُ الجوال يجمع روابط المنصة كلَّها كما تجمعها قائمة ☰ على الشاشات الكبيرة */}
             <p className="flex items-center gap-2 px-1 pb-2 pt-4 text-[11px] font-bold uppercase tracking-[0.14em] text-dim">
               {t('footer.careers')}
-              <span className="num rounded-md border border-brand/25 bg-brand/10 px-1.5 py-0.5 text-[10px] font-bold text-brand" data-menu-tools-count>
+              <span
+                className="num rounded-md border border-brand/25 bg-brand/10 px-1.5 py-0.5 text-[10px] font-bold text-brand"
+                data-menu-tools-count
+              >
                 {MENU_TOOLS.length} {t('nav.tools')}
               </span>
             </p>

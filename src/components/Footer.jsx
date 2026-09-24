@@ -240,9 +240,7 @@ function Newsletter() {
             <Icon n="check" className="size-4" sw={2.4} />
             {onServer ? t('footer.subscribedServer') : t('footer.subscribed')}
           </p>
-          <p className="mt-2 text-[11.5px] leading-relaxed text-dim">
-            {onServer ? t('footer.newsletterServerNote') : t('footer.newsletterNote')}
-          </p>
+          <p className="mt-2 text-[11.5px] leading-relaxed text-dim">{onServer ? t('footer.newsletterServerNote') : t('footer.newsletterNote')}</p>
           <Btn
             size="sm"
             variant="outline"

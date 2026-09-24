@@ -145,9 +145,7 @@ export default function Pricing() {
                   {t('plans.publishPlanCta')}
                   <Icon n="arrow" className="size-4 rtl:-scale-x-100" />
                 </Btn>
-                <p className="text-[11.5px] leading-relaxed text-dim">
-                  {t('plans.publishPlanNote', { y: num(publishPlan?.yearly || 0) })}
-                </p>
+                <p className="text-[11.5px] leading-relaxed text-dim">{t('plans.publishPlanNote', { y: num(publishPlan?.yearly || 0) })}</p>
               </div>
             </article>
           </Reveal>

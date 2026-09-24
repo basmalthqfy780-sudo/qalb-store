@@ -26,7 +26,13 @@ const env = (k) => {
 }
 
 export const BASE = (env('VITE_QALB_API_BASE') || '').replace(/\/+$/, '')
-export const apiMode = env('VITE_QALB_API') === 'rest' && BASE ? 'rest' : 'local'
+/**
+ * الوضع: `rest` متى طُلب صراحةً، و`local` بخلافه. والقاعدةُ قديمًا كانت تشترط
+ * عنوانًا (BASE) مع `rest`، فيسقط المتجر إلى الوضع المحلي عند تركه فارغًا —
+ * مع أنّ تركه فارغًا هو بالضبط ما يجعل الطلبات تخرج من نفس الأصل (وكيلُ Vite
+ * للتطوير، ونفس النطاق في الإنتاج). فالعنوان الفارغ معناه «نفس الأصل»، لا غيابُه.
+ */
+export const apiMode = env('VITE_QALB_API') === 'rest' ? 'rest' : 'local'
 
 const ORDERS = 'qalb.orders.v1'
 const LAST = 'qalb.lastOrder'
@@ -168,7 +174,10 @@ export async function fetchPayment(orderId) {
 export async function reportTransfer(orderId, ref) {
   if (apiMode !== 'rest' || !orderId) return null
   try {
-    return await rest(`/payments/${encodeURIComponent(orderId)}/transfer`, { method: 'POST', body: JSON.stringify({ ref: String(ref || '').trim() }) })
+    return await rest(`/payments/${encodeURIComponent(orderId)}/transfer`, {
+      method: 'POST',
+      body: JSON.stringify({ ref: String(ref || '').trim() }),
+    })
   } catch {
     return null
   }
@@ -188,7 +197,7 @@ export const invoiceHref = (order) =>
 export async function subscribe(email, meta = {}) {
   if (apiMode !== 'rest' || !email) return null
   try {
-    return await rest('/subscribe', {
+    return await rest('/api/subscribe', {
       method: 'POST',
       body: JSON.stringify({ email, name: meta.name || null, source: meta.source || 'newsletter', locale: meta.locale || 'ar' }),
     })
@@ -205,7 +214,7 @@ export async function subscribe(email, meta = {}) {
 export async function claimFree(email, name, template) {
   if (apiMode !== 'rest' || !email) return null
   try {
-    return await rest('/free', { method: 'POST', body: JSON.stringify({ email, name: name || null, template: template || null }) })
+    return await rest('/api/free', { method: 'POST', body: JSON.stringify({ email, name: name || null, template: template || null }) })
   } catch {
     return null
   }

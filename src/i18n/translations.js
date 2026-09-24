@@ -2428,10 +2428,12 @@ export const dict = {
       paid: 'Paid',
       pending: 'Awaiting payment',
       paidNote: 'We received payment for this order. The download links below are open and the invoice is ready to print.',
-      gatewayNote: 'We opened a payment session with the gateway. Complete the payment there, then come back and press “check” to refresh the status.',
+      gatewayNote:
+        'We opened a payment session with the gateway. Complete the payment there, then come back and press “check” to refresh the status.',
       payNow: 'Pay now',
       recheck: 'Check status',
-      transferNote: 'Transfer the amount to the account below within {hours} hours, then enter your transfer reference. The reference is your order number.',
+      transferNote:
+        'Transfer the amount to the account below within {hours} hours, then enter your transfer reference. The reference is your order number.',
       bank: 'Bank',
       iban: 'IBAN',
       holder: 'Account name',
@@ -2456,7 +2458,8 @@ export const dict = {
       i3: 'No card, no renewal: the e-mail is the whole price',
       i4: 'A signed download link, valid ten minutes, used once',
       newsletterTitle: 'The newsletter? Your choice, not a condition',
-      newsletterSub: 'One e-mail every Sunday: a successful portfolio taken apart, one performance lesson, and a new template when it ships. Your address is used for the newsletter alone — never sold, never shared.',
+      newsletterSub:
+        'One e-mail every Sunday: a successful portfolio taken apart, one performance lesson, and a new template when it ships. Your address is used for the newsletter alone — never sold, never shared.',
       mail: 'E-mail',
       name: 'Name (optional)',
       optIn: 'Add me to the “professional files” letter — one e-mail a week, one click to leave.',
@@ -2471,7 +2474,8 @@ export const dict = {
       key: 'Licence key',
       note: 'The link is minted per order: signed, valid for ten minutes, used once — and you can mint another from the order-tracking page with your order number and key.',
       track: 'Track the order or re-issue the link',
-      localNote: 'This build runs without a server, so the page cannot mint a signed download link. Write to us and we will send you the template by e-mail, free.',
+      localNote:
+        'This build runs without a server, so the page cannot mint a signed download link. Write to us and we will send you the template by e-mail, free.',
       privacy: 'Your address is for delivery and the newsletter only — never sold or shared, and you can ask us to delete it at any time.',
       browse: 'Browse every template',
     },
