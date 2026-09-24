@@ -75,7 +75,7 @@ export async function buildLlms({ site = 'https://qalb.store' } = {}) {
   const { SUPPORT_MAIL, SUPPORT_PHONE, BOOKING_URL } = await imp('src/data/contact.js')
   const { PLANS } = await imp('src/data/hosting.js')
   // نموذج الربح: الخطط ومصفوفة القيمة، وقواعد السوق (العمولة، التأمين، الحد الأدنى)
-  const { PLANS: TIERS, FEATURE_MATRIX, ONE_TIME, PUBLISH_DONE } = await imp('src/data/plans.js')
+  const { PLANS: TIERS, FEATURE_MATRIX, PUBLISH_DONE } = await imp('src/data/plans.js')
   const { COMMISSION, MIN_PAYOUT, ESCROW_DAYS, REPORT_FREEZE, split: splitPrice, LICENCE } = await imp('src/data/marketplace.js')
   const { BANDS, LAYERS } = await imp('src/data/inspect.js')
   const { offers } = await imp('src/data/offers.js')
@@ -239,11 +239,11 @@ export async function buildLlms({ site = 'https://qalb.store' } = {}) {
       .join(
         ', ',
       )}. They are paid in the same cart as templates, but nothing is auto-delivered: a person reads the order and writes the reply, which is why each card prints a deadline instead of “instant”.`,
-    `Qalb Pro on the home page, beside buying once: ${proPlans()
-      .map((x) => `SAR ${num(x.price)} ${x.period === 'month' ? 'monthly' : 'yearly'}`)
+    `One subscription table, shown by the same component on the home page and on ${U('/pricing')}: ${proPlans()
+      .map((x) => `SAR ${num(x.price)} ${x.period === 'month' ? 'a month' : 'a year'}`)
       .join(
         ' or ',
-      )} for every template in the store and every release during the subscription. There is no auto-renewal and no card on file: a reminder is sent before it ends, and renewing is the buyer’s own action.`,
+      )} for every template, a custom domain, the source-file export and priority support. There is no auto-renewal and no card on file: a reminder is sent before it ends, and renewing is the buyer’s own action.`,
     `Seasonal offer pages on ${U('/offers')}: ${offers
       .map((o) => `${o.title.en} (${o.months.map((m) => m).join('/')})`)
       .join('; ')} — each recommends real catalogue products and runs on the coupon FRIEND20.`,
@@ -264,12 +264,12 @@ export async function buildLlms({ site = 'https://qalb.store' } = {}) {
       pro.editQuota == null ? ' and no edit ceiling' : ` and ${pro.editQuota} edits`
     }. Pages are static HTML generated from the same record as the CV, so the printed A4 sheet and the browser page are the same file.`,
     '',
-    '## Plans, the free first template, and the designer market',
+    '## Graded subscription tiers and the designer market',
     '',
     `- ${tiersLine}`,
-    `- The free plan is one complete template: full text and data editing, a live preview on \`<name>.qalb.store\`, and a résumé PDF carrying a watermark. The second template, professional publishing, a watermark-free export, and selling all sit behind a plan.`,
+    `- The free tier is one template to try and use: a full live preview of the site and the résumé, and a résumé PDF carrying a watermark. More templates, publishing on a subdomain, the clean PDF export and the matching tool sit on Qalb Plus at SAR 19 a month; every template, a custom domain, the source-file export and priority support sit on Qalb Pro at SAR 49 a month (SAR 349 a year). This build sells no one-time pack.`,
     `- The value matrix has ${FEATURE_MATRIX.length} rows (${FEATURE_MATRIX.map((r) => r.id).join(', ')}). Each row names the module and function that enforces it, and the test suite rejects a row pointing at a function that does not exist.`,
-    `- One-time alternative: ${ONE_TIME.name.en} at SAR ${num(ONE_TIME.price)} — one template, a personal licence, the source files, and ${ONE_TIME.updatesMonths} months of updates. Publish-it-for-you service: ${PUBLISH_DONE.name.en} at SAR ${num(PUBLISH_DONE.price)}, delivered within ${num(PUBLISH_DONE.hours)} hours.`,
+    `- There is no one-time pack in this build: the subscription is one graded ladder (Free · Plus · Pro) that can be stopped any month, and the yearly prices are SAR ${num(TIERS.find((t) => t.id === 'plus').yearly)} and SAR ${num(TIERS.find((t) => t.id === 'pro').yearly)}. What sits above the subscription is a once-one service: ${PUBLISH_DONE.name.en} at SAR ${num(PUBLISH_DONE.price)}, delivered within ${num(PUBLISH_DONE.hours)} hours.`,
     `- Designer market: a platform commission of ${Math.round(COMMISSION * 100)}% per sale (published range 20–30%). Example at SAR 199: commission SAR ${num(sampleSplit.commission)}, seller net SAR ${num(sampleSplit.sellerNet)}, shown before the sale completes. Processing fees are deducted by the payment provider (Stripe · Tap · Moyasar), not by us; the displayed figure is a labelled estimate.`,
     `- Payouts: a minimum of SAR ${num(MIN_PAYOUT)}, and a seller's amount is held ${ESCROW_DAYS} days after a sale to reduce refunds. Licence ${LICENCE.id}: no resale, no sharing, no use across multiple projects without an extra licence; delivered files carry a tracking line with the buyer's name and key.`,
     `- Every submitted template runs a ${LAYERS.length}-layer automated inspection pipeline: file and code linting (banned extensions, eval/new Function/javascript: URIs, external scripts, path traversal, size ceilings), perceptual-hash image fingerprints, a deterministic policy guard (no LLM call — no model key is wired here), and a verdict from the risk score: ${bandsLine}. A listing freezes at ${REPORT_FREEZE} ownership reports, and appeals are opened but never closed automatically.`,
@@ -288,7 +288,7 @@ export async function buildLlms({ site = 'https://qalb.store' } = {}) {
     '',
     '## Index',
     '',
-    `- E-mail: ${SUPPORT_MAIL}\n- Legal, licence and refund terms: ${U('/legal')}\n- Catalogue: ${U('/templates')}\n- ATS checker: ${U('/ats')}\n- Done-for-you services: ${U('/services')}\n- Seasonal offers: ${U('/offers')}\n- Institutional seats and cohort measurement: ${U('/b2b')}\n- Hosting: ${U('/host')}\n- Plans and the value matrix: ${U('/pricing')}\n- Build your first template free: ${U('/create')}\n- Designer market: ${U('/creators')}\n- Journal (CV and portfolio guides): ${U('/blog')}\n- Track an order: ${U(
+    `- E-mail: ${SUPPORT_MAIL}\n- Legal, licence and refund terms: ${U('/legal')}\n- Catalogue: ${U('/templates')}\n- ATS checker: ${U('/ats')}\n- Done-for-you services: ${U('/services')}\n- Seasonal offers: ${U('/offers')}\n- Institutional seats and cohort measurement: ${U('/b2b')}\n- Hosting: ${U('/host')}\n- Plans and the value matrix: ${U('/pricing')}\n- Pick a template and build your page free: ${U('/templates')}\n- Designer market: ${U('/creators')}\n- Journal (CV and portfolio guides): ${U('/blog')}\n- Track an order: ${U(
       '/track',
     )}\n- Verify a licence key: ${U('/licence')}\n- Sitemap: ${U('/sitemap.xml')}\n- Crawling rules: ${U('/robots.txt')}`,
     '',
@@ -387,12 +387,12 @@ export async function buildLlms({ site = 'https://qalb.store' } = {}) {
       pro.editQuota == null ? ' وبلا سقفِ تعديل' : ` و${arNum(pro.editQuota)} تعديلًا`
     }. الصفحاتُ HTML ثابتةٌ تُولَّد من سجلِّ بيانات الطالب نفسِه، فورقةُ A4 المطبوعة والصفحةُ في المتصفح ملفٌّ واحد.`,
     '',
-    '## الخططُ والقالبُ الأول المجانيّ وسوقُ المصممين',
+    '## الخططُ المتدرّجة وسوقُ المصممين',
     '',
     `- ${tiersLineAr}`,
-    `- الخطةُ المجانية قالبٌ واحدٌ كامل: تعديلُ النصوص والبيانات، ومعاينةٌ حيّة على \`اسمك.qalb.store\`، وسيرةُ PDF بعلامةٍ مائية. القالبُ الثاني والنشرُ الاحترافي والتصديرُ بلا علامةٍ والبيعُ — كلُّها خلف اشتراك.`,
+    `- الدرجةُ المجانية قالبٌ واحدٌ تُجرّبه وتستخدمه: معاينةٌ حيّةٌ متكاملةٌ للموقع والسيرة، وسيرةُ PDF بعلامةٍ مائية. والقوالبُ الإضافية والنشرُ على رابطٍ فرعي وتصديرُ PDF نظيفٌ وأداةُ المطابقة في Qalb Plus بـ١٩ ريالًا شهريًا؛ وكلُّ القوالب والنطاقُ الخاص وتصديرُ ملفات المصدر وأولويةُ الدعم في Qalb Pro بـ٤٩ ريالًا شهريًا (٣٤٩ سنويًا). ولا باقةَ تُشترى مرة واحدة في هذه النسخة.`,
     `- مصفوفةُ القيمة ${arNum(FEATURE_MATRIX.length)} صفوفٍ (${FEATURE_MATRIX.map((r) => r.id).join('، ')}). كلُّ صفٍّ يحمل اسمَ الوحدة والدالة التي تُنفّذه، والفحصُ يرفض صفًّا يشير إلى دالةٍ غير موجودة.`,
-    `- بديلٌ بلا اشتراك: ${ONE_TIME.name.ar} بـ${arNum(ONE_TIME.price)} ريالًا — قالبٌ وترخيصٌ شخصيٌّ وملفاتُ المصدر وتحديثاتُ ${arNum(ONE_TIME.updatesMonths)} شهرًا. وخدمةُ النشر: ${PUBLISH_DONE.name.ar} بـ${arNum(PUBLISH_DONE.price)} ريالًا خلال ${arNum(PUBLISH_DONE.hours)} ساعة.`,
+    `- لا باقةً تُشترى مرة واحدة في هذه النسخة: الاشتراكُ درجةٌ واحدة متدرّجة (مجاني · Plus · Pro) تُوقَف في أي شهر، وسنتاها ${arNum(TIERS.find((t) => t.id === 'plus').yearly)} و${arNum(TIERS.find((t) => t.id === 'pro').yearly)} ريالًا. وما فوق الاشتراك خدمةٌ Once-One: ${PUBLISH_DONE.name.ar} بـ${arNum(PUBLISH_DONE.price)} ريالًا خلال ${arNum(PUBLISH_DONE.hours)} ساعة.`,
     `- سوقُ المصممين: عمولةُ المنصة ${arNum(Math.round(COMMISSION * 100))}٪ من كلِّ بيع (المدى المعلَن ٢٠–٣٠٪). مثالٌ على ١٩٩ ريالًا: العمولةُ ${arNum(sampleSplit.commission)} ريالًا، وصافي البائع ${arNum(sampleSplit.sellerNet)} ريالًا، ويُعرضان قبل إتمام البيع. رسومُ المعالجة يخصمها مزوّدُ الدفع (Stripe · Tap · Moyasar) لا نحن، والمعروضُ تقديرٌ موسوم.`,
     `- السحب: حدٌّ أدنى ${arNum(MIN_PAYOUT)} ريالًا، ومبلغُ البائع مؤمَّنٌ ${arNum(ESCROW_DAYS)} يومًا بعد البيع لتقليل الاسترجاع. الترخيص ${LICENCE.id}: لا إعادةَ بيع، ولا مشاركة، ولا مشاريعَ متعددةً بلا ترخيصٍ إضافي، والملفاتُ المُسلَّمة تحمل سطرَ تتبّعٍ باسم المشتري ومفتاحه.`,
     `- كلُّ قالبٍ مرفوع يمرُّ بخطِّ فحصٍ آليٍّ من ${arNum(LAYERS)} طبقات: فحصُ الملفات والكود (الامتداداتُ المحظورة، وeval وnew Function وروابط javascript:، والسكربتاتُ الخارجية، ومسارات ../، وسقوفُ الحجم)، وبصمةُ الصور الإدراكية، وحارسُ سياسةٍ حتميُّ القواعد (بلا نداءٍ لنموذجِ لغة — لا مفتاحَ موصول هنا)، وقرارٌ من درجةِ الخطر: ${bandsLine}. ويتجمّد الإدراجُ عند ${arNum(REPORT_FREEZE)} بلاغاتِ ملكية، والتظلّمُ يُفتح ولا يُغلق آليًا.`,
@@ -411,7 +411,7 @@ export async function buildLlms({ site = 'https://qalb.store' } = {}) {
     '',
     '## الفهرس',
     '',
-    `- البريد: ${SUPPORT_MAIL}\n- العقودُ والترخيصُ والاسترجاع: ${U('/legal')}\n- الكتالوج: ${U('/templates')}\n- فاحصُ الجاهزية: ${U('/ats')}\n- الخدمات: ${U('/services')}\n- العروضُ الموسمية: ${U('/offers')}\n- مقاعدُ المؤسسات وقياسُ الدفعة: ${U('/b2b')}\n- الاستضافة: ${U('/host')}\n- الخططُ ومصفوفةُ القيمة: ${U('/pricing')}\n- أنشئ قالبك الأول مجانًا: ${U('/create')}\n- سوقُ المصممين: ${U('/creators')}\n- المدوّنة (أدلة السيرة والمعرض): ${U('/blog')}\n- تتبّعُ طلب: ${U(
+    `- البريد: ${SUPPORT_MAIL}\n- العقودُ والترخيصُ والاسترجاع: ${U('/legal')}\n- الكتالوج: ${U('/templates')}\n- فاحصُ الجاهزية: ${U('/ats')}\n- الخدمات: ${U('/services')}\n- العروضُ الموسمية: ${U('/offers')}\n- مقاعدُ المؤسسات وقياسُ الدفعة: ${U('/b2b')}\n- الاستضافة: ${U('/host')}\n- الخططُ ومصفوفةُ القيمة: ${U('/pricing')}\n- اختر قالبًا وابنِ صفحتك مجانًا: ${U('/templates')}\n- سوقُ المصممين: ${U('/creators')}\n- المدوّنة (أدلة السيرة والمعرض): ${U('/blog')}\n- تتبّعُ طلب: ${U(
       '/track',
     )}\n- التحققُ من مفتاح: ${U('/licence')}\n- خريطةُ المسارات: ${U('/sitemap.xml')}\n- قواعدُ الزحف: ${U('/robots.txt')}`,
     '',

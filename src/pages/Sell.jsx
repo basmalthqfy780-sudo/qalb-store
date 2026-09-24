@@ -277,7 +277,7 @@ export default function Sell() {
     return (
       <div className="page-x mx-auto max-w-[720px] pb-24 pt-16">
         <Head as="h1" kicker={t('sell.kicker')} title={t('sell.needAccount')} sub={t('sell.needAccountSub')} />
-        <Btn to="/create" size="lg" className="mt-6">
+        <Btn to="/account" size="lg" className="mt-6">
           {t('sell.createCta')}
         </Btn>
       </div>
@@ -325,7 +325,7 @@ export default function Sell() {
             {PLANS.filter((p) => p.price > 0).map((p) => (
               <Link
                 key={p.id}
-                to={`/create?plan=${p.id}`}
+                to={`/account?plan=${p.id}`}
                 className="rounded-2xl border border-line bg-bg/70 px-4 py-3 transition hover:border-brand/40"
               >
                 <span className="block text-[13.5px] font-extrabold">{L(p.name)}</span>

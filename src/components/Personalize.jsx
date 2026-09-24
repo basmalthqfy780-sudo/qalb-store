@@ -129,7 +129,7 @@ export default function Personalize({ compact = false, className = '' }) {
 
       {dirty ? (
         <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3">
-          <Link to="/legal#privacy" className="text-[11.5px] font-semibold text-brand hover:underline">
+          <Link to="/privacy" className="text-[11.5px] font-semibold text-brand hover:underline">
             {t('personal.privacy')}
           </Link>
           <Btn

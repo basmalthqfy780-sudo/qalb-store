@@ -272,7 +272,7 @@ export default function Creators() {
                 </li>
               ))}
             </ul>
-            <Link to="/legal#licence" className="mt-4 inline-flex text-[12.5px] font-bold text-brand underline decoration-2 underline-offset-2">
+            <Link to="/licence" className="mt-4 inline-flex text-[12.5px] font-bold text-brand underline decoration-2 underline-offset-2">
               {t('creators.fullLicence')}
             </Link>
           </div>

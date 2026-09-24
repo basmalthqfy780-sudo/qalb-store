@@ -363,17 +363,17 @@ export default function Checkout() {
               {/* الروابط خارج <label>: داخلها كان النقر على «الشروط» يقلّب مربع الموافقة */}
               <p className="mt-1.5 flex flex-wrap items-center gap-x-2 text-[11.5px] leading-relaxed text-dim">
                 {[
-                  ['legal#terms', 'footer.terms'],
-                  ['legal#refund', 'footer.refund'],
-                  ['legal#privacy', 'footer.privacy'],
-                ].map(([hash, key], i) => (
-                  <span key={hash} className="inline-flex items-center gap-2">
+                  ['terms', 'footer.terms'],
+                  ['refunds', 'footer.refund'],
+                  ['privacy', 'footer.privacy'],
+                ].map(([path, key], i) => (
+                  <span key={path} className="inline-flex items-center gap-2">
                     {i ? (
                       <span aria-hidden className="text-line">
                         ·
                       </span>
                     ) : null}
-                    <a href={`/${hash}`} target="_blank" rel="noopener noreferrer" className="font-semibold text-brand hover:underline">
+                    <a href={`/${path}`} target="_blank" rel="noopener noreferrer" className="font-semibold text-brand hover:underline">
                       {t(key)}
                     </a>
                   </span>

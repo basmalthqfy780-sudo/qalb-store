@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useI18n } from '../i18n'
 import { categories } from '../data/templates'
 import { SOCIAL, SUPPORT_MAIL } from '../data/contact'
+import { COMPANY, VAT_RATE, isSet } from '../data/company'
 import { Btn, Icon } from './ui'
 import { Logo } from './Navbar'
 
@@ -19,11 +20,12 @@ export default function Footer() {
         { to: '/offers', label: t('nav.offers') },
         { to: '/host', label: t('nav.host') },
         ...categories.slice(0, 4).map((c) => ({ to: `/templates?cat=${c.id}`, label: lang === 'ar' ? c.ar : c.en })),
-        { to: '/#bundles', label: t('footer.bundles') },
-        { to: '/#pro', label: t('footer.pro') },
-        // نموذج الربح: الخطط، القالب الأول المجاني، وسوق المصممين
+        // درجةُ الاشتراك كلُّها في قسمٍ واحد على الرئيسية — ورابطُ «Qalb Pro» كان
+        // يقود إلى بطاقةٍ داخل القسم نفسه، فصار القسمُ نفسُه هو الوجه
+        { to: '/#bundles', label: t('nav.pricing') },
+        // نموذج الربح: الخطط الموحّدة وسوق المصممين
         { to: '/pricing', label: t('footer.plans') },
-        { to: '/create', label: t('footer.create') },
+        { to: '/pricing#matrix', label: t('plans.matrixTitle') },
         { to: '/creators', label: t('footer.creators') },
       ],
     },
@@ -63,12 +65,12 @@ export default function Footer() {
     {
       head: t('footer.legal'),
       links: [
-        // كل رابط إلى قسمه في /legal — كانت الأربعة تنزل على شريط الحقوق وحده
-        { to: '/legal#terms', label: t('footer.terms') },
-        { to: '/legal#privacy', label: t('footer.privacy') },
-        { to: '/legal#refund', label: t('footer.refund') },
-        { to: '/legal#licence', label: t('footer.license') },
-        { to: '/licence', label: t('footer.licenseCheck') },
+        // لكلِّ صفحةٍ قانونيةٍ مسارها منذ v1.8.0 — لا قسمٌ يُشارَك في صفحةٍ جامعة
+        { to: '/terms', label: t('footer.terms') },
+        { to: '/privacy', label: t('footer.privacy') },
+        { to: '/refunds', label: t('footer.refund') },
+        { to: '/legal', label: t('legal.allPages') },
+        { to: '/licence', label: t('footer.license') },
       ],
     },
   ]
@@ -136,6 +138,46 @@ export default function Footer() {
               {t('cart.secure')}
             </span>
           </div>
+        </div>
+
+        {/* الشريط القانوني: تواصلٌ وضريبةٌ معلنان — والحقلُ غير الموثَّق يقال «قيد
+            التوثيق» ولا يُطبع رقمٌ لا يملكه أحد (نفسُ قاعدة عرض السعر في /b2b) */}
+        <div
+          id="legal-contact"
+          className="mt-6 flex scroll-mt-24 flex-col gap-4 rounded-2xl border border-line bg-panel/50 p-4 text-[12px] text-dim lg:flex-row lg:items-center lg:justify-between"
+        >
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <a href={`mailto:${SUPPORT_MAIL}`} className="inline-flex items-center gap-1.5 font-bold text-ink transition hover:text-brand">
+              <Icon n="mail" className="size-3.5 text-brand" />
+              {SUPPORT_MAIL}
+            </a>
+            <span className="inline-flex items-center gap-1.5">
+              <Icon n="pin" className="size-3.5 text-brand" />
+              {lang === 'ar' ? COMPANY.address.ar : COMPANY.address.en}
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <Icon n="bank" className="size-3.5 text-brand" />
+              {t('legal.contactVatIn', { p: Math.round(VAT_RATE * 100) })}
+            </span>
+            <span className="num inline-flex items-center gap-1.5">
+              <Icon n="card" className="size-3.5 text-brand" />
+              {t('legal.contactVatNumber')}: {isSet(COMPANY.vatNumber) ? COMPANY.vatNumber : t('legal.contactPending')}
+            </span>
+          </div>
+          <nav aria-label={t('footer.legal')} className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <Link to="/terms" className="font-bold text-ink/75 transition hover:text-brand">
+              {t('footer.terms')}
+            </Link>
+            <Link to="/privacy" className="font-bold text-ink/75 transition hover:text-brand">
+              {t('footer.privacy')}
+            </Link>
+            <Link to="/refunds" className="font-bold text-ink/75 transition hover:text-brand">
+              {t('footer.refund')}
+            </Link>
+            <Link to="/contact" className="font-bold text-ink/75 transition hover:text-brand">
+              {t('legal.contactTitle')}
+            </Link>
+          </nav>
         </div>
       </div>
     </footer>

@@ -510,7 +510,7 @@ export default function Ats() {
                 </ul>
               </div>
               <div className="flex flex-col gap-2">
-                <Btn to="/create" size="lg" data-ats-build>
+                <Btn to="/templates" size="lg" data-ats-build>
                   {t('ats.buildCta')}
                 </Btn>
                 <Btn to="/pricing#matrix" size="sm" variant="ghost">

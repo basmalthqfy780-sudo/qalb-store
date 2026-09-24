@@ -1,16 +1,19 @@
-import { useState } from 'react'
 import { useI18n, num } from '../i18n'
-import { FEATURE_MATRIX, ONE_TIME, PLANS, PUBLISH_DONE, gainedBy, publishLight, storePro, vatOf, yearlyAsMonths } from '../data/plans'
+import { FEATURE_MATRIX, PUBLISH_DONE, publishLight, storePro, storeProYear } from '../data/plans'
 import { COMMISSION, ESCROW_DAYS, MIN_PAYOUT } from '../data/marketplace'
 import { useSeo, breadcrumbLd, graph } from '../components/Seo'
+import PlanCards from '../components/PlanCards'
+import { useStore } from '../store/StoreContext'
 import { Btn, Head, Icon, Money, Pill, Reveal } from '../components/ui'
 
 /**
  * صفحة الخطط — «ما الذي نبيعه بالضبط».
  *
- * كلُّ رقمٍ هنا من src/data/plans.js: الخطط، ومصفوفة القيمة بصفوفها العشرة،
- * والباقة لمرة واحدة، وخدمة النشر. ولا سطرَ ميزات مكتوبًا باليد في هذه
- * الصفحة — القوائم تُقرأ من الجدول، فلو تغيّر الجدول تغيّرت الصفحة معه.
+ * بعد جولة التوحيد (v1.8.0) لم يبقَ في هذه الصفحة سوى جدول الاشتراكات الموحّد:
+ * الدرجاتُ الثلاث بمكوّنها المشترك مع الرئيسية (`PlanCards`)، ومصفوفةُ القيمة
+ * بصفوفها العشرة، وسوقُ المصممين بنسبه المعلنة، وخدمةُ النشر Once-One من جدول
+ * الخدمات. ولا سطرَ ميزات مكتوبًا باليد في هذه الصفحة — القوائم تُقرأ من الجدول،
+ * فلو تغيّر الجدول تغيّرت الصفحة معه.
  *
  * والصدق شرطٌ هنا كما في كل صفحة: لا بوابة دفع موصولة في هذه النسخة، فالزرّ
  * **يُسجّل التفعيل** ويقول ذلك، ولا يَعِد بخصمٍ من بطاقة.
@@ -37,9 +40,10 @@ function Mark({ state, note, label }) {
 
 export default function Pricing() {
   const { t, L, LA } = useI18n()
-  const [yearly, setYearly] = useState(false)
+  const { toggleAddon, hasAddon, toast } = useStore()
   const light = publishLight()
   const pro = storePro()
+  const year = storeProYear()
 
   useSeo(`${t('plans.seoTitle')} · ${t('brand.name')}`, t('plans.seoDesc'), {
     jsonLd: graph(
@@ -56,99 +60,10 @@ export default function Pricing() {
     <div className="relative">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-64 grad-mesh" />
       <div className="page-x relative mx-auto max-w-[1200px] pb-24 pt-12 sm:pt-16">
-        <Head
-          as="h1"
-          kicker={t('plans.kicker')}
-          title={t('plans.title')}
-          sub={t('plans.sub')}
-          right={
-            <div className="flex items-center gap-2 rounded-xl border border-line bg-panel/60 p-1" role="group" aria-label={t('plans.billing')}>
-              {[
-                { k: false, s: t('plans.monthly') },
-                { k: true, s: t('plans.yearly') },
-              ].map((o) => (
-                <button
-                  key={String(o.k)}
-                  type="button"
-                  aria-pressed={yearly === o.k}
-                  onClick={() => setYearly(o.k)}
-                  className={`h-9 rounded-lg px-3.5 text-[12.5px] font-bold transition ${yearly === o.k ? 'bg-ink text-bg' : 'text-dim hover:text-ink'}`}
-                >
-                  {o.s}
-                </button>
-              ))}
-            </div>
-          }
-        />
+        <Head as="h1" kicker={t('plans.kicker')} title={t('plans.title')} sub={t('plans.sub')} />
 
-        {/* ————— الخطط الثلاث ————— */}
-        <div className="mt-10 grid gap-5 lg:grid-cols-3">
-          {PLANS.map((p, k) => {
-            const price = yearly && p.yearly ? p.yearly : p.price
-            const per = yearly && p.yearly ? t('plans.perYear') : p.period ? t('plans.perMonth') : ''
-            const gained = gainedBy(p.id)
-            return (
-              <Reveal key={p.id} delay={k * 70} className="h-full">
-                <article
-                  data-plan={p.id}
-                  className={`relative flex h-full flex-col rounded-3xl border p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-lift ${
-                    p.id === 'pro' ? 'border-brand/45 bg-panel shadow-lift' : 'border-line bg-panel/60 hover:border-brand/25'
-                  }`}
-                >
-                  {p.id === 'pro' ? (
-                    <Pill tone="brand">{t('plans.mostComplete')}</Pill>
-                  ) : p.id === 'solo' ? (
-                    <Pill tone="gold">{t('plans.mostPicked')}</Pill>
-                  ) : (
-                    <span />
-                  )}
-                  <h2 className="mt-3 font-display text-[20px] font-extrabold">{L(p.name)}</h2>
-                  <p className="mt-1.5 min-h-10 text-[12.5px] font-semibold leading-relaxed text-dim">{L(p.tagline)}</p>
-
-                  <div className="mt-4 flex items-end gap-2">
-                    {p.price === 0 ? (
-                      <span className="font-display text-[34px] font-black leading-none">{t('plans.free')}</span>
-                    ) : (
-                      <Money v={price} size="text-[34px]" />
-                    )}
-                    <span className="num mb-1 text-[12px] font-bold text-dim">{per}</span>
-                  </div>
-                  {p.price > 0 ? (
-                    <p className="num mt-1 text-[11.5px] text-dim">
-                      {yearly && p.yearly ? t('plans.yearlyAs', { m: yearlyAsMonths(p.id) }) : t('plans.vatIn', { v: num(vatOf(price)) })}
-                    </p>
-                  ) : (
-                    <p className="mt-1 text-[11.5px] text-dim">{t('plans.noCard')}</p>
-                  )}
-
-                  <ul className="mt-5 flex-1 space-y-2.5 border-t border-line pt-5">
-                    {LA(p.bullets).map((b, i) => (
-                      <li key={i} className="flex items-start gap-2 text-[13px] leading-relaxed text-ink/80">
-                        <Icon n="check" className="mt-0.5 size-3.5 shrink-0 text-[#3ecf8e]" />
-                        <span>{b}</span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  {gained.length > 0 ? (
-                    <p className="mt-4 rounded-xl border border-line bg-bg/60 px-3 py-2 text-[11.5px] font-semibold text-dim">
-                      {t('plans.opensOverFree', { n: gained.length })}
-                    </p>
-                  ) : null}
-
-                  <Btn
-                    to={p.id === 'free' ? '/create' : `/create?plan=${p.id}`}
-                    variant={p.id === 'pro' ? 'primary' : 'outline'}
-                    size="lg"
-                    className="mt-5 w-full"
-                  >
-                    {L(p.cta)}
-                  </Btn>
-                </article>
-              </Reveal>
-            )
-          })}
-        </div>
+        {/* ————— الدرجات الثلاث: مصدرها PlanCards لا هذه الصفحة ————— */}
+        <PlanCards className="mt-10" />
 
         {/* ————— مصفوفة توزيع القيمة: الصفوف العشرة ————— */}
         <section id="matrix" className="mt-20 scroll-mt-24">
@@ -192,35 +107,9 @@ export default function Pricing() {
           </p>
         </section>
 
-        {/* ————— ما يُشترى بلا اشتراك ————— */}
+        {/* ————— خدمة النشر: Once-One، لا درجةٌ في الاشتراك ————— */}
         <section id="one-time" className="mt-20 grid scroll-mt-24 gap-5 lg:grid-cols-2">
           <Reveal className="h-full">
-            <article data-pack={ONE_TIME.id} className="flex h-full flex-col rounded-3xl border border-line bg-panel/60 p-6">
-              <Pill tone="line">
-                <Icon n="gift" className="size-3" />
-                {t('plans.oneTimeKicker')}
-              </Pill>
-              <h2 className="mt-3 font-display text-[19px] font-extrabold">{L(ONE_TIME.name)}</h2>
-              <p className="mt-1.5 text-[12.5px] font-semibold text-dim">{L(ONE_TIME.tagline)}</p>
-              <div className="mt-4 flex items-end gap-2">
-                <Money v={ONE_TIME.price} size="text-[30px]" />
-                <span className="mb-1 text-[12px] font-bold text-dim">{t('plans.once')}</span>
-              </div>
-              <ul className="mt-4 flex-1 space-y-2">
-                {LA(ONE_TIME.bullets).map((b, i) => (
-                  <li key={i} className="flex items-start gap-2 text-[13px] leading-relaxed text-ink/80">
-                    <Icon n="check" className="mt-0.5 size-3.5 shrink-0 text-[#3ecf8e]" />
-                    <span>{b}</span>
-                  </li>
-                ))}
-              </ul>
-              <Btn to="/templates" variant="outline" size="lg" className="mt-5 w-full">
-                {t('plans.pickTemplate')}
-              </Btn>
-            </article>
-          </Reveal>
-
-          <Reveal delay={80} className="h-full">
             <article data-service={PUBLISH_DONE.id} className="flex h-full flex-col rounded-3xl border border-line bg-panel/60 p-6">
               <Pill tone="gold">
                 <Icon n="rocket" className="size-3" />
@@ -248,6 +137,45 @@ export default function Pricing() {
               <Btn to="/services" variant="outline" size="lg" className="mt-5 w-full">
                 {t('plans.allServices')}
               </Btn>
+            </article>
+          </Reveal>
+
+          <Reveal delay={80} className="h-full">
+            <article data-pack="pro-subscription" className="flex h-full flex-col rounded-3xl border border-line bg-panel/60 p-6">
+              <Pill tone="line">
+                <Icon n="refresh" className="size-3" />
+                {t('plans.subKicker')}
+              </Pill>
+              <h2 className="mt-3 font-display text-[19px] font-extrabold">{L(pro?.name)}</h2>
+              <p className="mt-1.5 text-[12.5px] font-semibold text-dim">{L(pro?.tagline)}</p>
+              <p className="mt-4 text-[13px] leading-relaxed text-dim">{L(pro?.desc)}</p>
+              <div className="mt-4 flex flex-wrap items-end gap-4">
+                <span className="flex items-end gap-1.5">
+                  <Money v={pro?.price || 0} size="text-[26px]" />
+                  <span className="mb-1 text-[12px] font-bold text-dim">{t('plans.perMonth')}</span>
+                </span>
+                <span className="flex items-end gap-1.5">
+                  <Money v={year?.price || 0} size="text-[26px]" />
+                  <span className="mb-1 text-[12px] font-bold text-dim">{t('plans.perYear')}</span>
+                </span>
+              </div>
+              <div className="mt-auto flex flex-wrap gap-2 pt-5">
+                {[pro, year].filter(Boolean).map((u) => (
+                  <Btn
+                    key={u.id}
+                    variant={hasAddon(u.id) ? 'outline' : 'primary'}
+                    size="md"
+                    onClick={() => {
+                      const added = toggleAddon(u.id)
+                      toast(added ? t('cart.addonAdded', { n: L(u.name) }) : t('cart.addonRemoved', { n: L(u.name) }))
+                    }}
+                  >
+                    <Icon n={hasAddon(u.id) ? 'check' : 'cart'} className="size-4" />
+                    {hasAddon(u.id) ? t('catalog.inCart') : L(u.cta || u.name)}
+                  </Btn>
+                ))}
+              </div>
+              <p className="mt-3 text-[11.5px] leading-relaxed text-dim">{t('plans.noCard')}</p>
             </article>
           </Reveal>
         </section>
@@ -284,7 +212,7 @@ export default function Pricing() {
             {t('plans.honestTitle')}
           </h2>
           <ul className="mt-3 space-y-2">
-            {[t('plans.honest1', { p: pro ? num(pro.price) : '39' }), t('plans.honest2'), t('plans.honest3')].map((s, i) => (
+            {[t('plans.honest1', { p: pro ? num(pro.price) : '49' }), t('plans.honest2'), t('plans.honest3')].map((s, i) => (
               <li key={i} className="flex items-start gap-2 text-[13px] leading-relaxed text-dim">
                 <Icon n="check" className="mt-0.5 size-3.5 shrink-0 text-gold" />
                 <span>{s}</span>
@@ -311,7 +239,7 @@ export default function Pricing() {
           </div>
           <p className="mt-6 text-[12.5px] leading-relaxed text-dim">
             {t('plans.storeProNote')}{' '}
-            <a href="/#pro" className="font-bold text-brand underline decoration-2 underline-offset-2">
+            <a href="/#bundles" className="font-bold text-brand underline decoration-2 underline-offset-2">
               {t('plans.storeProLink')}
             </a>
           </p>

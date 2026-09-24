@@ -11,12 +11,25 @@ const typeLabel = {
   bundle: { ar: 'حزمة', en: 'Bundle' },
 }
 
+/**
+ * بطاقة القالب في المعرض — ثلاثةُ سطورٍ مستقلةٍ لا سطرٌ واحدٌ متشابك.
+ *
+ * القاعدة التي بُنيَت عليها البطاقة بعد جولة v1.8.0: **الاسمُ والتصنيفُ والوصفُ
+ * كلٌّ في عنصرٍ وحده**، يحمل سمةً برمجيةً تقرأه (`data-tpl-name` و`data-tpl-cat`
+ * و`data-tpl-desc`) — فلا يلتصق تصنيفٌ باسمٍ في العربية فيظهرا ككلمةٍ واحدة،
+ * ولا يُقصّ الوصف بـ`line-clamp` فيضيع نصفه. والفحص في tests/smoke.mjs يقرأ هذه
+ * السمات ويتأكد أن الثلاثة منفصلة ومكتملة في اللغتين.
+ *
+ * والسعر يُقرأ قبل الخصم وبعده معًا: الرقمُ الكبير هو ما تُحسبه السلة، وبجانبه
+ * الرقمُ القديم مشطوبًا مع وسمٍ يقول أيهما قبل وأيهما بعد.
+ */
 export default function TemplateCard({ tpl, onQuick, className = '' }) {
   const { t, lang, L } = useI18n()
   const { add, inCart, toast } = useStore()
   const hasCart = inCart(tpl.id)
   const off = tpl.oldPrice ? Math.round((1 - tpl.price / tpl.oldPrice) * 100) : 0
   const cat = categories.find((c) => tpl.cats.includes(c.id))
+  const kind = typeLabel[tpl.type] || typeLabel.portfolio
 
   const doAdd = () => {
     const fresh = add(tpl.id)
@@ -25,6 +38,7 @@ export default function TemplateCard({ tpl, onQuick, className = '' }) {
 
   return (
     <article
+      data-tpl-card={tpl.id}
       className={`group relative flex h-full flex-col overflow-hidden rounded-2xl border border-line bg-panel p-2.5 transition-all duration-300 hover:-translate-y-1.5 hover:border-brand/35 hover:shadow-lift ${className}`}
     >
       <div className="pointer-events-none absolute inset-x-2.5 top-2.5 z-20 flex items-start justify-between gap-2">
@@ -57,26 +71,32 @@ export default function TemplateCard({ tpl, onQuick, className = '' }) {
         </span>
       </Link>
 
-      <div className="flex flex-1 flex-col justify-between px-1.5 pt-3">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <h3 className="truncate font-display text-[16.5px] font-extrabold leading-tight">{L(tpl.name)}</h3>
-            <p className="mt-1 line-clamp-1 text-[12.5px] text-dim">{L(tpl.tagline)}</p>
-          </div>
-          <Stars value={tpl.rating} size={11} show={false} />
-        </div>
+      <div className="flex flex-1 flex-col px-1.5 pt-3">
+        {/* ١. الاسم — عنوان البطاقة، بلا قصّ */}
+        <h3 data-tpl-name className="font-display text-[16.5px] font-extrabold leading-tight text-ink">
+          {L(tpl.name)}
+        </h3>
 
-        <div className="mt-2.5 mb-3 flex flex-wrap items-center gap-1.5">
-          <span className="inline-flex items-center gap-1 rounded-md border border-line bg-bg/60 px-1.5 py-0.5 text-[10.5px] font-bold text-dim">
-            <Icon n={tpl.type === 'cv' ? 'file' : tpl.type === 'bundle' ? 'layers' : 'globe'} className="size-3 text-brand" />
-            {lang === 'ar' ? (typeLabel[tpl.type] || typeLabel.portfolio).ar : (typeLabel[tpl.type] || typeLabel.portfolio).en}
-          </span>
-          {cat && (
-            <span className="inline-flex items-center gap-1 rounded-md border border-line bg-bg/60 px-1.5 py-0.5 text-[10.5px] font-semibold text-dim">
-              <Icon n={cat.icon} className="size-3 text-brand" />
+        {/* ٢. التصنيف — المجال وحده في سطره، لا يلتصق بالاسم */}
+        <p data-tpl-cat className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[12px] font-bold text-brand">
+          {cat ? (
+            <span className="inline-flex items-center gap-1.5">
+              <Icon n={cat.icon} className="size-3.5" />
               {lang === 'ar' ? cat.ar : cat.en}
             </span>
-          )}
+          ) : null}
+          <span className="inline-flex items-center gap-1 rounded-md border border-line bg-bg/60 px-1.5 py-0.5 text-[10.5px] font-semibold text-dim">
+            <Icon n={tpl.type === 'cv' ? 'file' : tpl.type === 'bundle' ? 'layers' : 'globe'} className="size-3" />
+            {lang === 'ar' ? kind.ar : kind.en}
+          </span>
+        </p>
+
+        {/* ٣. الوصف المختصر — يُلَفّ كما جاء، فلا يُقطع ولا يتداخل مع ما تحته */}
+        <p data-tpl-desc className="mt-2 text-[12.5px] leading-relaxed text-dim">
+          {L(tpl.tagline)}
+        </p>
+
+        <div className="mt-2.5 mb-3 flex flex-wrap items-center gap-1.5">
           {tpl.perf && (
             <span className="num inline-flex items-center gap-1 rounded-md border border-brand/25 bg-brand/10 px-1.5 py-0.5 text-[10.5px] font-bold text-brand">
               <Icon n="bolt" className="size-2.5" fill sw={0} />
@@ -88,17 +108,24 @@ export default function TemplateCard({ tpl, onQuick, className = '' }) {
               ATS {tpl.ats}
             </span>
           )}
-          <span className="num ms-auto text-[11px] text-dim">
+          <span className="num ms-auto inline-flex items-center gap-1 text-[11px] text-dim">
+            <Stars value={tpl.rating} size={11} show={false} />
             {tpl.reviews} {t('misc.reviews')}
           </span>
         </div>
 
         {/* mt-auto: صفُ السعر يلتصق بأسفل البطاقة فيتساوى ارتفاع بطاقات الشبكة */}
         <div className="mt-auto flex items-end justify-between gap-2 border-t border-line pt-3">
-          <div>
-            <div className="flex items-baseline gap-1.5">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
               <Money v={tpl.price} size="text-[17px]" />
-              {tpl.oldPrice && <span className="num text-[12px] font-medium text-dim line-through">{tpl.oldPrice}</span>}
+              <span className="text-[10.5px] font-bold text-brand">{t('card.priceNow')}</span>
+              {tpl.oldPrice ? (
+                <>
+                  <span className="num text-[12px] font-medium text-dim line-through">{tpl.oldPrice}</span>
+                  <span className="text-[10.5px] text-dim">{t('card.priceWas')}</span>
+                </>
+              ) : null}
             </div>
             <p className="num mt-0.5 text-[10.5px] text-dim">
               {tpl.sales.toLocaleString('en-US')} {t('misc.sold')}
@@ -107,7 +134,7 @@ export default function TemplateCard({ tpl, onQuick, className = '' }) {
           {hasCart ? (
             <Link
               to="/cart"
-              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-brand/40 bg-brand/12 px-3 text-[12.5px] font-bold text-brand transition hover:bg-brand/20"
+              className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-brand/40 bg-brand/12 px-3 text-[12.5px] font-bold text-brand transition hover:bg-brand/20"
             >
               <Icon n="check" className="size-3.5" sw={2.6} />
               {t('catalog.inCart')}
@@ -116,7 +143,7 @@ export default function TemplateCard({ tpl, onQuick, className = '' }) {
             <button
               type="button"
               onClick={doAdd}
-              className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-ink px-3 text-[12.5px] font-bold text-bg transition hover:bg-brand light:bg-brand light:text-brandink"
+              className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg bg-ink px-3 text-[12.5px] font-bold text-bg transition hover:bg-brand light:bg-brand light:text-brandink"
             >
               <Icon n="cart" className="size-3.5" />
               {t('product.addCart')}

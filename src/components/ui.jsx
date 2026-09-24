@@ -451,6 +451,34 @@ export function PreviewSkeleton({ variant = 'cv', ratio, className = '', style, 
   )
 }
 
+/**
+ * هيكل بطاقة قالب أثناء التحميل — يحاكي البطاقة الحقيقية سطرًا بسطر: معاينة،
+ * اسم، تصنيف، وصف، ثم صفُّ السعر. فلا «جارٍ التحميل…» في منتصف الشاشة، ولا قفزةُ
+ * تصميمٍ حين تصل الحزمة الكسولة. الحركة من `animate-pulse` وحده، وهي تخضع
+ * لـ`prefers-reduced-motion` في index.css.
+ */
+export function TemplateCardSkeleton({ className = '' }) {
+  return (
+    <div
+      className={`flex h-full flex-col overflow-hidden rounded-2xl border border-line bg-panel p-2.5 ${className}`}
+      aria-hidden="true"
+      data-card-skeleton
+    >
+      <PreviewSkeleton variant="site" className="rounded-xl" />
+      <div className="flex flex-1 flex-col px-1.5 pt-3">
+        <div className="h-4 w-2/5 animate-pulse rounded bg-panel2" />
+        <div className="mt-2 h-3 w-1/4 animate-pulse rounded bg-panel2/70" />
+        <div className="mt-2.5 h-3 w-4/5 animate-pulse rounded bg-panel2/50" />
+        <div className="mt-1.5 h-3 w-3/5 animate-pulse rounded bg-panel2/40" />
+        <div className="mt-auto flex items-end justify-between gap-2 border-t border-line pt-3">
+          <div className="h-5 w-24 animate-pulse rounded bg-panel2" />
+          <div className="h-9 w-24 animate-pulse rounded-lg bg-panel2/70" />
+        </div>
+      </div>
+    </div>
+  )
+}
+
 /* ============================ scroll reveal ============================ */
 export function Reveal({ children, delay = 0, y = 22, className = '', as: Cmp = 'div' }) {
   const ref = useRef(null)

@@ -190,7 +190,7 @@ export function createSitesApi({ dir, env = process.env, admin = null } = {}) {
 
         if (b.domain != null) {
           if (!plan.domain)
-            return (json(res, 402, { error: 'plan needed: connect a domain on Qalb Plus', plan: plan.id, price: PLANS.pro.price }), true)
+            return (json(res, 402, { error: 'plan needed: connect a domain on Qalb Pro', plan: plan.id, price: PLANS.pro.price }), true)
           const d = String(b.domain || '')
             .trim()
             .toLowerCase()

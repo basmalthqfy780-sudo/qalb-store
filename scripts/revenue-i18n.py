@@ -14,10 +14,8 @@ def add(ns, k, ar, en):
 
 # ---------------------------------------------------------------- nav / footer
 add('nav', 'plans', 'الخطط والأسعار', 'Plans & pricing')
-add('nav', 'create', 'أنشئ قالبك', 'Build your template')
 add('nav', 'creators', 'سوق المصممين', 'Designer market')
 add('footer', 'plans', 'الخطط ومصفوفة القيمة', 'Plans & the value matrix')
-add('footer', 'create', 'أنشئ قالبك الأول مجانًا', 'Build your first template free')
 add('footer', 'creators', 'سوق المصممين', 'Designer market')
 
 # ---------------------------------------------------------------- account.q
@@ -41,11 +39,10 @@ A = {
  'kicker': ('حسابك', 'Your account'),
  'emptyTitle': ('لا حساب على هذا الجهاز بعد', 'No account on this device yet'),
  'emptySub': ('التسجيل بريدٌ واحد وإقرار، وبلا كلمة سر في هذه النسخة: لا مُصادقة في المتصفح تُصدَّق، وما هنا حافظةُ عملك.', 'Sign-up is one e-mail and a consent box, with no password in this build: no browser authentication is trusted, and what lives here is your working copy.'),
- 'createCta': ('أنشئ حسابك', 'Create your account'),
  'sub': ('خطتك: {p} · قوالبك {n} من {max}', 'Your plan: {p} · templates {n} of {max}'),
  'yourTemplates': ('قوالبك', 'Your templates'),
- 'noTemplates': ('لا قالب بعد. أنشئ الأول مجانًا من إجاباتك، فيخرج رابطٌ حيّ لا صورة.', 'No template yet. Build the first one free from your answers — you get a live URL, not a picture.'),
- 'makeAnother': ('أنشئ قالبًا آخر', 'Build another template'),
+ 'noTemplates': ('لا قالب بعد — تصفّح القوالب الجاهزة واختر واحدًا، أو ابدأ بصفحة مجانية على رابطك الفرعي.', 'No template yet — browse the ready templates and pick one, or start with a free page on your own subdomain.'),
+ 'makeAnother': ('تصفّح المزيد من القوالب', 'Browse more templates'),
  'gated': ('بلغت سقف خطتك ({max})', 'You reached your plan’s ceiling ({max})'),
  'editInStudio': ('عدّله في الاستوديو', 'Edit it in the studio'),
  'unlimited': ('غير محدودة', 'Unlimited'),
@@ -63,7 +60,7 @@ A = {
  'seeMatrix': ('مصفوفة القيمة كاملة', 'The full value matrix'),
  'answersTitle': ('إجاباتك', 'Your answers'),
  'answersSub': ('كُتب {n} حقلًا، و{c} لونًا، و{l} رابطًا. الفارغ يبقى فارغًا فيظهر القالب بنصّه التجريبي.', '{n} fields filled, {c} colours, {l} links. What is left blank stays blank, so the template keeps its sample copy.'),
- 'editAnswers': ('عدّل إجاباتك', 'Edit your answers'),
+ 'editPage': ('عدّل صفحتك المنشورة', 'Edit your published page'),
  'planTitle': ('خطتك', 'Your plan'),
  'since': ('مشترك منذ {d}', 'A member since {d}'),
  'free': ('مجاني', 'Free'),
@@ -177,10 +174,10 @@ for k, v in C.items(): add('create', k, *v)
 # ---------------------------------------------------------------- plans
 P = {
  'seoTitle': ('الخطط والأسعار', 'Plans & pricing'),
- 'seoDesc': ('قالبك الأول مجانًا، وما بعده باشتراك: ثلاث خطط ومصفوفة قيمة من عشرة صفوف، وكل صفٍّ يُنفّذه كود.', 'Your first template free, and what follows on a plan: three tiers and a ten-row value matrix, every row enforced in code.'),
+ 'seoDesc': ('اشتراكٌ متدرّج واحد: مجاني · Qalb Plus ‎19‎ · Qalb Pro ‎49‎، ومصفوفة قيمة من عشرة صفوف كلُّ صفٍّ يُنفّذه كود.', 'One graded subscription: Free · Qalb Plus 19 · Qalb Pro 49, with a ten-row value matrix where every row is enforced by code.'),
  'kicker': ('الخطط', 'Plans'),
  'title': ('ما الذي نبيعه بالضبط', 'What we sell, exactly'),
- 'sub': ('لا «قوالب بلا حدود مجانًا» — ذلك يقتل قيمة القالب. قالبٌ واحد كامل مجانًا لتقتنع، وقوالب إضافية ونشرٌ احترافي وتصديرٌ بلا علامة خلف اشتراك.', 'Not “unlimited templates for free” — that kills the value of a template. One complete template free so you can judge it, and extra templates, professional publishing and a clean export behind a plan.'),
+ 'sub': ('درجةٌ واحدة متدرّجة تبدأ من الصفر: قالبٌ واحد مجانًا لترى النتيجة، وثلاثةٌ في Plus، وكلُّ القوالب في Pro. ولا باقةٌ تُشترى مرة واحدة في هذه النسخة.', 'One graded ladder starting at zero: one template free so you see the result, three on Plus, every template on Pro. This build sells no one-time pack.'),
  'billing': ('طريقة الفوترة', 'Billing period'),
  'monthly': ('شهري', 'Monthly'),
  'yearly': ('سنوي', 'Yearly'),
@@ -203,12 +200,10 @@ P = {
  'state.partial': ('جزئي', 'Partial'),
  'state.no': ('غير متاح', 'Not included'),
  'matrixEnforced': ('كل صفٍّ هنا يُنفّذه كود، لا وعد: مصفوفة القيمة تحمل اسم الوحدة والدالة التي تُحقّقه، والفحص يرفض صفًّا يشير إلى دالةٍ غير موجودة.', 'Every row here is enforced in code, not promised: the matrix carries the name of the module and function behind it, and the test suite rejects a row pointing at a function that does not exist.'),
- 'oneTimeKicker': ('بلا اشتراك', 'No subscription'),
  'publishKicker': ('خدمة', 'A service'),
- 'once': ('مرة واحدة', 'one time'),
+ 'subKicker': ('من السلة أيضًا', 'From the cart too'),
  'withinHours': ('خلال {h} ساعة', 'within {h} hours'),
  'lighterTier': ('درجة أخفّ: تركيب Vercel والنطاق بـ{n} — من جدول الخدمات نفسه', 'A lighter tier: Vercel and domain setup at {n} — from the same services table'),
- 'pickTemplate': ('اختر قالبك', 'Pick your template'),
  'allServices': ('كل الخدمات', 'All services'),
  'marketKicker': ('سوق المصممين', 'The designer market'),
  'marketTitle': ('نِسبتنا معلنة قبل أن تبيع', 'Our cut, published before you sell'),
@@ -218,22 +213,22 @@ P = {
  'marketMin': ('ريال حدٌّ أدنى للسحب', 'SAR minimum payout'),
  'sellCta': ('افتح لوحة البائع', 'Open the seller console'),
  'honestTitle': ('ما لا يحدث في هذه النسخة', 'What does not happen in this build'),
- 'honest1': ('اشتراك Qalb Pro الموجود في الرئيسية ({p} شهريًا) منتجٌ آخر: يفتح كل قوالب المتجر الجاهزة. خطط هذه الصفحة تفتح ما تُنشئه أنت.', 'The Qalb Pro subscription on the home page ({p} a month) is a different product: it opens every ready-made template in the store. The plans on this page open what you build.'),
+ 'honest1': ('جدولٌ واحد للاشتراك في هذه النسخة: الدرجاتُ الثلاث هنا هي نفسها المعروضة في الرئيسية، وسعرُ Qalb Pro ({p} شهريًا) هو نفسه في السلة — لا رقمَان لنفس المنتج.', 'One subscription table in this build: the three tiers here are the ones shown on the home page, and the Qalb Pro price ({p} a month) is the same in the cart — never two numbers for one product.'),
  'honest2': ('لا بوابة دفع موصولة: أزرار التفعيل تُسجّل الاشتراك وتقول ذلك، ولا تُخصم من بطاقة ولا تُصدر فاتورة موثّقة.', 'No payment gateway is connected: the activation buttons record the subscription and say so — nothing is charged to a card and no certified invoice is issued.'),
  'honest3': ('الأسعار شاملة ضريبة القيمة المضافة، ونصيب الضريبة معروض كما يُحسب لا كما يُقدَّر.', 'Prices include VAT, and the tax portion is shown as it is computed, not as it is estimated.'),
  'faqKicker': ('أسئلة', 'Questions'),
  'faqTitle': ('ما يُسأل قبل الاشتراك', 'What is asked before subscribing'),
- 'faq1q': ('هل القالب الأول مجاني فعلًا؟', 'Is the first template really free?'),
- 'faq1a': ('نعم: تُنشئه وتعدّل نصوصه وبياناته بالكامل، وتعاينه على رابطٍ حيّ، وتحفظه في حسابك. الذي ليس مجانيًا هو القالب الثاني والنشر الاحترافي والتصدير بلا علامة مائية.', 'Yes: you build it, edit its text and data in full, preview it on a live URL, and keep it in your account. What is not free is the second template, professional publishing, and an export without the watermark.'),
+ 'faq1q': ('هل القالب المجاني مجاني فعلًا؟', 'Is the free tier really free?'),
+ 'faq1a': ('نعم: قالبٌ واحد كامل بمعاينة حية للموقع والسيرة، وتصدير PDF بعلامة مائية. والذي يُفتح بالاشتراك هو القوالب الإضافية والنشر على رابطك الفرعي والتصدير بلا علامة.', 'Yes: one template in full, with a live preview of the site and the résumé and a watermarked PDF export. What the subscription opens is more templates, publishing on your own subdomain, and the clean export.'),
  'faq2q': ('لماذا سيرة PDF بعلامة مائية في المجانية؟', 'Why a watermarked résumé PDF on the free plan?'),
  'faq1x': ('', ''),
  'faq2a': ('لأن الورقة نتيجة احترافية تُقدَّم لجهة توظيف، والعلامة هي الفرق بين التجربة والنتيجة. الخطة المدفوعة تُسقطها، والعلامة طبقة في الورقة نفسها فتُطبع معها.', 'Because the sheet is a professional result you hand to an employer, and the watermark is the line between trying it and using it. A paid plan removes it, and the watermark is a layer inside the sheet, so it prints with it.'),
  'faq3q': ('هل يمكنني الشراء مرة واحدة بلا اشتراك؟', 'Can I buy once, with no subscription?'),
- 'faq3a': ('نعم — «باقة لمرة واحدة» بقالبٍ محدد وترخيص شخصي وملفات المصدر وتحديثات سنة. ومن يريد كل قوالب المتجر بلا إنشاء فله اشتراك Qalb Pro في الرئيسية.', 'Yes — the one-time pack: a chosen template, a personal licence, the source files and a year of updates. And if you want every store template without building one, Qalb Pro on the home page is for that.'),
+ 'faq3a': ('لا: هذه النسخة بلا باقةٍ تُشترى مرة واحدة. الاشتراكُ درجةٌ متدرّجة (مجاني · Plus · Pro) ويمكن إيقافه في أي شهر، وما فوق الاشتراك خدماتٌ Once-One في صفحة الخدمات.', 'No: this build has no one-time pack. The subscription is a graded ladder (Free · Plus · Pro) you can stop any month, and what sits above it is once-one services on the services page.'),
  'faq4q': ('كيف تربحون من سوق المصممين؟', 'How do you earn from the designer market?'),
  'faq4a': ('عمولة معلنة من كل بيع، ورسوم المعالجة يخصمها مزوّد الدفع لا نحن، وحدٌّ أدنى للسحب، ومدة تأمين تقلّل الاسترجاع. كل رقم معروض قبل إتمام البيع.', 'A published commission on each sale; processing fees are deducted by the payment provider, not by us; there is a minimum payout and a holding period that reduces refunds. Every number is shown before the sale is completed.'),
- 'storeProNote': ('وإن كنت تريد كل قوالب المتجر الجاهزة بدل أن تُنشئ قالبك:', 'And if you want every ready-made store template instead of building your own:'),
- 'storeProLink': ('Qalb Pro في الرئيسية', 'Qalb Pro on the home page'),
+ 'storeProNote': ('نفسُ الجدول معروضٌ في الرئيسية بالمكوّن نفسه — لا سعرَ مختلفًا بين الصفحتين:', 'The same table sits on the home page in the same component — never a different price between two pages:'),
+ 'storeProLink': ('جدول الدرجات في الرئيسية', 'the tier table on the home page'),
 }
 for k, v in P.items():
     if k == 'faq1x': continue
