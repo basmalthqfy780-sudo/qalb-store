@@ -12,7 +12,19 @@ import path from 'node:path'
 
 export const PRIVATE = 0o600
 /** الملف الذي يوضع بمفرده في مجلد البيانات ولا يجوز أن يقرأه سواك. */
-export const PRIVATE_FILES = ['orders.jsonl', 'downloads.jsonl', 'admins.json', 'sites.json', 'leads.json', '.admin-secret', '.download-secret']
+export const PRIVATE_FILES = [
+  'orders.jsonl',
+  'downloads.jsonl',
+  'admins.json',
+  'sites.json',
+  'leads.json',
+  // دفتر الحسابات والسوق: بريد البائع ومشتريه ومفاتيح الحسابات
+  'accounts.json',
+  'market.json',
+  'market-sales.json',
+  '.admin-secret',
+  '.download-secret',
+]
 
 export function sealFile(file) {
   try {

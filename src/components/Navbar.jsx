@@ -301,6 +301,11 @@ export default function Navbar() {
               <Count n={totals.count} />
             </Link>
 
+            {/* مسارُ Freemium: القالب الأول مجانًا — زرٌّ دائم beside زرّ القوالب */}
+            <Btn to="/create" size="sm" variant="outline" className="hidden lg:inline-flex" data-nav-create>
+              {t('nav.create')}
+            </Btn>
+
             <Btn to="/templates" size="sm" className="hidden md:inline-flex">
               {t('hero.ctaPrimary')}
             </Btn>
@@ -367,6 +372,31 @@ export default function Navbar() {
                     >
                       <Icon n="crown" className="size-4 text-brand" />
                       {t('footer.pro')}
+                    </Link>
+                    {/* نموذج الربح: الخطط والمصفوفة، إنشاء القالب الأول، وسوق المصممين */}
+                    <Link
+                      to="/pricing"
+                      onClick={() => setMenu(false)}
+                      className="flex items-center gap-2 rounded-xl px-2.5 py-2 text-[12.5px] font-semibold transition hover:bg-panel2"
+                    >
+                      <Icon n="wallet" className="size-4 text-brand" />
+                      {t('nav.plans')}
+                    </Link>
+                    <Link
+                      to="/create"
+                      onClick={() => setMenu(false)}
+                      className="flex items-center gap-2 rounded-xl px-2.5 py-2 text-[12.5px] font-semibold transition hover:bg-panel2"
+                    >
+                      <Icon n="spark" className="size-4 text-brand" />
+                      {t('nav.create')}
+                    </Link>
+                    <Link
+                      to="/creators"
+                      onClick={() => setMenu(false)}
+                      className="flex items-center gap-2 rounded-xl px-2.5 py-2 text-[12.5px] font-semibold transition hover:bg-panel2"
+                    >
+                      <Icon n="layers" className="size-4 text-brand" />
+                      {t('nav.creators')}
                     </Link>
                   </div>
 

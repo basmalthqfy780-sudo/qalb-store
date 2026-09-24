@@ -11,6 +11,7 @@
  *   GET  /licences/:key     → { valid, order, seats, domains }
  *   POST /org/redeem        → مقعدٌ من عقد مؤسسة: يطلب الترخيص بلا دفع (server/orgs.js)
  *   POST /leads              → طلبُ عقدٍ من جهة: يُسجَّل في server/leads.json (server/leads.js)
+ *   /accounts · /market      → الحسابات وسوق المصممين: فحصٌ آلي يُعاد تشغيله هنا (server/market.js)
  *   GET  /catalog          → استثناءات الكتالوج التي تكتبها لوحة الإدارة
  *   GET  /download/:id?order=…&key=…  → رابط تسليم محمي لكل مشتري (server/deliver.js)
  *   GET  /dl/<token>       → الحزمة نفسها: qalb-<id>-<order>.zip، مرة واحدة وصالحة 10 دقائق
@@ -40,6 +41,7 @@ import { PRIVATE, sealDir } from './seal.js'
 import { createSitesApi } from './sites.js'
 import { createLeadsApi } from './leads.js'
 import { createOrgsApi } from './orgs.js'
+import { createMarketApi } from './market.js'
 import { VAT as VAT_RATE } from '../src/data/tax.js'
 import { sanitizePersonal } from '../src/data/deliverable.js'
 
@@ -224,6 +226,9 @@ const sites = createSitesApi({ dir: DATA, env: process.env, admin })
 // مقاعد المؤسسة: تُخصم لحظة استبدال الطالب، والطلب يُكتب من makeOrder نفسها التي يستعملها المتجر.
 const orgs = createOrgsApi({ dir: DATA, env: process.env, admin, makeOrder })
 const leads = createLeadsApi({ dir: DATA, env: process.env, admin })
+// الحسابات وسوق المصممين: الفحص يُعاد تشغيله هنا من src/data/inspect.js، والخطة
+// لا تُرقّى من المتصفح — انظر server/market.js
+const market = createMarketApi({ dir: DATA, env: process.env, admin })
 
 const deliver = createDeliverApi({
   dir: DATA,
@@ -275,6 +280,7 @@ const server = createServer(async (req, res) => {
       hosting: sites.enabled() ? { root: sites.root(), ...sites.stats() } : false,
       orgs: orgs.enabled() ? orgs.stats() : false,
       leads: leads.enabled() ? leads.stats() : false,
+      market: market.enabled() ? market.stats() : false,
     })
 
   // طبقة الاستضافة خارج try/catch الأسفل: لو أخطأت هي فلا تُسقط المتجر كلّه
@@ -286,6 +292,7 @@ const server = createServer(async (req, res) => {
   }
   if (await orgs.handle(req, res, u)) return // مقاعد المؤسسات — قبل اللوحة: /admin/orgs ملك هذه الطبقة
   if (await leads.handle(req, res, u)) return // طلبات الجهات — انظر server/leads.js
+  if (await market.handle(req, res, u)) return // الحسابات والسوق — قبل اللوحة: /admin/market ملك هذه الطبقة
   if (await admin.handle(req, res, u)) return
   if (await deliver.handle(req, res, u)) return // التسليم المحمي — انظر server/deliver.js
 

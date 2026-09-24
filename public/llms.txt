@@ -80,6 +80,19 @@ Order add-ons offered in the cart and checkout: A cover letter, written at SAR 3
 
 A hosted page on `<name>.qalb.store`: free with 10 edits a month and a made-with bar, or SAR 19/month with your own domain, no branding bar and no edit ceiling. Pages are static HTML generated from the same record as the CV, so the printed A4 sheet and the browser page are the same file.
 
+## Plans, the free first template, and the designer market
+
+- The first template: free · 1 template · watermarked résumé PDF
+- Solo: SAR 49/month · 3 templates · direct publishing · selling allowed
+- Pro: SAR 199/month · unlimited templates · direct publishing · site-file export · custom domain · no badge · selling allowed
+- The free plan is one complete template: full text and data editing, a live preview on `<name>.qalb.store`, and a résumé PDF carrying a watermark. The second template, professional publishing, a watermark-free export, and selling all sit behind a plan.
+- The value matrix has 10 rows (signup, preview, edit, pdf, count, export, deploy, badge, domain, sell). Each row names the module and function that enforces it, and the test suite rejects a row pointing at a function that does not exist.
+- One-time alternative: A one-time pack at SAR 349 — one template, a personal licence, the source files, and 12 months of updates. Publish-it-for-you service: “We publish it for you” — full at SAR 499, delivered within 168 hours.
+- Designer market: a platform commission of 25% per sale (published range 20–30%). Example at SAR 199: commission SAR 49.75, seller net SAR 149.25, shown before the sale completes. Processing fees are deducted by the payment provider (Stripe · Tap · Moyasar), not by us; the displayed figure is a labelled estimate.
+- Payouts: a minimum of SAR 100, and a seller's amount is held 14 days after a sale to reduce refunds. Licence qalb-market-v1: no resale, no sharing, no use across multiple projects without an extra licence; delivered files carry a tracking line with the buyer's name and key.
+- Every submitted template runs a 5-layer automated inspection pipeline: file and code linting (banned extensions, eval/new Function/javascript: URIs, external scripts, path traversal, size ceilings), perceptual-hash image fingerprints, a deterministic policy guard (no LLM call — no model key is wired here), and a verdict from the risk score: 0–59 → accept; 60–84 → quarantine; 85–100 → reject. A listing freezes at 3 ownership reports, and appeals are opened but never closed automatically.
+- Sign-up is one e-mail and a consent line acknowledging automated licence and originality inspection. There is no password and no confirmation e-mail, because no mailer is connected in this build.
+
 ## Payment, invoicing, and what we do not claim
 
 - There is no card gateway and no card data is stored; an institutional purchase is settled as a signed contract and a bank transfer. The storefront’s checkout is a demo: order records are written for real, money does not move.
@@ -101,6 +114,9 @@ No VAT registration number, commercial-registration number, IBAN or bank name is
 - Seasonal offers: https://qalb.store/offers
 - Institutional seats and cohort measurement: https://qalb.store/b2b
 - Hosting: https://qalb.store/host
+- Plans and the value matrix: https://qalb.store/pricing
+- Build your first template free: https://qalb.store/create
+- Designer market: https://qalb.store/creators
 - Journal (CV and portfolio guides): https://qalb.store/blog
 - Track an order: https://qalb.store/track
 - Verify a licence key: https://qalb.store/licence
@@ -191,6 +207,19 @@ https://qalb.store/embed — الفاحصُ نفسُه إطارًا واحدًا
 
 صفحةٌ مستضافةٌ على `<الاسم>.qalb.store`: بالمجان مع ١٠ تعديلاتٍ في الشهر وشريطِ العلامة، أو بـ١٩ ريالًا في الشهر لنطاقِكَ الخاصّ بلا شريطِ علامة وبلا سقفِ تعديل. الصفحاتُ HTML ثابتةٌ تُولَّد من سجلِّ بيانات الطالب نفسِه، فورقةُ A4 المطبوعة والصفحةُ في المتصفح ملفٌّ واحد.
 
+## الخططُ والقالبُ الأول المجانيّ وسوقُ المصممين
+
+- القالب الأول: مجانًا · ١ قالبًا · سيرة PDF بعلامة مائية
+- فردية: ٤٩ ريالًا/شهرًا · ٣ قالبًا · نشر مباشر · يُسمح بالبيع
+- Pro: ١٩٩ ريالًا/شهرًا · قوالب غير محدودة · نشر مباشر · تصدير ملفات الموقع · نطاق خاص · بلا شارة · يُسمح بالبيع
+- الخطةُ المجانية قالبٌ واحدٌ كامل: تعديلُ النصوص والبيانات، ومعاينةٌ حيّة على `اسمك.qalb.store`، وسيرةُ PDF بعلامةٍ مائية. القالبُ الثاني والنشرُ الاحترافي والتصديرُ بلا علامةٍ والبيعُ — كلُّها خلف اشتراك.
+- مصفوفةُ القيمة ١٠ صفوفٍ (signup، preview، edit، pdf، count، export، deploy، badge، domain، sell). كلُّ صفٍّ يحمل اسمَ الوحدة والدالة التي تُنفّذه، والفحصُ يرفض صفًّا يشير إلى دالةٍ غير موجودة.
+- بديلٌ بلا اشتراك: باقة لمرة واحدة بـ٣٤٩ ريالًا — قالبٌ وترخيصٌ شخصيٌّ وملفاتُ المصدر وتحديثاتُ ١٢ شهرًا. وخدمةُ النشر: «أنشرها لك» — كاملة بـ٤٩٩ ريالًا خلال ١٦٨ ساعة.
+- سوقُ المصممين: عمولةُ المنصة ٢٥٪ من كلِّ بيع (المدى المعلَن ٢٠–٣٠٪). مثالٌ على ١٩٩ ريالًا: العمولةُ ٤٩.٧٥ ريالًا، وصافي البائع ١٤٩.٢٥ ريالًا، ويُعرضان قبل إتمام البيع. رسومُ المعالجة يخصمها مزوّدُ الدفع (Stripe · Tap · Moyasar) لا نحن، والمعروضُ تقديرٌ موسوم.
+- السحب: حدٌّ أدنى ١٠٠ ريالًا، ومبلغُ البائع مؤمَّنٌ ١٤ يومًا بعد البيع لتقليل الاسترجاع. الترخيص qalb-market-v1: لا إعادةَ بيع، ولا مشاركة، ولا مشاريعَ متعددةً بلا ترخيصٍ إضافي، والملفاتُ المُسلَّمة تحمل سطرَ تتبّعٍ باسم المشتري ومفتاحه.
+- كلُّ قالبٍ مرفوع يمرُّ بخطِّ فحصٍ آليٍّ من NaN طبقات: فحصُ الملفات والكود (الامتداداتُ المحظورة، وeval وnew Function وروابط javascript:، والسكربتاتُ الخارجية، ومسارات ../، وسقوفُ الحجم)، وبصمةُ الصور الإدراكية، وحارسُ سياسةٍ حتميُّ القواعد (بلا نداءٍ لنموذجِ لغة — لا مفتاحَ موصول هنا)، وقرارٌ من درجةِ الخطر: 0–59 → accept; 60–84 → quarantine; 85–100 → reject. ويتجمّد الإدراجُ عند ٣ بلاغاتِ ملكية، والتظلّمُ يُفتح ولا يُغلق آليًا.
+- التسجيلُ بريدٌ واحدٌ وسطرُ إقرارٍ بالفحص الآلي للترخيص والأصالة. لا كلمةَ سرٍّ ولا رسالةَ تأكيد، لأنه لا مُرسِلَ بريد موصولٌ في هذه النسخة.
+
 ## الدفعُ والفواتيرُ وما لا ندّعيه
 
 - لا بوابةَ دفعٍ بالبطاقة ولا بياناتِ بطاقةٍ محفوظة؛ شراءُ الجهة عقدٌ موقَّعٌ وتحويلٌ بنكيّ، ومسارُ الدفعِ في المتجر تجريبيّ: سجلُّ الطلب يُكتب فعلًا وحركةُ المال لا تقع.
@@ -212,6 +241,9 @@ https://qalb.store/embed — الفاحصُ نفسُه إطارًا واحدًا
 - العروضُ الموسمية: https://qalb.store/offers
 - مقاعدُ المؤسسات وقياسُ الدفعة: https://qalb.store/b2b
 - الاستضافة: https://qalb.store/host
+- الخططُ ومصفوفةُ القيمة: https://qalb.store/pricing
+- أنشئ قالبك الأول مجانًا: https://qalb.store/create
+- سوقُ المصممين: https://qalb.store/creators
 - المدوّنة (أدلة السيرة والمعرض): https://qalb.store/blog
 - تتبّعُ طلب: https://qalb.store/track
 - التحققُ من مفتاح: https://qalb.store/licence

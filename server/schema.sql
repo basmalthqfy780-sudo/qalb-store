@@ -71,3 +71,111 @@ alter table public.licences  enable row level security;
 drop policy if exists "read own orders" on public.orders;
 create policy "read own orders" on public.orders
   for select using (lower(email) = lower(coalesce(auth.jwt() ->> 'email', '')));
+
+-- ============================================================
+-- v1.7.0 · نموذج الربح: الحسابات وسوق المصممين
+-- ------------------------------------------------------------
+-- القواعد نفسها التي يحكم بها server/market.js ملفاته:
+--   • الخطة لا تُرقّى من المتصفح: `plan` يكتبها موظف، و`plan_pending` طلب.
+--   • الحالة تُشتق من قرار الفحص: لا مسار يكتب 'published' يدويًا.
+--   • سعر البيع يُختم من الإدراج، وتقسيمه يُحسب عند التسجيل لا عند السحب.
+-- ============================================================
+
+create table if not exists public.accounts (
+  id            text primary key,                 -- QA-XXXXXX
+  email         citext not null unique,
+  plan          text not null default 'free' check (plan in ('free','solo','pro')),
+  plan_pending  text          check (plan_pending in ('solo','pro')),  -- طلبٌ، لا تفعيل
+  plan_pending_at timestamptz,
+  since         date not null default current_date,
+  consent_v     text not null,                    -- نسخة نصّ الإقرار بالفحص الآلي
+  consent_at    timestamptz not null,
+  niche         text          check (niche in ('designer','photographer','developer','student','writer','engineer')),
+  answers       jsonb not null default '{}'::jsonb,  -- منقّاة بنفس دالة المتصفح
+  key           text not null,                    -- مفتاح صاحب الحساب، لا يُستعاد
+  created_at    timestamptz not null default now()
+);
+create index if not exists accounts_plan_idx on public.accounts (plan);
+
+-- قالبٌ أنشأه صاحب الحساب: عدّاد البوابة المجانية (واحد في free)
+create table if not exists public.account_templates (
+  account_id  text not null references public.accounts(id) on delete cascade,
+  slug        text not null,
+  template    text not null,
+  created_at  timestamptz not null default now(),
+  primary key (account_id, slug)
+);
+
+create table if not exists public.listings (
+  id          text primary key,                   -- QM-XXXXXX
+  account_id  text not null references public.accounts(id) on delete cascade,
+  title       text not null check (char_length(title) between 6 and 70),
+  descr       text not null check (char_length(descr) between 40 and 600),
+  category    text not null default 'portfolio' check (category in ('portfolio','cv','bundle','kit')),
+  price       numeric(10,2) not null check (price between 29 and 2000),
+  tags        text[] not null default '{}',
+  files       jsonb not null,                     -- الاسم والمحتوى: ما يفحصه الخط
+  images      jsonb not null default '[]'::jsonb, -- البصمات، لا الصور نفسها
+  rights_ok   boolean not null default false,     -- إقرار حقوق الأصول
+  state       text not null default 'draft'
+              check (state in ('draft','published','quarantined','rejected','frozen','delisted')),
+  score       int  check (score between 0 and 100),
+  verdict     text check (verdict in ('accept','quarantine','reject')),
+  report      jsonb not null,                     -- تقرير الطبقات كاملًا
+  appeal      jsonb,
+  sales_count int not null default 0,
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now()
+);
+create index if not exists listings_state_idx on public.listings (state, created_at desc);
+
+-- بلاغ: حقوق الملكية تُجمّد الإدراج عند الثالثة (REPORT_FREEZE)
+create table if not exists public.listing_reports (
+  id          bigserial primary key,
+  listing_id  text not null references public.listings(id) on delete cascade,
+  kind        text not null check (kind in ('rights','malware','spam','other')),
+  note        text,
+  created_at  timestamptz not null default now()
+);
+create index if not exists listing_reports_idx on public.listing_reports (listing_id, kind);
+
+-- بيعٌ مسجَّل: السعر مختم من الإدراج، والتقسيم محسوب لحظة التسجيل
+create table if not exists public.listing_sales (
+  id           text primary key,                  -- MS-XXXXXX
+  listing_id   text not null references public.listings(id) on delete cascade,
+  seller       citext not null,
+  buyer        citext not null,
+  price        numeric(10,2) not null,
+  commission   numeric(10,2) not null,            -- 25% لحظة البيع
+  seller_net   numeric(10,2) not null,
+  release_on   date not null,                     -- sold_at + مدة التأمين (14 يومًا)
+  charged      boolean not null default false,    -- لا بوابة دفع: سُجّل ولم يُقبض
+  sold_at      date not null default current_date,
+  created_at   timestamptz not null default now(),
+  check (commission + seller_net = price)         -- لا هللة ضائعة بين الطرفين
+);
+create index if not exists listing_sales_seller_idx on public.listing_sales (lower(seller), release_on);
+
+-- ما تحرّر وما انتظر، والحد الأدنى 100 ريال — نفس حساب payoutState في المتصفح
+create or replace function public.payout_summary(p_seller text, p_on date default current_date)
+returns table (released numeric, held numeric, eligible boolean)
+language sql stable
+as $$
+  select
+    coalesce(sum(seller_net) filter (where release_on <= p_on), 0)  as released,
+    coalesce(sum(seller_net) filter (where release_on >  p_on), 0)  as held,
+    coalesce(sum(seller_net) filter (where release_on <= p_on), 0) >= 100 as eligible
+  from public.listing_sales
+  where lower(seller) = lower(p_seller);
+$$;
+
+alter table public.accounts          enable row level security;
+alter table public.account_templates enable row level security;
+alter table public.listings          enable row level security;
+alter table public.listing_reports   enable row level security;
+alter table public.listing_sales     enable row level security;
+
+-- العامة ترى المنشور وحده، وبلا بريد البائع ولا تفاصيل المخالفة
+drop policy if exists "published listings are public" on public.listings;
+create policy "published listings are public" on public.listings
+  for select using (state = 'published');
