@@ -780,7 +780,10 @@ try {
       `${page.status}/${page.text.length}`,
     )
     ok('hosting: the role and the city are there too', page.text.includes('مصممة واجهات') && page.text.includes('جدة'))
-    ok('hosting: the free plan wears our bar', /class="qalb-brand"/.test(page.text) && page.text.includes('href="https://qalb.store"'))
+    ok(
+      'hosting: the free plan wears our bar — the exact credit line, actively linked to the store home',
+      /class="qalb-brand"/.test(page.text) && page.text.includes('href="https://qalb.store"') && page.text.includes('صُنع بواسطة Qalb Store'),
+    )
     ok('hosting: the served page is stamped with slug and plan', page.headers.get('x-qalb-site') === `${SLUG}/free`, page.headers.get('x-qalb-site'))
     const css1 = await siteCall('GET', `/s/${SLUG}/styles.css`)
     ok(
@@ -827,6 +830,26 @@ try {
       body: JSON.stringify({ site: { bio: 'س'.repeat(70 * 1024) } }),
     })
     ok('hosting: a body past the cap is refused before it is parsed', bigBody.status === 413, bigBody.status)
+
+    /* ---------- رخصة White-label: لا تُقلب من المتصفح، وتُسقط الشارة والشريط ---------- */
+    const selfWhite = await siteCall('PATCH', `/sites/${SLUG}`, { brandOff: true }, KEY)
+    ok(
+      'hosting: the browser cannot grant itself the white-label licence',
+      selfWhite.status === 403 && /staff/.test(selfWhite.json.error),
+      JSON.stringify(selfWhite.json),
+    )
+    const white = await call('PATCH', `/admin/sites/${SLUG}`, { body: { brandOff: true }, token: TOKEN })
+    ok(
+      'hosting: staff flips the white-label licence after the paid order, plan untouched',
+      white.status === 200 && white.json.brandOff === true && white.json.plan === 'free',
+      JSON.stringify(white.json && { b: white.json.brandOff, p: white.json.plan }),
+    )
+    const pageW = await siteCall('GET', `/s/${SLUG}`)
+    ok(
+      'hosting: the white-labelled page loses both the bar and the footer credit, still on the free plan',
+      pageW.status === 200 && !/qalb-brand/.test(pageW.text) && !pageW.text.includes('qalb-badge') && pageW.text.includes('نورة الحربي'),
+      `${pageW.status}/${pageW.text.length}`,
+    )
 
     const domFree = await siteCall('PATCH', `/sites/${SLUG}`, { domain: 'noura.sa' }, KEY)
     ok(

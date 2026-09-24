@@ -14,6 +14,7 @@
 import { PERSONAL_LIMITS, kindOf, profileFor, resumeFor, sanitizePersonal, siteCssFor, siteHtml } from './deliverable.js'
 import { byId, templates } from './templates.js'
 import { priceOf as tierPrice } from './plans.js'
+import { BADGE_ID, SITE_HOME, badgeState, badgeText } from './badge.js'
 
 export const HOST_ROOT = 'qalb.store'
 // كل حقل هنا يجب أن يحرّك شيئًا في المولّد: `heading` حُذف لأنه لا يقرأه أحد،
@@ -31,7 +32,10 @@ export const PLANS = {
     brand: true,
     domain: false,
     editQuota: 10,
-    note: { ar: 'رابط فرعي + شريط «بدعم من قالب» + ١٠ تعديلات شهريًا', en: 'Subdomain, a “made with Qalb” bar, 10 edits a month' },
+    note: {
+      ar: 'رابط فرعي + سطر «صُنع بواسطة Qalb Store» + ١٠ تعديلات شهريًا',
+      en: 'Subdomain, a “Made with Qalb Store” credit line, 10 edits a month',
+    },
   },
   pro: {
     id: 'pro',
@@ -175,19 +179,27 @@ export function editWindow(site, at = new Date()) {
   }
 }
 
-/** شريط العلامة: موجود في المجاني، مفقود في «بلس» — لا يُقرَّر بالذوق بل بالخطة */
+/**
+ * شريط العلامة أسفل كل صفحة منشورة: سطر «صُنع بواسطة Qalb Store» برابطٍ نشط إلى
+ * الصفحة الرئيسية للمتجر. موجودٌ في المجاني، يُسقطه اشتراكُ Pro تلقائيًا، وتُسقطه
+ * رخصة White-label المقلوبة على سجلّ الموقع (`brandOff`) — والقرارُ كله في
+ * `badgeState` لا هنا: لا يُقرَّر بالذوق بل بالخطة والرخصة.
+ */
 export function brandBar(site) {
-  if (PLANS[planOf(recPlan(site))].brand === false) return ''
-  // الشارة رابطان لا رابط: اسمنا، ودعوةٌ صريحة للزائر — «أنشئ نسختك» إلى الكتالوج
-  // حيث يختار قالبًا ويبني صفحته مجانًا. كان الرابط /create قبل v1.8.0، فلما أُزيل
-  // المُنشئ صار المسار يحوّل إلى /templates — فالقصدُ مكتوبٌ لا رابطٌ يتبع تحويلًا.
-  // كل صفحة منشورة تحمل بابًا، ومن يدفع خطة Pro تُسقطه `brandBar` نفسها.
-  const ar =
-    'صُنع بقالب — <a href="https://qalb.store" rel="noopener">قوالب مواقع وسِيَر</a> · <a href="https://qalb.store/templates" rel="noopener"><b>أنشئ نسختك مجانًا</b></a>'
-  const en =
-    'Made with Qalb — <a href="https://qalb.store" rel="noopener">portfolio &amp; résumé templates</a> · <a href="https://qalb.store/templates" rel="noopener"><b>Build your own, free</b></a>'
-  const text = recLang(site) === 'en' ? en : ar
-  return `<div class="qalb-brand" style="position:fixed;inset-inline:0;bottom:0;z-index:99;display:flex;justify-content:center;gap:.5rem;align-items:center;padding:.45rem .8rem;font:600 12px/1.4 system-ui;background:#0a0c11e6;color:#e8ebf2;border-top:1px solid #242b3a">${text}</div>`
+  const lang = recLang(site)
+  if (!badgeState({ plan: planOf(recPlan(site)), addons: recBadges(site) }).shown) return ''
+  // الشارة رابطان لا رابط: الأولى هي الشارة نفسها — نصُّها من badgeText وعنوانها
+  // الصفحة الرئيسية للمتجر — والثانية دعوةٌ صريحة للزائر — «أنشئ نسختك» إلى
+  // الكتالوج حيث يختار قالبًا ويبني صفحته مجانًا. كان الرابط /create قبل v1.8.0،
+  // فلما أُزيل المُنشئ صار المسار يحوّل إلى /templates — فالقصدُ مكتوبٌ لا رابطٌ
+  // يتبع تحويلًا. كل صفحة منشورة تحمل بابًا، ومن يدفع خطة Pro أو رخصة White-label
+  // تُسقطه `brandBar` نفسها.
+  const home = `<a href="${SITE_HOME}" target="_blank" rel="noopener"><b>${badgeText(lang)}</b></a>`
+  const cta =
+    lang === 'en'
+      ? `<a href="${SITE_HOME}/templates" target="_blank" rel="noopener"><b>Build your own, free</b></a>`
+      : `<a href="${SITE_HOME}/templates" target="_blank" rel="noopener"><b>أنشئ نسختك مجانًا</b></a>`
+  return `<div class="qalb-brand" style="position:fixed;inset-inline:0;bottom:0;z-index:99;display:flex;justify-content:center;gap:.5rem;align-items:center;padding:.45rem .8rem;font:600 12px/1.4 system-ui;background:#0a0c11e6;color:#e8ebf2;border-top:1px solid #242b3a">${home} · ${cta}</div>`
 }
 
 /** نصّ رفض التعديل الزائد: يقوله الخادم وواجهته من مكان واحد، فلا يختلف الكلامان */
@@ -204,6 +216,8 @@ export const tplOf = (v) => byId(v) || templates.find((t) => t.slug === v) || nu
 const recTpl = (rec) => (rec && rec.site && rec.site.template) || (rec && rec.template) || null
 const recPlan = (rec) => (rec && rec.plan) || (rec && rec.site && rec.site.plan) || 'free'
 const recLang = (rec) => (rec && rec.site && rec.site.lang) || (rec && rec.lang) || 'ar'
+/** رخصة White-label مقلوبة على سجلّ الموقع تُمرَّر إلى badgeState كإضافةٍ مشتراة */
+const recBadges = (rec) => (rec && rec.brandOff === true ? [BADGE_ID] : [])
 
 /** بيانات المشتري → كائن الملف الشخصي الذي تبني منه المولّدات الصفحة */
 export function profileOf(site) {
@@ -219,8 +233,9 @@ export function profileOf(site) {
     hosted: true,
     subdomain: site && site.slug,
     plan: planOf(recPlan(site)),
-    // الشارةُ في الفوتر تُسقطها خطةُ «بلس» ولا تُسقطها الخطة المجانية
-    badge: planOf(recPlan(site)) !== 'pro',
+    // الشارةُ في الفوتر: يُسقطها اشتراك Pro تلقائيًا، وتُسقطها رخصة White-label —
+    // القرارُ من badgeState نفسه الذي يقرّر شريطَ العلامة، فلا اجتهادَ ثاني
+    badge: badgeState({ plan: planOf(recPlan(site)), addons: recBadges(site) }).shown,
   }
   // المدينة حقل مفرد: يُطبع في اللغتين كما يُطبع الاسم
   if (site.site && site.site.city) p.city = { ar: site.site.city, en: site.site.city }

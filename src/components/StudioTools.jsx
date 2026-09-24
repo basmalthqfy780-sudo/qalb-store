@@ -11,7 +11,7 @@ import { Btn, Icon, Money, Pill } from './ui'
 
 /**
  * أدواتُ الاستوديو: ثلاثٌ تُباع وكلها تعمل في المتصفح — الاستيراد من LinkedIn،
- * والرابط المهني (ودليل المواهب معه)، وشارة «بُنيَ بقالب» في فوتر موقعك.
+ * والرابط المهني (ودليل المواهب معه)، وسطر «صُنع بواسطة Qalb Store» في فوتر موقعك.
  *
  * جمعتها هنا لأن مدخلها واحد: بياناتُك التي كتبتها في المحرِّر فوق. الاستيرادُ
  * يملأ الحقول، والرابطُ يُنشأ من الاسم نفسه، والشارةُ تُقرأ من خطةِ الموقع
@@ -32,7 +32,7 @@ export default function StudioTools({ rec = null, form = {}, set = () => {} }) {
 
   const liPaid = hasAddon(linkedinUpsell().id)
   const plus = hasAddon(linkUpsell().id)
-  const badge = badgeState({ plan: rec?.plan || 'free', addons: [] })
+  const badge = badgeState({ plan: rec?.plan || 'free', addons: rec?.brandOff ? ['badge-off'] : [] })
 
   const suggested = useMemo(() => {
     const name = form.name || rec?.site?.name || ''
@@ -311,7 +311,7 @@ export default function StudioTools({ rec = null, form = {}, set = () => {} }) {
               {hasAddon(badgeUpsell().id) ? t('badge.inCart') : t('badge.buy')}
             </Btn>
             <p className="mt-2 text-[11px] leading-relaxed text-dim">
-              {t('badge.freeWith', { n: num(19) })} ·{' '}
+              {t('badge.freeWith', { n: num(badgeUpsell().price) })} ·{' '}
               <Link to="/host" className="font-bold text-brand hover:underline">
                 {t('badge.seePlans')}
               </Link>

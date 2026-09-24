@@ -140,12 +140,14 @@ export const PLANS = [
         'استخدام واستعراض جميع القوالب بلا حدود.',
         'ربط نطاق خاص مخصص (Custom Domain).',
         'تصدير ملفات المصدر — حتى ثلاثة قوالب كل شهر.',
+        'إزالة «صُنع بواسطة Qalb Store» تلقائيًا — White-label بلا رسومٍ إضافية.',
         'أولوية الدعم الفني وتحديثات مستمرة.',
       ],
       en: [
         'Every template, used and browsed with no ceiling.',
         'A custom domain of your own (Custom Domain).',
         'Source-file export — up to three templates every month.',
+        '“Made with Qalb Store” removed automatically — White-label at no extra cost.',
         'Priority support and continuous updates.',
       ],
     },
@@ -261,9 +263,12 @@ export const FEATURE_MATRIX = [
   },
   {
     id: 'badge',
-    label: { ar: 'إزالة شعار «صُنع بقالب»', en: 'Removing the “made with Qalb” badge' },
+    label: { ar: 'إزالة سطر «صُنع بواسطة Qalb Store»', en: 'Removing the “Made with Qalb Store” line' },
     free: { state: 'no' },
-    paid: { state: 'yes', note: { ar: 'من Plus وما فوقها', en: 'From Plus upward' } },
+    paid: {
+      state: 'yes',
+      note: { ar: 'تلقائيًا في Pro (وفي Plus)، أو برخصة White-label', en: 'Automatic on Pro (and Plus), or a White-label licence' },
+    },
     enforcedBy: 'src/data/hosting.js:brandBar',
   },
   {

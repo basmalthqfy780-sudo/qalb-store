@@ -74,7 +74,7 @@ Done-for-you services on https://qalb.store/services, priced in the same table t
 One subscription table, shown by the same component on the home page and on https://qalb.store/pricing: SAR 500 a month or SAR 5,000 a year for every template, a custom domain, the source-file export and priority support. There is no auto-renewal and no card on file: a reminder is sent before it ends, and renewing is the buyer’s own action.
 Seasonal offer pages on https://qalb.store/offers: Co-op training season (5/6/7); Career-day season (2/3); Graduation season (4/5); The new work year (9/10/11) — each recommends real catalogue products and runs on the coupon FRIEND20.
 Coupons the store actually honours: SALE25 −25%, WELCOME10 −10%, QALB30 −30%, FRIEND20 −20%, COACH20 −20%, COACH30 −30%. A coach code (COACH20/COACH30) is stamped on the order ledger so a coach’s referral is settled manually from the ledger — no commission moves automatically.
-Order add-ons offered in the cart and checkout: A cover letter, written at SAR 39, A CV matched to the post at SAR 79, A human ATS review at SAR 149, Site setup on Vercel + your domain at SAR 249, Build your CV from LinkedIn at SAR 39, Remove the “Built with Qalb” badge at SAR 19. The server re-prices every add-on from the same table and rejects unknown ones, exactly as it does for templates.
+Order add-ons offered in the cart and checkout: A cover letter, written at SAR 39, A CV matched to the post at SAR 79, A human ATS review at SAR 149, Site setup on Vercel + your domain at SAR 249, Build your CV from LinkedIn at SAR 39, White-label licence — the branding, removed at SAR 50. The server re-prices every add-on from the same table and rejects unknown ones, exactly as it does for templates.
 
 ## Personal hosting
 
@@ -201,7 +201,7 @@ https://qalb.store/embed — الفاحصُ نفسُه إطارًا واحدًا
 اشتراك Qalb Pro في الرئيسية، موازيًا للشراء لمرة واحدة: ٥٠٠ ريالًا شهريًا أو ٥,٠٠٠ ريالًا سنويًا لكل قوالب المتجر وكل إصدارٍ في أشهر الاشتراك. لا تجديدَ تلقائي ولا بطاقة محفوظة: يصلك تذكيرٌ قبل النهاية والتجديدُ فعلُ المشتري.
 صفحاتُ العروض الموسمية في https://qalb.store/offers: موسم التدريب التعاوني، موسم يوم المهنة، موسم التخرج، بداية السنة الوظيفية — كلٌّ منها يوصي بمنتجاتٍ حقيقية من الكتالوج ويعمل بكوبون FRIEND20.
 الكوبونات التي يعرفها المتجر فعلًا: SALE25 بخصم ٢٥٪، WELCOME10 بخصم ١٠٪، QALB30 بخصم ٣٠٪، FRIEND20 بخصم ٢٠٪، COACH20 بخصم ٢٠٪، COACH30 بخصم ٣٠٪. ورمزُ المدرّب (COACH20/COACH30) يُختم على سجلِّ الطلب فتُسوّى عمولتُه من الدفتر يدويًا — لا عمولة تُحوَّل آليًا.
-إضافاتُ الطلب في السلة والدفع: خطاب تقديم مكتوب بـ٣٩ ريالًا، سيرة مطابقة للإعلان بـ٧٩ ريالًا، مراجعة ATS بشرية بـ١٤٩ ريالًا، تركيب الموقع ونطاقك بـ٢٤٩ ريالًا، ابنِ سيرتك من LinkedIn بـ٣٩ ريالًا، إزالةُ شارة «بُنيَ بقالب» بـ١٩ ريالًا. الخادم يُعيد تسعيرَ كل إضافةٍ من الجدول نفسه ويرفض المجهول منها، كما يفعل مع القوالب تمامًا.
+إضافاتُ الطلب في السلة والدفع: خطاب تقديم مكتوب بـ٣٩ ريالًا، سيرة مطابقة للإعلان بـ٧٩ ريالًا، مراجعة ATS بشرية بـ١٤٩ ريالًا، تركيب الموقع ونطاقك بـ٢٤٩ ريالًا، ابنِ سيرتك من LinkedIn بـ٣٩ ريالًا، رخصة White-label — إزالة الشعار والحقوق بـ٥٠ ريالًا. الخادم يُعيد تسعيرَ كل إضافةٍ من الجدول نفسه ويرفض المجهول منها، كما يفعل مع القوالب تمامًا.
 
 ## الاستضافة الشخصية
 

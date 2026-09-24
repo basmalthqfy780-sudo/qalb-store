@@ -1139,8 +1139,8 @@ for (const c of cases) {
       .join(',') ===
       'cover-letter:39,cv-tailor:79,ats-review:149,deploy-setup:249,cv-write:299,brand-identity:899,ats-report:29,pro-month:500,pro-year:5000,' +
         // منظومةُ التوظيف: مطابقة ٢٩ وباقة الخمسة ٧٩، ملف التقديم ٤٩، البطاقة الموثّقة ١٩،
-        // الرابط بلس ٢٩ شهريًا، إبراز الدليل ٢٩ شهريًا، استيراد LinkedIn ٣٩، إزالة الشارة ١٩
-        'match-report:29,match-5:79,kit-10:49,share-verified:19,link-plus:29,talent-spot:29,linkedin-import:39,badge-off:19',
+        // الرابط بلس ٢٩ شهريًا، إبراز الدليل ٢٩ شهريًا، استيراد LinkedIn ٣٩، رخصة White-label ‎٥٠‎ لمرة
+        'match-report:29,match-5:79,kit-10:49,share-verified:19,link-plus:29,talent-spot:29,linkedin-import:39,badge-off:50',
     Object.entries(upsellPriceTable())
       .map(([k, v]) => `${k}:${v}`)
       .join(','),
@@ -5199,39 +5199,64 @@ for (const c of cases) {
     shareText({ title: 't', scoreLabel: '92/100', bandLabel: 'b', url: 'https://qalb.store/ats', lang: 'ar' }).includes('https://qalb.store/ats'),
   )
 
-  /* ——— ٩. الشارة: تُطبع، وتُشترى إزالتها ——— */
+  /* ——— ٩. الشارة: «صُنع بواسطة Qalb Store» برابطٍ نشط، وتُشترى إزالتها ——— */
+  const badgeLine = badgeHtml({ lang: 'ar' })
   ok(
-    'the badge is a link back to us and nothing else',
-    badgeHtml({ lang: 'ar' }).includes('href="https://qalb.store"') && badgeHtml({ lang: 'ar' }).includes('بُنيَ بقالب'),
+    'every badge is the exact “صُنع بواسطة Qalb Store” line, actively linked to the store home',
+    badgeLine.includes('صُنع بواسطة Qalb Store') && badgeLine.includes('href="https://qalb.store"') && badgeLine.includes('target="_blank"'),
+  )
+  ok(
+    'and its English twin names the store the same way',
+    badgeHtml({ lang: 'en' }).includes('Made with Qalb Store') && badgeHtml({ lang: 'en' }).includes('href="https://qalb.store"'),
+  )
+  ok(
+    'the one-time white-label licence reads its price from the single table: 50',
+    (await import('../src/data/upsells.js')).badgeUpsell().price === 50,
   )
   ok(
     'it shows by default, and two honest ways take it off',
     badgeState({}).shown === true && badgeState({ addons: ['badge-off'] }).shown === false && badgeState({ plan: 'pro' }).shown === false,
   )
   ok(
-    'and the reason is recorded, so nobody is charged twice',
-    badgeState({ plan: 'pro' }).reason === 'plan' && badgeState({ addons: ['badge-off'] }).reason === 'paid',
+    'a Qalb Pro subscription removes it for free, and the reason is recorded so nobody is charged twice',
+    badgeState({ plan: 'pro' }).reason === 'plan' &&
+      badgeState({ plan: 'plus' }).shown === false &&
+      badgeState({ addons: ['badge-off'] }).reason === 'paid',
   )
   ok(
     'the printer hides it as it hides our bar',
     withBadge('<html></html>', { shown: true }).includes('qalb-badge') && withBadge('<html></html>', { shown: false }) === '<html></html>',
   )
 
-  /* ——— نفسُ الشارة في الملف المُسلَّم، تُسقطها الإضافة المشتراة ——— */
+  /* ——— نفسُ الشارة في الملف المُسلَّم، تُسقطها الرخصة أو الاشتراك ——— */
   const { byId } = await import('../src/data/templates.js')
   const { packageFiles } = await import('../src/data/deliverable.js')
   const tpl = byId('aether')
   const filesWith = Object.fromEntries(packageFiles(tpl, { id: 'Q1', key: 'K1' }).map((f) => [f.path, f.body]))
   const filesWithout = Object.fromEntries(packageFiles(tpl, { id: 'Q1', key: 'K1', addons: [{ id: 'badge-off' }] }).map((f) => [f.path, f.body]))
-  ok('every published template carries the badge in its footer', filesWith['index.html'].includes('qalb-badge'))
-  ok('and buying the removal takes it off the delivered files', !filesWithout['index.html'].includes('qalb-badge'))
+  const filesPro = Object.fromEntries(packageFiles(tpl, { id: 'Q2', key: 'K2', plan: 'pro' }).map((f) => [f.path, f.body]))
+  ok(
+    'every published template carries the credit line in its footer',
+    filesWith['index.html'].includes('qalb-badge') && filesWith['index.html'].includes('صُنع بواسطة Qalb Store'),
+  )
+  ok('and buying the white-label licence takes it off the delivered files', !filesWithout['index.html'].includes('qalb-badge'))
+  ok('and a Qalb Pro subscription takes it off automatically, no licence needed', !filesPro['index.html'].includes('qalb-badge'))
   const { siteHtml } = await import('../src/data/deliverable.js')
-  const { profileOf } = await import('../src/data/hosting.js')
+  const { profileOf, brandBar } = await import('../src/data/hosting.js')
   const freeRec = { slug: 'noura-alhrbi', plan: 'free', site: { name: 'نورة الحربي', template: 'aether' } }
   const proRec = { ...freeRec, plan: 'pro' }
+  const whiteRec = { ...freeRec, brandOff: true }
   ok(
-    'the hosted page obeys the plan: Qalb Plus prints no badge',
+    'the hosted page obeys the plan: Qalb Pro prints no badge',
     siteHtml(tpl, profileOf(freeRec)).includes('qalb-badge') && !siteHtml(tpl, profileOf(proRec)).includes('qalb-badge'),
+  )
+  ok(
+    'and the flipped white-label licence clears both the footer credit and the bottom bar',
+    !siteHtml(tpl, profileOf(whiteRec)).includes('qalb-badge') && brandBar(whiteRec) === '',
+  )
+  ok(
+    'the published-page bar carries the same line, linked to the store home, and Pro drops it',
+    brandBar(freeRec).includes('صُنع بواسطة Qalb Store') && brandBar(freeRec).includes('href="https://qalb.store"') && brandBar(proRec) === '',
   )
 
   globalThis.localStorage = before
