@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useI18n, num, dec } from '../i18n'
+import { useI18n, num, dec, dateLabel } from '../i18n'
 import { useStore } from '../store/StoreContext'
-import { templates } from '../data/templates'
+import { templates, couponInfo } from '../data/templates'
 import { cartUpsells, addonDelivery } from '../data/upsells'
 import { ArtTile } from '../components/Preview'
 import TemplateCard from '../components/TemplateCard'
@@ -10,10 +10,15 @@ import { Btn, Icon, Money, Pill } from '../components/ui'
 import { useSeo } from '../components/Seo'
 
 export default function Cart() {
-  const { t, L } = useI18n()
+  const { t, L, lang } = useI18n()
   const { items, addonItems, totals, setQty, remove, clear, coupon, applyCoupon, clearCoupon, toggleAddon, hasAddon, toast } = useStore()
   const [code, setCode] = useState('')
   const [err, setErr] = useState(false)
+  const [errExpired, setErrExpired] = useState(false)
+  // الكوبونُ المُطبَّق يُقرأ من جدوله: نسبةً وأجلًا وما يشمله — فالسلةُ لا تخترع نصًّا عن خصمٍ لا تعرفه
+  const applied = coupon ? couponInfo(coupon.code) : null
+  // عرضُ الموسم يُشرح قبل أن يُطلب: ما يشمله، ومتى ينتهي — لا رمزٌ بلا بيان
+  const sale = couponInfo('SALE25')
 
   const suggestions = templates.filter((x) => !items.some((i) => i.id === x.id)).slice(0, 3)
   const upsells = cartUpsells()
@@ -21,12 +26,14 @@ export default function Cart() {
   const submitCoupon = (e) => {
     e.preventDefault()
     const ok = applyCoupon(code)
-    if (ok) {
+    if (ok && !ok.expired) {
       setErr(false)
+      setErrExpired(false)
       setCode('')
       toast(t('cart.couponOk', { c: ok.code, p: ok.pct }))
     } else {
       setErr(true)
+      setErrExpired(!!(ok && ok.expired))
     }
   }
 
@@ -339,12 +346,26 @@ export default function Cart() {
                 {err ? (
                   <>
                     <Icon n="close" className="size-3" sw={2.6} />
-                    {t('cart.couponBad')}
+                    {errExpired ? t('cart.couponExpired') : t('cart.couponBad')}
                   </>
+                ) : applied ? (
+                  <span className="leading-relaxed" data-coupon-note>
+                    {applied.endsAt
+                      ? t('cart.couponAppliedNote', { c: applied.code, p: applied.pct, d: dateLabel(applied.endsAt, lang) })
+                      : t('cart.couponOk', { c: applied.code, p: applied.pct })}
+                  </span>
                 ) : (
-                  !coupon && <span className="num">FRIEND20 · COACH20 · COACH30</span>
+                  <span className="num">SALE25 · FRIEND20 · COACH20 · COACH30</span>
                 )}
               </p>
+              {!coupon && sale && sale.endsAt && (
+                <p className="mt-1.5 text-[11px] leading-relaxed text-dim" data-coupon-hint>
+                  {t('cart.couponHint', { d: dateLabel(sale.endsAt, lang) })}
+                  {' · '}
+                  {t('cart.couponCovers')}
+                  {sale.daysLeft != null && ` · ${t('cart.couponDays', { n: sale.daysLeft })}`}
+                </p>
+              )}
             </form>
 
             <div className="px-6 pb-6">

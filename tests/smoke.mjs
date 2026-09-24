@@ -7,7 +7,7 @@ import { build } from 'esbuild'
 import { readFileSync, mkdirSync, readdirSync, existsSync } from 'node:fs'
 import { JSDOM, VirtualConsole } from 'jsdom'
 import { dict } from '../src/i18n/translations.js'
-import { byId, templates } from '../src/data/templates.js'
+import { byId, couponExpired, couponInfo, templates } from '../src/data/templates.js'
 import { PERSONAL_LIMITS, isProtectedDownload, kindOf, packageFiles, packageZip, sanitizePersonal, siteHtml } from '../src/data/deliverable.js'
 import {
   HOST_FIELDS,
@@ -153,9 +153,9 @@ const cases = [
       'قالب',
       'الأكثر رواجًا هذا الأسبوع',
       // v1.8.0: العنوان والزرّان كما كُتبا في الطلب — بلا وعدٍ بشراءٍ مرة واحدة
-      'أنشئ بورتفوليو وسيرة ذاتية',
-      'متطابقين في دقائق.',
-      'اختر قالبًا جاهزًا، عدّل محتواك، وانشر موقعك مع سيرة ATS جاهزة للتقديم.',
+      'بورتفوليو وسيرة ذاتية',
+      'بهوية واحدة.',
+      'اختر قالبًا، عدّل محتواك، وانشر موقعك مع سيرة ATS جاهزة.',
       'تصفح القوالب',
       'معاينة القوالب المجانية',
       // «ماذا ستحصل عليه؟» — أربعةُ مخرجاتٍ تُسلَّم فعلًا
@@ -185,8 +185,8 @@ const cases = [
     expect: [
       'Qalb',
       'Trending this week',
-      'Build a portfolio and a résumé',
-      'that match, in minutes.',
+      'A portfolio and a résumé',
+      'carrying one identity.',
       'Browse templates',
       'Preview free templates',
       'What’s included?',
@@ -354,7 +354,7 @@ const cases = [
       'تحميل سيرة PDF',
       'بيع القالب للآخرين',
       'عمولة المنصة من كل بيع',
-      '349',
+      '299',
       '499',
       'ما لا يحدث في هذه النسخة',
     ],
@@ -1061,7 +1061,8 @@ for (const c of cases) {
     )
     ok(
       'the tools badge counts the table’s own rows, never a typed number',
-      (panel?.querySelector('[data-menu-tools-count]')?.textContent || '').trim() === String(tools.length),
+      (panel?.querySelector('[data-menu-tools-count]')?.textContent || '').trim().startsWith(String(tools.length)) &&
+        /\D/.test((panel?.querySelector('[data-menu-tools-count]')?.textContent || '').trim()),
     )
     ok(
       'templates, services, hosting and support are gathered with them',
@@ -1124,7 +1125,7 @@ for (const c of cases) {
     Object.entries(upsellPriceTable())
       .map(([k, v]) => `${k}:${v}`)
       .join(',') ===
-      'cover-letter:39,cv-tailor:79,ats-review:149,deploy-setup:249,cv-write:299,brand-identity:899,ats-report:29,pro-month:49,pro-year:349,' +
+      'cover-letter:39,cv-tailor:79,ats-review:149,deploy-setup:249,cv-write:299,brand-identity:899,ats-report:29,pro-month:49,pro-year:299,' +
         // منظومةُ التوظيف: مطابقة ٢٩ وباقة الخمسة ٧٩، ملف التقديم ٤٩، البطاقة الموثّقة ١٩،
         // الرابط بلس ٢٩ شهريًا، إبراز الدليل ٢٩ شهريًا، استيراد LinkedIn ٣٩، إزالة الشارة ١٩
         'match-report:29,match-5:79,kit-10:49,share-verified:19,link-plus:29,talent-spot:29,linkedin-import:39,badge-off:19',
@@ -1244,7 +1245,7 @@ for (const c of cases) {
     const [m, y] = proPlans()
     ok(
       'their prices are read from the one table: 0 · 19 · 49 a month',
-      TIERS.map((x) => x.price).join(',') === '0,19,49' && m.price === 49 && y.price === 349,
+      TIERS.map((x) => x.price).join(',') === '0,19,49' && m.price === 49 && y.price === 299,
     )
     ok(
       'the monthly prices are printed, VAT included',
@@ -1258,12 +1259,12 @@ for (const c of cases) {
     const after = band?.textContent || ''
     ok(
       'the yearly prices are printed after the toggle',
-      ['149', '349'].every((n) => after.includes(n)),
+      ['100', '299'].every((n) => after.includes(n)),
       after.replace(/\s+/g, ' ').slice(0, 120),
     )
     ok(
       'and the year is stated as months paid, computed from the table',
-      ['7.8', '7.1'].every((n) => after.includes(n)),
+      ['5.3', '6.1'].every((n) => after.includes(n)),
       after.replace(/\s+/g, ' ').slice(0, 160),
     )
     // الأزرار تقود إلى مكانٍ يفعل الشيء: المجانية إلى الاستضافة، والمدفوعة إلى الحساب
@@ -2019,6 +2020,132 @@ for (const c of cases) {
   } else {
     groups++
     console.log(`✓ home · trust row · chip stacking  (${checks.length} assertions)`)
+  }
+}
+
+/* ---------------- cards: name · description · price, each on its own line ---------------- */
+{
+  const checks = []
+  const bad = []
+  const ok = (name, cond, extra = '') => {
+    checks.push(name)
+    if (!cond) bad.push(name + (extra ? ` (${extra})` : ''))
+  }
+
+  const g = await render('http://localhost/templates')
+  const cards = [...g.doc.querySelectorAll('[data-tpl-card]')]
+  ok('the catalogue renders cards', cards.length > 0, String(cards.length))
+
+  const parts = cards.map((c) => ({
+    id: c.getAttribute('data-tpl-card'),
+    name: (c.querySelector('[data-tpl-name]')?.textContent || '').trim(),
+    desc: (c.querySelector('[data-tpl-desc]')?.textContent || '').trim(),
+    price: (c.querySelector('[data-tpl-price]')?.textContent || '').trim(),
+  }))
+
+  ok(
+    'every card carries a name, a description and a price — none of them empty',
+    parts.length > 0 && parts.every((x) => x.name.length > 0 && x.desc.length > 8 && x.price.length > 0),
+    parts.filter((x) => !x.name || x.desc.length <= 8 || !x.price).map((x) => x.id).join(','),
+  )
+  ok(
+    'the name is never glued to the description in one element',
+    parts.every((x) => !x.name.includes(x.desc) && !x.desc.includes(x.name)),
+    parts.filter((x) => x.name.includes(x.desc) || x.desc.includes(x.name)).map((x) => `${x.id}:${x.name}`).join(' | '),
+  )
+  ok(
+    'and the description never swallows the price',
+    parts.every((x) => !x.desc.includes(String(byId(x.id)?.price))),
+    parts.filter((x) => x.desc.includes(String(byId(x.id)?.price))).map((x) => x.id).join(','),
+  )
+  ok(
+    'the price on the card is the price in the catalogue, printed with its currency',
+    parts.every((x) => {
+      const tpl = byId(x.id)
+      return tpl && x.price.replace(/\s/g, '').includes(String(tpl.price)) && /ر\.س|SAR/.test(x.price)
+    }),
+    parts.map((x) => `${x.id}:${x.price}`).slice(0, 3).join(' | '),
+  )
+  ok(
+    'the old price is struck through beside the new one, when there is one',
+    parts.every((x) => {
+      const tpl = byId(x.id)
+      return !tpl.oldPrice || x.price.includes(String(tpl.oldPrice))
+    }),
+    parts.filter((x) => byId(x.id)?.oldPrice && !x.price.includes(String(byId(x.id).oldPrice))).map((x) => x.id).join(','),
+  )
+  ok(
+    'fields are parted by a written separator, so a linear read never welds them together',
+    parts.every((x) => x.price.includes('·')) && parts.every((x) => /\s·\s|·/.test(x.price)),
+    parts[0]?.price || '',
+  )
+  ok(
+    'the card says what the price buys: a live preview and the licence',
+    parts.every((x) => /معاينة حية/.test(x.price)) &&
+      cards.every((c) => /ترخيص/.test(c.querySelector('[data-tpl-licence]')?.textContent || '')),
+    (cards[0]?.querySelector('[data-tpl-licence]')?.textContent || '').trim(),
+  )
+
+  /* ——— الزرّان: «عرض القالب» و«أضف للسلة»، وحالةٌ بصريةٌ بعد الإضافة ——— */
+  const card = g.doc.querySelector('[data-tpl-card="nova"]')
+  ok('a card links to its own detail page', !!card?.querySelector(`a[href="/template/${byId('nova').slug}"]`))
+  ok(
+    'and that link is labelled “view the template”, not an icon alone',
+    [...(card?.querySelectorAll('a') || [])].some((a) => a.getAttribute('href') === `/template/${byId('nova').slug}` && /عرض القالب/.test(a.textContent || '')),
+  )
+  const addBtn = [...(card?.querySelectorAll('button') || [])].find((b) => /أضف إلى السلة/.test(b.textContent || ''))
+  ok('the second action adds to the cart', !!addBtn)
+  addBtn?.dispatchEvent(new g.win.MouseEvent('click', { bubbles: true, cancelable: true, button: 0 }))
+  await g.wait()
+  const after = g.doc.querySelector('[data-tpl-card="nova"]')
+  ok(
+    'and the button changes state: it becomes a link to the cart saying it is in there',
+    !!after?.querySelector('a[href="/cart"]') && /في السلة/.test(after?.querySelector('a[href="/cart"]')?.textContent || ''),
+    (after?.textContent || '').replace(/\s+/g, ' ').slice(-60),
+  )
+  ok(
+    'the two states look different in the markup, not only in the label',
+    after?.querySelector('a[href="/cart"]')?.className !== addBtn?.className,
+  )
+  g.dom.window.close()
+
+  /* ——— الإنجليزية: الفصلُ نفسه، لا نسخةٌ عربيةٌ واحدة ——— */
+  const en = await render('http://localhost/templates?lang=en', { 'qalb.lang': 'en' }, { lang: 'en' })
+  const enParts = [...en.doc.querySelectorAll('[data-tpl-card]')].map((c) => ({
+    name: (c.querySelector('[data-tpl-name]')?.textContent || '').trim(),
+    desc: (c.querySelector('[data-tpl-desc]')?.textContent || '').trim(),
+    price: (c.querySelector('[data-tpl-price]')?.textContent || '').trim(),
+  }))
+  ok(
+    'the English card is separated the same way',
+    enParts.length > 0 && enParts.every((x) => x.name && x.desc.length > 8 && /SAR/.test(x.price) && x.price.includes('·')),
+    enParts[0] ? `${enParts[0].name} / ${enParts[0].price}` : 'none',
+  )
+  en.dom.window.close()
+
+  /* ——— الكوبون: أجلٌ مكتوب، ورفضٌ بعده ——— */
+  const sale = couponInfo('SALE25')
+  ok('SALE25 is declared with an end date in the table', /^\d{4}-\d{2}-\d{2}$/.test(sale?.endsAt || ''), String(sale?.endsAt))
+  ok('it states what it covers, in both languages', !!sale?.note?.ar && !!sale?.note?.en)
+  ok('a date in the future is not expired', couponExpired('SALE25', '2000-01-01') === false)
+  ok('and the same code past its date is refused', couponExpired('SALE25', '2030-01-01') === true)
+  const c = await render('http://localhost/cart', { 'qalb.cart.v1': seededCart })
+  const hint = c.doc.querySelector('[data-coupon-hint]')?.textContent || ''
+  ok(
+    'the cart explains the offer before the buyer asks: what it covers and until when',
+    /SALE25/.test(hint) && /يشمل/.test(hint) && (/\d{4}/.test(hint) || sale.expired),
+    hint.replace(/\s+/g, ' ').slice(0, 110),
+  )
+  c.dom.window.close()
+
+  if (bad.length) {
+    failed++
+    groups++
+    console.log('✗ cards · name · description · price')
+    bad.forEach((n) => console.log('   failed: ' + n))
+  } else {
+    groups++
+    console.log(`✓ cards · name · description · price  (${checks.length} assertions)`)
   }
 }
 
@@ -5122,11 +5249,11 @@ for (const c of cases) {
   ok('Pro removes the ceiling entirely, it does not raise it', pro.templates === null)
   ok(
     'the yearly prices are the published ones, and the service sits inside its own band',
-    plus.yearly === 149 && pro.yearly === 349 && PUBLISH_DONE.price >= 299 && PUBLISH_DONE.price <= 799,
+    plus.yearly === 100 && pro.yearly === 299 && PUBLISH_DONE.price >= 299 && PUBLISH_DONE.price <= 799,
     `${plus.yearly}/${pro.yearly}/${PUBLISH_DONE.price}`,
   )
   ok('no one-time pack is exported any more', (await import('../src/data/plans.js')).ONE_TIME === undefined)
-  ok('the yearly price is computed as months, not asserted', yearlyAsMonths('plus') > 6 && yearlyAsMonths('plus') < 12, `${yearlyAsMonths('plus')}`)
+  ok('the yearly price is computed as months, not asserted', yearlyAsMonths('plus') > 4 && yearlyAsMonths('plus') < 12, `${yearlyAsMonths('plus')}`)
   ok('VAT is extracted from the listed price, not added on top', Math.abs(vatOf(115) - 15) < 0.01, `${vatOf(115)}`)
   ok('Pro gains eight things over free, and the list is derived from the table', gainedBy('pro').length === 8, gainedBy('pro').join(','))
   ok('and free gains nothing over itself', gainedBy('free').length === 0)

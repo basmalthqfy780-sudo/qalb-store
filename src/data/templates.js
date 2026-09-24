@@ -655,7 +655,7 @@ export const templates = [
     demo: null,
     name: { ar: 'أيثر', en: 'Aether' },
     designer: { ar: 'نور فؤاد', en: 'Nour Fouad' },
-    tagline: { ar: 'بورتفوليو المصممين بنمط داكن', en: 'Dark-mode portfolio for designers' },
+    tagline: { ar: 'بورتفوليو للمصممين — نمط داكن', en: 'Portfolio for designers — dark mode' },
     desc: {
       ar: 'موقع صفحة واحدة بمعاينة أعمال كبيرة، قسم «متاح لمشروع واحد»، وسير ذاتية قابلة للعرض داخل الموقع. مبني على Astro بسرعة تصير فيها الصفحة قبل أن تقرأها.',
       en: 'A one-pager with large work thumbs, an “open for one project” strip, and a CV view inside the site. Built on Astro so it paints before you finish reading.',
@@ -702,7 +702,7 @@ export const templates = [
     site: 'atelier',
     name: { ar: 'أتيلييه', en: 'Atelier' },
     designer: { ar: 'خالد عثمان', en: 'Khaled Othman' },
-    tagline: { ar: 'للمصوّرين: الصور تتكلّم أولًا', en: 'For photographers: images lead' },
+    tagline: { ar: 'قالب للتصوير — الصور تتحدث أولًا', en: 'Photography template — images lead' },
     desc: {
       ar: 'شبكة صور بلا هوامش مع صفحة حجز جلسة وجدول أسعار. الطباعة على الشاشة تُدار تلقائيًا بحجم الصورة، فلا يوجد أي سطر زائد يزاحم العمل.',
       en: 'A borderless image grid with a booking page and a rate card. Screen printing is handled by image sizing, so nothing competes with the work.',
@@ -740,7 +740,7 @@ export const templates = [
     site: 'nexus',
     name: { ar: 'نِكسَس', en: 'Nexus' },
     designer: { ar: 'سلطان راشد', en: 'Sultan Rashed' },
-    tagline: { ar: 'موقع المهندسين: أرقام قبل صور', en: 'Engineers: numbers over images' },
+    tagline: { ar: 'موقع للمهندسين — أرقام قبل الصور', en: 'Site for engineers — numbers before images' },
     desc: {
       ar: 'قائمة مشاريع بأسطر مدمجة مع إحصاءات مباشرة من GitHub، وقسم «الآن» الذي يخبر أين تعمل وماذا تتعلّم. كل شيء نصّي، لذا يقرأه recruiters في ٢٠ ثانية.',
       en: 'A compact project ledger with live GitHub stats and a “Now” page saying where you work and what you are learning. All text — readable by a recruiter in 20 seconds.',
@@ -851,7 +851,7 @@ export const templates = [
     site: 'quill',
     name: { ar: 'كوِل', en: 'Quill' },
     designer: { ar: 'منى الشهري', en: 'Mona Al-Shehri' },
-    tagline: { ar: 'للكتّاب: قراءة قبل زخرفة', en: 'For writers: reading first' },
+    tagline: { ar: 'موقع للكتّاب — قراءة قبل زخرفة', en: 'Site for writers — reading first' },
     desc: {
       ar: 'قائمة كتابات بخط serif مضبوط، أرشيف بسنوات، وصفحة «اقتباسات» للصحف التي نشرتك. لا صور إطلاقًا إن لم ترد.',
       en: 'A serif typeset list of published work, a year archive, and a “clips” page for outlets that ran you. No images at all if you prefer.',
@@ -924,7 +924,7 @@ export const templates = [
     site: 'studio',
     name: { ar: 'ستوديو', en: 'Studio' },
     designer: { ar: 'نور فؤاد', en: 'Nour Fouad' },
-    tagline: { ar: 'لاستوديوهات من ٢ إلى ٦ أشخاص', en: 'For teams of 2–6' },
+    tagline: { ar: 'موقع لاستوديوهات من ٢ إلى ٦ أشخاص', en: 'Site for studios of 2–6' },
     desc: {
       ar: 'موقع استوديو: الأعمال، الفريق، العمليات، والسعات. فيه صفحة «كيف نعمل» التي تختصر مكالمات البيع.',
       en: 'A studio site: work, people, process, capacity. Includes the “how we work” page that shortens sales calls.',
@@ -1000,7 +1000,7 @@ export const templates = [
     demo: 'atlas',
     name: { ar: 'دِب باك', en: 'DevPack' },
     designer: { ar: 'فريق قالب', en: 'Qalb Studio' },
-    tagline: { ar: 'للمهندسين: موقع + ATS', en: 'Engineers: site + ATS CV' },
+    tagline: { ar: 'حزمة المهندسين — موقع + سيرة ATS', en: 'Engineers’ bundle — site + ATS CV' },
     desc: {
       ar: 'موقع هندسي بنمط طرفية مع سيرة نصية تتجاوز الفرز الآلي، وملف JSON/Scholarly للموقع، وصفحة الآن للوظائف عن بُعد.',
       en: 'A terminal-style engineer site with a plain-text CV that clears parsing, JSON-LD on the site, and a Now page for remote roles.',
@@ -1040,7 +1040,7 @@ export const templates = [
     demo: 'echo',
     name: { ar: 'فِست ستيب', en: 'First Step' },
     designer: { ar: 'فريق قالب', en: 'Qalb Studio' },
-    tagline: { ar: 'للخريج: موقع وسيرة معًا', en: 'Graduate site + CV' },
+    tagline: { ar: 'حزمة الخريج — موقع وسيرة معًا', en: 'Graduate bundle — site + CV together' },
     desc: {
       ar: 'أرخص نقطة دخول: صفحة مشاريع تخرجك وبحثك، مع سيرة من صفحة واحدة صُممت لمن لا يملك سجلًا طويلًا بعد.',
       en: 'The cheapest way in: a page for your capstone and research, plus a one-page CV designed for short records.',
@@ -1188,7 +1188,7 @@ export const templates = [
     demo: 'echo',
     name: { ar: 'إيكو', en: 'Echo' },
     designer: { ar: 'نور فؤاد', en: 'Nour Fouad' },
-    tagline: { ar: 'لخريج بلا خبرة طويلة', en: 'For grads, no record needed' },
+    tagline: { ar: 'سيرة لخريج بلا خبرة طويلة', en: 'A CV for graduates with no long record' },
     desc: {
       ar: 'يقدّم المشروع والتدرب على سنوات العمل، مع مربعات معلّمة توجّهك ماذا تكتب.',
       en: 'Puts the capstone and internship ahead of work history, with marked prompts on what to write.',
@@ -1495,16 +1495,67 @@ export const testimonials = [
 export const brands = ['مستقل', 'حسوب', 'منصة', 'أُفق', 'نمو', 'نيوم', 'طيران الرياض', 'مرسول', 'سِمة', 'دار نشر']
 export const brandsEn = ['Estqlaal', 'Hasoub', 'Mansa', 'Ufuq', 'Numu', 'NEOM', 'Riyadh Air', 'Mrsool', 'Sima', 'Dar Press']
 
+/**
+ * جدول الكوبونات — المصدر الوحيد الذي يقرؤه المتجر (السلة) والخادم (إعادة الختم).
+ *
+ * كلُّ رمزٍ يحمل تاريخَ انتهاءٍ (`endsAt`) ونطاقًا (`appliesTo`) ونصًّا يشرح ما
+ * يشمله (`note`) — لأن خصمًا بلا تاريخٍ ولا نطاقٍ يُقرأ عرضًا دائمًا، وهو أولُ
+ * ما يُفقد العرض مصداقيّته. `endsAt: null` يعني رمزًا بلا أجل (رمز مدرّبٍ يُسوَّى
+ * يدويًا)، وأيُّ رمزٍ منتهٍ يُرفض في السلة وفي الخادم معًا من هذا الجدول لا من
+ * نسخةٍ مكتوبةٍ في مكان ثانٍ.
+ */
 export const coupons = {
-  SALE25: { pct: 25, ar: 'عرض الموسم', en: 'Season sale' },
-  WELCOME10: { pct: 10, ar: 'ترحيبي', en: 'Welcome' },
-  QALB30: { pct: 30, ar: 'خصم الطلبة', en: 'Student offer' },
+  SALE25: {
+    pct: 25,
+    ar: 'عرض الموسم',
+    en: 'Season sale',
+    endsAt: '2026-09-30',
+    appliesTo: 'all', // كل المنتجات: القوالب والحزم والإضافات
+    note: {
+      ar: 'خصم ٢٥٪ على كل منتجات المتجر — القوالب، وحزم الموقع + السيرة، والإضافات — حتى ٣٠ سبتمبر ٢٠٢٦، ويُطبَّق في سلة الشراء قبل الدفع.',
+      en: '25% off every product in the store — templates, site + CV bundles and add-ons — until 30 September 2026, applied in the cart before payment.',
+    },
+  },
+  WELCOME10: { pct: 10, ar: 'ترحيبي', en: 'Welcome', endsAt: null, appliesTo: 'all' },
+  QALB30: { pct: 30, ar: 'خصم الطلبة', en: 'Student offer', endsAt: null, appliesTo: 'all' },
   // v1.5.0 · خطة النمو: خصمٌ مباشر للأصدقاء، ورمزان تُنسَب لهما العمولة.
   // الرمزُ يُختم على الطلب في دفتر الطلبات (حقل coupon)، فتُحسَب أثريةُ المدرِّب
   // من الدفتر نفسه وتُسوّى يدويًا — لا عمولةٌ تُحوَّل آليًا من هذا المتجر.
-  FRIEND20: { pct: 20, ar: 'خصم الأصدقاء', en: 'Friends discount' },
-  COACH20: { pct: 20, ar: 'رمز مدرّب — ٢٠٪', en: 'Coach code — 20%' },
-  COACH30: { pct: 30, ar: 'رمز مدرّب — ٣٠٪', en: 'Coach code — 30%' },
+  FRIEND20: { pct: 20, ar: 'خصم الأصدقاء', en: 'Friends discount', endsAt: null, appliesTo: 'all' },
+  COACH20: { pct: 20, ar: 'رمز مدرّب — ٢٠٪', en: 'Coach code — 20%', endsAt: null, appliesTo: 'all' },
+  COACH30: { pct: 30, ar: 'رمز مدرّب — ٣٠٪', en: 'Coach code — 30%', endsAt: null, appliesTo: 'all' },
+}
+
+/** يومٌ بلا ساعات: يُقارَن كنصٍّ (YYYY-MM-DD) فلا يُقدَّم يومٌ بسبب فارق توقيت. */
+export const today = () => new Date().toISOString().slice(0, 10)
+
+/** هل انتهى الرمز؟ `endsAt: null` = بلا أجل. */
+export const couponExpired = (code, at = today()) => {
+  const c = coupons[String(code || '').trim().toUpperCase()]
+  return !!(c && c.endsAt && String(at) > c.endsAt)
+}
+
+/**
+ * بطاقةُ الرمز كما تعرضها الواجهة: النسبة، والأجل، وما يشمله — بلا أرقامٍ
+ * مكتوبةٍ في صفحةٍ ثانية. `expired` يُحسَب من اليوم، و`daysLeft` صفرٌ إن انتهى.
+ */
+export const couponInfo = (code, at = today()) => {
+  const key = String(code || '').trim().toUpperCase()
+  const c = coupons[key]
+  if (!c) return null
+  const expired = !!(c.endsAt && String(at) > c.endsAt)
+  const daysLeft = c.endsAt ? Math.max(0, Math.round((new Date(`${c.endsAt}T23:59:59Z`) - new Date(`${at}T00:00:00Z`)) / 86400000)) : null
+  return {
+    code: key,
+    pct: c.pct,
+    ar: c.ar,
+    en: c.en,
+    endsAt: c.endsAt || null,
+    appliesTo: c.appliesTo || 'all',
+    note: c.note || null,
+    expired,
+    daysLeft,
+  }
 }
 
 /*

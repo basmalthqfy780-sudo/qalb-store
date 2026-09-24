@@ -141,3 +141,20 @@ export const dec = (n, d = 2) => Number(n).toLocaleString('en-US', { minimumFrac
 export function moneyParts(n, lang) {
   return { value: dec(n), unit: lang === 'ar' ? 'ر.س' : 'SAR', dir: 'ltr' }
 }
+
+/**
+ * تاريخٌ مقروءٌ بلا اعتمادٍ على بيانات اللغة في بيئة التشغيل: أسماءُ الأشهر
+ * مكتوبةٌ هنا، فيخرج «30 سبتمبر 2026» في كل متصفح وكل خادم — لا «2026-09-30»
+ * في الشاشة العربية، ولا رقمًا بصيغةٍ يختارها المحرّك. الكوبونُ يُعرض أجلُه
+ * للزائر، فلا يصحّ أن يتغيّر شكلُه بين بيئةٍ وأخرى.
+ */
+const MONTHS_AR = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر']
+const MONTHS_EN = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+
+export function dateLabel(iso, lang = 'ar') {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || '').trim())
+  if (!m) return String(iso || '')
+  const [, y, mo, d] = m
+  const name = lang === 'ar' ? MONTHS_AR[Number(mo) - 1] : MONTHS_EN[Number(mo) - 1]
+  return `${Number(d)} ${name} ${y}`
+}

@@ -117,7 +117,7 @@ export const UPSELLS = [
   },
   {
     // ————— اشتراك Qalb Pro — نفسُ درجة الاشتراك في جدول الخطط —————
-    // السعر هنا هو سعرُ الدرجة نفسها في src/data/plans.js (‎49‎ شهريًا / ‎349‎ سنويًا):
+    // السعر هنا هو سعرُ الدرجة نفسها في src/data/plans.js (‎49‎ شهريًا / ‎299‎ سنويًا):
     // جدولٌ واحدٌ للاشتراك، وهذه نسختُه في السلة — لا رقمَان لنفس المنتج.
     id: 'pro-month',
     groups: ['pro'],
@@ -134,11 +134,11 @@ export const UPSELLS = [
   {
     id: 'pro-year',
     groups: ['pro'],
-    price: 349,
+    price: 299,
     icon: 'crown',
     period: 'year',
     name: { ar: 'Qalb Pro — سنوي', en: 'Qalb Pro — yearly' },
-    tagline: { ar: 'سنةٌ كاملة، بسعر سبعة أشهر', en: 'A full year, priced at seven months' },
+    tagline: { ar: 'سنةٌ كاملة، بسعر ستة أشهر', en: 'A full year, priced at six months' },
     desc: {
       ar: 'سنة كاملة من كل القوالب والنطاق الخاص وتصدير الملفات وأولوية الدعم، بلا تجديد تلقائي — يصلك تذكير قبل الشهر الأخير.',
       en: 'A full year of every template, your own domain, the file export and priority support, with no auto-renewal — a reminder arrives before your last month.',

@@ -181,6 +181,9 @@ function recompute(body, extra = {}) {
       .toUpperCase()
     const known = code ? coupons[code] : null
     if (code && !known) throw new Error(`unknown coupon: ${code}`)
+    // رمزٌ منتهٍ لا يُختم على الطلب: للخصم أجلٌ مكتوبٌ في جدوله (src/data/templates.js)
+    // يعرضه المتجر للزائر، فدفترُ الطلبات لا يسجّل خصمًا لم يعد قائمًا لحظة الشراء.
+    if (known && known.endsAt && now() > known.endsAt) throw new Error(`expired coupon: ${code}`)
     pct = known ? known.pct : 0
     label = pct ? `${code} ${pct}%` : body.coupon || null
   }
