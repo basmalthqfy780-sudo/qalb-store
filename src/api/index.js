@@ -135,6 +135,83 @@ export async function verifyKey(key) {
 }
 
 /* ------------------------------------------------------------------ *
+ * المدفوعات والفاتورة — طبقةُ النقل نفسها: لا شيءَ في الواجهة يعرف HTTP.
+ * في الوضع المحلي (بلا خادم) تعيد هذه الدوال null، فتبقى صفحة الإيصال
+ * على التوليد المحلي ولا يُعرض زرٌّ يقود إلى بوّابةٍ غير موجودة.
+ * ------------------------------------------------------------------ */
+
+/**
+ * إنشاءُ جلسة دفعٍ لطلبٍ مخزَّن. المبلغُ يُقرأ في الخادم من الطلب نفسه،
+ * فلو عبث أحدهم بالسلة فالخصمُ لا يتغيّر. النتيجة تحمل أحد أمرين:
+ * `payUrl` (إحالةٌ إلى بوّابة) أو `instructions` (تحويلٌ بنكي).
+ */
+export async function createPayment(orderId, method) {
+  if (apiMode !== 'rest' || !orderId) return null
+  try {
+    return await rest('/payments', { method: 'POST', body: JSON.stringify({ order: orderId, method: method || null }) })
+  } catch {
+    return null
+  }
+}
+
+/** حالةُ الدفع الراهنة — يسألُ الخادم، والخادم يسأل البوّابة إن كانت معلّقة */
+export async function fetchPayment(orderId) {
+  if (apiMode !== 'rest' || !orderId) return null
+  try {
+    return await rest(`/payments/${encodeURIComponent(orderId)}`)
+  } catch {
+    return null
+  }
+}
+
+/** المشتري أبلغ بتحويلٍ أرسله: مرجعُ التحويل يُسجَّل بانتظار تأكيد الموظف */
+export async function reportTransfer(orderId, ref) {
+  if (apiMode !== 'rest' || !orderId) return null
+  try {
+    return await rest(`/payments/${encodeURIComponent(orderId)}/transfer`, { method: 'POST', body: JSON.stringify({ ref: String(ref || '').trim() }) })
+  } catch {
+    return null
+  }
+}
+
+/** رابط الفاتورة المطبوعة — محميٌّ بمفتاح الترخيص في الخادم، لا برقم الطلب وحده */
+export const invoiceHref = (order) =>
+  apiMode === 'rest' && order?.id && order?.key ? `${BASE}/orders/${encodeURIComponent(order.id)}/invoice?key=${encodeURIComponent(order.key)}` : null
+
+/* ------------------------------------------------------------------ *
+ * النشرة والقالب المجاني — البريد مقابل ملفٍ يُسلَّم.
+ * في الوضع المحلي تعيد الدوال null فتبقى الصفحة على رابط البريد، ولا
+ * يُعرض زرُّ تنزيلٍ يفتح على خادمٍ غير موجود.
+ * ------------------------------------------------------------------ */
+
+/** تسجيلٌ في النشرة: يُخزَّن في دفتر المشتركين على الخادم (بلا ادّعاء إرسال) */
+export async function subscribe(email, meta = {}) {
+  if (apiMode !== 'rest' || !email) return null
+  try {
+    return await rest('/subscribe', {
+      method: 'POST',
+      body: JSON.stringify({ email, name: meta.name || null, source: meta.source || 'newsletter', locale: meta.locale || 'ar' }),
+    })
+  } catch {
+    return null
+  }
+}
+
+/**
+ * القالب المجاني مقابل البريد. الخادمُ ينشئ طلبًا صفريًا له — بقسيمة ١٠٠٪
+ * من جهته لا من المتصفح — فيمرّ القالب المجانيّ بباب الشراء نفسه: مفتاحُ
+ * ترخيص، وحزمةٌ مبنية، ورابطُ تنزيلٍ موقّع.
+ */
+export async function claimFree(email, name, template) {
+  if (apiMode !== 'rest' || !email) return null
+  try {
+    return await rest('/free', { method: 'POST', body: JSON.stringify({ email, name: name || null, template: template || null }) })
+  } catch {
+    return null
+  }
+}
+
+/* ------------------------------------------------------------------ *
  * الكتالوج القابل للتعديل + طبقة لوحة الإدارة.
  * نفس العقد للوضعين: local يخزّن على الجهاز (qalb.products.v1)،
  * وrest يخزّن في server/products.json خلف مصادقة server/admin.js.

@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
-import { templates, coupons, couponInfo } from '../data/templates'
+import { templates, couponInfo } from '../data/templates'
 import { VAT } from '../data/tax.js'
 import { applyOverlay } from '../data/catalog'
 import { upsellById } from '../data/upsells'

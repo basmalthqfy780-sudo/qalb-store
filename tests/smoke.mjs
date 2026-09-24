@@ -341,6 +341,18 @@ const cases = [
 
   /* ---------------- نموذج الربح v1.7.0: خطط، إنشاء، حساب، سوق، بائع ---------------- */
   {
+    name: 'free template · the lead magnet',
+    url: 'http://localhost/free',
+    expect: [
+      'قالب «فوليو» كاملًا — مقابل بريدك فقط',
+      'والنشرة؟ اختيارٌ لا شرط',
+      'بلا بطاقة ائتمان، وبلا تجديد',
+      'رابطُ تنزيلٍ موقّع، صالحٌ عشر دقائق',
+    ],
+    // لا خادم في الفحص: الصفحةُ تقول ذلك بدل زرِّ تنزيلٍ يفتح على فراغ
+    absent: ['اشترك الآن بـ ٠ ريال'],
+  },
+  {
     name: 'pricing / plans and the value matrix',
     url: 'http://localhost/pricing',
     expect: [
@@ -2517,7 +2529,15 @@ for (const c of cases) {
         /(يُرسل|نُرسل|أُرسل|تُرسل|تُرسَل|تُصدر|يصدر|sent to|are emailed|is emailed|is issued|we send|will send)/i.test(s) &&
         /(بريد|e-?mail|فاتورة|invoice|ZATCA|هيئة الزكاة)/i.test(s),
     )
-    const bare = promises.filter(([, s]) => !new RegExp(mail[lang], 'i').test(s)).map(([k]) => k)
+    /*
+     * v1.9.0: صار في المستودع ما كان معدومًا حين كُتبت هذه القاعدة — مُرسِلُ بريد
+     * (server/mail.js) ومُصدِرُ فاتورة (server/invoice.js)، وكلاهما يستدعيه
+     * الخادم لحظةَ إنشاءِ الدفع وبعدَ القبض. فالوعدُ بلا نفيٍ مقبولٌ إن كان
+     * مسنودًا بملفٍ على القرص، وما لا منفّذَ له يبقى مرفوضًا كما كان.
+     */
+    const backed = existsSync('server/mail.js') && existsSync('server/invoice.js')
+    const ALLOWED = backed ? ['pay.mailNote'] : []
+    const bare = promises.filter(([k, s]) => !new RegExp(mail[lang], 'i').test(s) && !ALLOWED.includes(k)).map(([k]) => k)
     ok(`no ${lang} line promises an e-mail or an invoice that nothing backs`, bare.length === 0, bare.slice(0, 4).join(','))
   }
   /*

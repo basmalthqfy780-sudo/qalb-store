@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
-import { fetchOrder, deliveryHref, deliveryAllHref, apiMode } from '../api'
+import { fetchOrder, deliveryHref, deliveryAllHref, apiMode, fetchPayment, reportTransfer, invoiceHref } from '../api'
 import { useI18n, num, dec } from '../i18n'
 import { byId, templates } from '../data/templates'
 import { upsellById, addonDelivery } from '../data/upsells'
@@ -20,6 +20,11 @@ export default function Success() {
   const [copyState, setCopyState] = useState('') // '' | 'ok' | 'fail' — declared before any early return
   const [busy, setBusy] = useState('') // معرّف القالب قيد التجهيز، أو '*' لكل الطلب
   const [failed, setFailed] = useState('')
+  // حالةُ الدفع تُقرأ من الخادم: الإيصال قد يُفتح من بريدٍ على جهازٍ آخر،
+  // فالحالةُ لا تُحفظ في المتصفح ولا تُؤخذ من رابطٍ يُكتب يدويًا
+  const [payment, setPayment] = useState(loc.state?.payment || null)
+  const [transferRef, setTransferRef] = useState('')
+  const [transferSaved, setTransferSaved] = useState(false)
 
   // /order?id=QALB-… resolves through the transport, so a receipt link sent by
   // e-mail still opens on a device with no local history
@@ -45,6 +50,15 @@ export default function Success() {
     }
     return null
   }, [loc.state, wanted, remote])
+
+  useEffect(() => {
+    if (!order?.id || apiMode !== 'rest') return
+    let on = true
+    fetchPayment(order.id).then((p) => on && p && setPayment(p))
+    return () => {
+      on = false
+    }
+  }, [order?.id])
 
   /**
    * رصيدُ مولّد التقديم يُمنح هنا وحده: بعد طلبٍ حقيقي يحمل الإضافة، ومرةً واحدة
@@ -237,6 +251,26 @@ export default function Success() {
             </Pill>
           </div>
         </div>
+
+        <PaymentPanel
+          payment={payment}
+          t={t}
+          invoice={invoiceHref(order)}
+          transferRef={transferRef}
+          setTransferRef={setTransferRef}
+          transferSaved={transferSaved}
+          onRefresh={async () => {
+            const p = await fetchPayment(order.id)
+            if (p) setPayment(p)
+          }}
+          onTransfer={async () => {
+            const p = await reportTransfer(order.id, transferRef)
+            if (p) {
+              setPayment(p)
+              setTransferSaved(true)
+            }
+          }}
+        />
 
         <div className="mt-10 overflow-hidden rounded-3xl border border-line bg-panel shadow-soft">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-6 py-4">
@@ -461,5 +495,154 @@ export default function Success() {
         </div>
       </div>
     </div>
+  )
+}
+
+/**
+ * لوحةُ الدفع على صفحة الإيصال — ثلاثُ حالاتٍ صريحة، لا حالةٌ واحدةٌ غامضة:
+ *
+ *   • بوّابة: زرٌّ يحيل المشتري إلى صفحة الدفع، وزرٌّ يعيد التحقّق من الحالة بعد
+ *     عودته (إشعارُ البوّابة قد يسبق عودته أو يتأخّر عنها).
+ *   • تحويل: آيبان ومبلغ ومرجع، وخانةٌ يُدخل فيها المشتري مرجعَ تحويله فتُسجَّل
+ *     بانتظار تأكيد الموظف — لا «تم الدفع» بمجرّد الضغط.
+ *   • مدفوع: شارةٌ خضراء، ورابطُ الفاتورة المطبوعة، وروابطُ التسليم مفتوحة.
+ *
+ * ولا شيءَ هنا يقول «مدفوع» من المتصفح: الحالةُ يقرؤها الخادم من بوّابة الدفع.
+ */
+function PaymentPanel({ payment, t, onRefresh, onTransfer, transferRef, setTransferRef, transferSaved, invoice }) {
+  if (apiMode !== 'rest') return null
+  const paid = payment?.status === 'paid'
+  const ins = payment?.instructions
+  return (
+    <div
+      className="mt-6 overflow-hidden rounded-3xl border border-line bg-panel shadow-soft"
+      data-payment-panel
+      data-payment-status={paid ? 'paid' : 'pending'}
+    >
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-6 py-4">
+        <p className="font-display text-[16px] font-extrabold">{t('pay.title')}</p>
+        <span
+          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-extrabold ${
+            paid ? 'bg-brand/15 text-brand' : 'bg-gold/15 text-gold'
+          }`}
+        >
+          <Icon n={paid ? 'check' : 'clock'} className="size-3.5" sw={2.6} />
+          {paid ? t('pay.paid') : t('pay.pending')}
+        </span>
+      </div>
+
+      <div className="px-6 py-5">
+        {paid ? (
+          <p className="text-[13px] leading-relaxed text-dim">{t('pay.paidNote')}</p>
+        ) : payment?.payUrl ? (
+          <>
+            <p className="text-[13px] leading-relaxed text-dim">{t('pay.gatewayNote')}</p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <a
+                href={payment.payUrl}
+                data-pay-now
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-ink px-5 text-[13.5px] font-bold text-bg transition hover:bg-brand light:bg-brand light:text-brandink"
+              >
+                <Icon n="card" className="size-4" />
+                {t('pay.payNow')}
+              </a>
+              <button
+                type="button"
+                onClick={onRefresh}
+                data-pay-recheck
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-line bg-bg px-4 text-[13px] font-bold transition hover:border-brand/50 hover:text-brand"
+              >
+                <Icon n="refresh" className="size-4" />
+                {t('pay.recheck')}
+              </button>
+            </div>
+          </>
+        ) : ins ? (
+          <>
+            <p className="text-[13px] leading-relaxed text-dim">{t('pay.transferNote', { hours: ins.expiresInHours })}</p>
+            <dl className="mt-4 grid gap-2 rounded-2xl border border-line bg-bg p-4 text-[13px] sm:grid-cols-2">
+              <Row k={t('pay.bank')} v={ins.bank || '—'} />
+              <Row k={t('pay.iban')} v={ins.iban || t('pay.notConfigured')} copy={ins.iban} />
+              <Row k={t('pay.holder')} v={ins.holder || '—'} />
+              <Row k={t('pay.reference')} v={ins.reference} copy={ins.reference} />
+              <Row k={t('pay.amount')} v={`${Number(ins.amount || 0).toLocaleString('en-US')} ${ins.currency || 'SAR'}`} copy={String(ins.amount)} />
+            </dl>
+            <div className="mt-4 flex flex-wrap items-end gap-2">
+              <label className="block">
+                <span className="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.12em] text-dim">{t('pay.transferRef')}</span>
+                <input
+                  value={transferRef}
+                  onChange={(e) => setTransferRef(e.target.value)}
+                  placeholder={t('pay.transferRefPh')}
+                  data-transfer-ref
+                  className="num h-11 w-full min-w-[220px] rounded-xl border border-line bg-bg px-3.5 text-[13px] font-semibold outline-none focus:border-brand/50"
+                />
+              </label>
+              <button
+                type="button"
+                onClick={onTransfer}
+                disabled={transferSaved}
+                data-transfer-sent
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-brand/45 bg-brand/10 px-4 text-[13px] font-bold text-brand transition hover:bg-brand/20 disabled:opacity-60"
+              >
+                <Icon n={transferSaved ? 'check' : 'bank'} className="size-4" />
+                {transferSaved ? t('pay.transferSaved') : t('pay.transferSent')}
+              </button>
+            </div>
+          </>
+        ) : (
+          <p className="text-[13px] leading-relaxed text-dim">{t('pay.localNote')}</p>
+        )}
+
+        {invoice && (
+          <a
+            href={invoice}
+            target="_blank"
+            rel="noreferrer"
+            data-invoice-link
+            className="mt-4 inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-line bg-bg px-4 text-[12.5px] font-bold transition hover:border-brand/50 hover:text-brand"
+          >
+            <Icon n="file" className="size-4" />
+            {t('pay.invoice')}
+          </a>
+        )}
+        <p className="mt-3 text-[11.5px] leading-relaxed text-dim">{t('pay.mailNote')}</p>
+      </div>
+    </div>
+  )
+}
+
+function Row({ k, v, copy }) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <dt className="text-[11.5px] font-bold uppercase tracking-[0.1em] text-dim">{k}</dt>
+      <dd className="num flex items-center gap-2 text-[13px] font-bold">
+        {v}
+        {copy ? <CopyBtn value={copy} /> : null}
+      </dd>
+    </div>
+  )
+}
+
+/** زرُّ نسخٍ صغير: الحقل الذي يُلصق في تطبيق البنك لا يُنسخ بالعين */
+function CopyBtn({ value }) {
+  const [done, setDone] = useState(false)
+  return (
+    <button
+      type="button"
+      aria-label={String(value)}
+      onClick={async () => {
+        try {
+          await navigator.clipboard.writeText(String(value))
+          setDone(true)
+          setTimeout(() => setDone(false), 1400)
+        } catch {
+          /* حافظةٌ محجوبة: يبقى النصّ ظاهرًا للنسخ اليدوي */
+        }
+      }}
+      className="text-dim transition hover:text-brand"
+    >
+      <Icon n={done ? 'check' : 'copy'} className="size-3.5" />
+    </button>
   )
 }
