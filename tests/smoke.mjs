@@ -2027,9 +2027,13 @@ for (const c of cases) {
   navLink?.dispatchEvent(new g.win.MouseEvent('click', { bubbles: true, cancelable: true, button: 0 }))
   await g.wait(90)
   ok('and clicking it lands on the section, not on the top of the page', scrolledTo === 'bundles', scrolledTo)
+  // بابُ الفريق معروضٌ في التذييل بقرارٍ معلن (قرارُ المالك، v1.9.1): الرابط موجود
+  // لكل زائر، والحماية كلمةُ السر + قفلُ المحاولات لا الإخفاء — والفحص يثبّت أنه
+  // يُعاد إن حُذف سهوًا، كما يثبّت أن /admin نفسها خارج الفهرسة.
   ok(
-    'the public footer no longer advertises the staff panel',
-    ![...g.doc.querySelectorAll('footer a')].some((a) => a.getAttribute('href') === '/admin'),
+    'the footer carries the way into the staff panel',
+    [...g.doc.querySelectorAll('footer a')].some((a) => a.getAttribute('href') === '/admin'),
+    [...g.doc.querySelectorAll('footer a')].map((a) => a.getAttribute('href')).join(' '),
   )
   g.dom.window.close()
 
@@ -2921,8 +2925,8 @@ for (const c of cases) {
   )
   ok('Netlify keeps the same map in its own tongue', /^\/\*\s+\/index\.html\s+200$/m.test(readSrc('public/_redirects')))
   ok(
-    'the admin path is unlisted: no link, no sitemap entry, and disallowed in every robots block',
-    !readSrc('src/components/Footer.jsx').includes('/admin') &&
+    'the admin path is linked on purpose yet kept away from crawlers: no sitemap entry, disallowed in every robots block',
+    readSrc('src/components/Footer.jsx').includes("{ to: '/admin'") &&
       !readSrc('public/sitemap.xml').includes('/admin') &&
       (readSrc('public/robots.txt').match(/^User-agent:/gm) || []).length ===
         (readSrc('public/robots.txt').match(/^Disallow: \/admin$/gm) || []).length,

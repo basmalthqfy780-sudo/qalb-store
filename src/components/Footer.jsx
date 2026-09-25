@@ -62,6 +62,10 @@ export default function Footer() {
         { to: '/#testimonials', label: t('footer.stories') },
         { to: '/#contact', label: t('footer.contact') },
         { to: '/b2b', label: t('footer.b2b') },
+        // قرارٌ معلن: بابُ الفريق معروضٌ هنا، والحماية كلمةُ السر لا الإخفاء —
+        // فالصفحة تبقى noindex وممنوعة في robots.txt وبعيدة عن sitemap.xml.
+        // (حتى v1.9.0 كانت مكتوبةً في README بلا رابطٍ في الكود؛ هذا يطابقهما.)
+        { to: '/admin', label: t('footer.admin') },
       ],
     },
     {
