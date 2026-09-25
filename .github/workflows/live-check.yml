@@ -1,0 +1,24 @@
+name: live-check
+
+# فحصٌ مؤقّت: البيئةُ التي يعمل فيها الوكيل لا تصل إلى vercel.app، فمن يقرأ
+# الشيفرة المنشورة فعلًا هو مُشغّلُ GitHub. يُحذَف بعد القراءة.
+on:
+  push:
+    branches: ['arena/01a0d9f1-qalb-store']
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    steps:
+      - name: What is production serving right now?
+        run: |
+          for U in https://qalb-store.vercel.app/ https://qalb.store/ https://qalb-store-44rm82hww-basmalthqfy780-sudo.vercel.app/; do
+            echo "===== $U"
+            curl -sS -m 30 -o /tmp/p.html -w 'html http %{http_code} · %{size_download} bytes\n' "$U" || { echo 'unreachable'; continue; }
+            ASSETS=$(grep -o 'assets/[A-Za-z0-9._-]*\.js' /tmp/p.html | sort -u || true)
+            echo "assets in html: ${ASSETS:-none}"
+            for A in $ASSETS; do
+              curl -sS -m 30 -o /tmp/a.js "$U$A" || true
+              echo "  $A  →  new margin '150px 0px': $(grep -c '150px 0px' /tmp/a.js || true) · old margin '0px 0px -8% 0px': $(grep -c '0px 0px -8% 0px' /tmp/a.js || true)"
+            done
+          done
