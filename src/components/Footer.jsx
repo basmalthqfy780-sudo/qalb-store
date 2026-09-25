@@ -90,7 +90,7 @@ export default function Footer() {
       <div className="page-x mx-auto max-w-[1400px] py-14">
         <div className="grid gap-12 lg:grid-cols-[1.15fr_2fr]">
           <div>
-            <Logo />
+            <div className="isolate"><Logo /></div>
             <p className="mt-4 max-w-sm text-[14px] leading-relaxed text-dim">{t('footer.blurb')}</p>
             <div className="mt-5 rounded-2xl border border-line bg-panel p-4">
               <p className="text-[13.5px] font-bold">{t('footer.newsletter')}</p>
@@ -122,7 +122,7 @@ export default function Footer() {
                 <ul className="space-y-2">
                   {c.links.map((l, i) => (
                     <li key={i}>
-                      <Link to={l.to} className="text-[13.5px] font-medium text-ink/75 transition hover:text-brand">
+                      <Link to={l.to} className="text-[13.5px] font-medium text-ink transition hover:text-brand">
                         {l.label}
                       </Link>
                     </li>
@@ -174,19 +174,19 @@ export default function Footer() {
             </span>
           </div>
           <nav aria-label={t('footer.legal')} className="flex flex-wrap items-center gap-x-4 gap-y-2">
-            <Link to="/terms" className="font-bold text-ink/75 transition hover:text-brand">
+            <Link to="/terms" className="font-bold text-ink transition hover:text-brand">
               {t('footer.terms')}
             </Link>
-            <Link to="/privacy" className="font-bold text-ink/75 transition hover:text-brand">
+            <Link to="/privacy" className="font-bold text-ink transition hover:text-brand">
               {t('footer.privacy')}
             </Link>
-            <Link to="/refunds" className="font-bold text-ink/75 transition hover:text-brand">
+            <Link to="/refunds" className="font-bold text-ink transition hover:text-brand">
               {t('footer.refund')}
             </Link>
-            <Link to="/licensing" className="font-bold text-ink/75 transition hover:text-brand">
+            <Link to="/licensing" className="font-bold text-ink transition hover:text-brand">
               {t('footer.license')}
             </Link>
-            <Link to="/contact" className="font-bold text-ink/75 transition hover:text-brand">
+            <Link to="/contact" className="font-bold text-ink transition hover:text-brand">
               {t('legal.contactTitle')}
             </Link>
           </nav>
@@ -356,7 +356,7 @@ function Pay({ k }) {
     )
   const named = iconOnly ? { role: 'img', 'aria-label': label, title: label } : {}
   return (
-    <span className="grid h-7 min-w-[42px] place-items-center rounded-md border border-line bg-panel px-2 text-ink/80" {...named}>
+    <span className="grid h-7 min-w-[42px] place-items-center rounded-md border border-line bg-panel px-2 text-ink" {...named}>
       {art}
     </span>
   )

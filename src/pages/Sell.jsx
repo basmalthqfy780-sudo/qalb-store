@@ -165,7 +165,7 @@ function Report({ report, lang }) {
                 <span className="num text-[12px] font-bold">{r.rule}</span>
                 <span className="num ms-auto text-[11px] text-dim">+{r.weight}</span>
               </span>
-              <span className="mt-1 block text-[12.5px] leading-relaxed text-ink/80">{L(r.why)}</span>
+              <span className="mt-1 block text-[12.5px] leading-relaxed text-ink">{L(r.why)}</span>
               {r.path ? <span className="num mt-0.5 block truncate text-[11px] text-dim">{r.path}</span> : null}
             </li>
           ))}

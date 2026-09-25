@@ -371,21 +371,21 @@ export default function Catalog() {
                 </div>
                 {per < list.length && (
                   <div className="mt-10 flex justify-center">
-                    <Btn variant="outline" size="lg" onClick={loadMore}>
-                      {t('nav.viewAll')}
+                    <Btn variant="outline" size="lg" onClick={loadMore} data-load-more>
+                      {t('catalog.loadMore')}
                       <Icon n="chevron" className="size-4" />
                     </Btn>
                   </div>
                 )}
               </>
             ) : (
-              <div className="rounded-3xl border border-dashed border-line bg-panel/50 px-6 py-20 text-center">
+              <div data-empty-state className="rounded-3xl border border-dashed border-line bg-panel/50 px-6 py-20 text-center">
                 <span className="mx-auto grid size-14 place-items-center rounded-2xl border border-line bg-bg text-dim">
                   <Icon n="search" className="size-6" />
                 </span>
                 <h3 className="mt-5 font-display text-xl font-extrabold">{t('catalog.noResults')}</h3>
                 <p className="mx-auto mt-2 max-w-sm text-[14px] text-dim">{t('catalog.noResultsHint')}</p>
-                <Btn onClick={reset} className="mt-6">
+                <Btn onClick={reset} className="mt-6" data-reset-filters>
                   {t('catalog.reset')}
                 </Btn>
               </div>

@@ -165,7 +165,11 @@ export default function QuickView({ tpl, onClose, initial = {} }) {
           </div>
           <div className="flex items-center gap-2">
             <Stars value={tpl.rating} />
-            <span className="text-[12px] text-dim">({tpl.reviews})</span>
+            {tpl.isNew ? (
+              <span className="text-[12px] font-bold text-brand">{t('card.new')}</span>
+            ) : (
+              <span className="text-[12px] text-dim">{tpl.rating.toFixed(1)}</span>
+            )}
           </div>
           <p className="line-clamp-4 text-[13.5px] leading-relaxed text-dim">{L(tpl.desc)}</p>
 

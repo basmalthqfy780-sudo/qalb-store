@@ -11,7 +11,7 @@ import { useSeo } from '../components/Seo'
 
 export default function Cart() {
   const { t, L, lang } = useI18n()
-  const { items, addonItems, totals, setQty, remove, clear, coupon, applyCoupon, clearCoupon, toggleAddon, hasAddon, toast } = useStore()
+  const { items, addonItems, totals, catalog, setQty, remove, clear, coupon, applyCoupon, clearCoupon, toggleAddon, hasAddon, toast } = useStore()
   const [code, setCode] = useState('')
   const [err, setErr] = useState(false)
   const [errExpired, setErrExpired] = useState(false)
@@ -20,7 +20,7 @@ export default function Cart() {
   // عرضُ الموسم يُشرح قبل أن يُطلب: ما يشمله، ومتى ينتهي — لا رمزٌ بلا بيان
   const sale = couponInfo('SALE25')
 
-  const suggestions = templates.filter((x) => !items.some((i) => i.id === x.id)).slice(0, 3)
+  const suggestions = catalog.filter((x) => !items.some((i) => i.id === x.id)).slice(0, 3)
   const upsells = cartUpsells()
 
   const submitCoupon = (e) => {
