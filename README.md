@@ -7,7 +7,7 @@
 **التقنيات**: React 18 + Vite 6 + Tailwind CSS v4 (بدون مكتبة UI جاهزة) + React Router. ثنائي اللغة
 `ar ⇄ en` مع تبديل `RTL/LTR` لحظيًا.
 
-**النسخة**: `1.8.0` · موسومة `v1.8.0`. ما في كل نسخة مُثبَّت سطرًا سطرًا في [`CHANGELOG.md`](CHANGELOG.md) —
+**النسخة**: `1.9.0` (وما بعدها تحت «Unreleased»). ما في كل نسخة مُثبَّت سطرًا سطرًا في [`CHANGELOG.md`](CHANGELOG.md) —
 مصدره مخرجات `npm test` والوسوم، لا وصف مكتوب من الذاكرة.
 
 ---
@@ -19,8 +19,8 @@ npm install
 npm run dev        # http://localhost:5173
 npm run build      # إنتاج dist/
 npm run preview    # معاينة نسخة الإنتاج
-npm test           # ٧٢ مجموعة / ١٢٨٨ فحصًا: تصيير ٥٠ مسارًا (٢٨١ توقعًا) + ٢١ مجموعة تفاعلية (٧٧٣ فحصًا) في jsdom،
-                   # ثم ٢٣٤ فحصًا لخادم اللوحة والتسليم والحسابات والسوق (npm run test:api يشغّله وحده)
+npm test           # ٧٧ مجموعة / ١٤٧٣ فحصًا: تصيير ٥١ مسارًا (٣١٨ توقعًا) + ٢٥ مجموعة تفاعلية (٨٨٧ فحصًا) في jsdom،
+                   # ثم ٢٦٨ فحصًا لخادم اللوحة والتسليم والحسابات والسوق (npm run test:api يشغّله وحده)
 npm run lint       # eslint (بما فيها قواعد مترجِم react-hooks) — صفر مشكلة
 npm run format     # prettier؛ وnpm run format:check للتحقق فقط
 

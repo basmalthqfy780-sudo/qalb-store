@@ -151,11 +151,11 @@ const cases = [
     url: 'http://localhost/',
     expect: [
       'قالب',
-      'الأكثر رواجًا هذا الأسبوع',
-      // v1.8.0: العنوان والزرّان كما كُتبا في الطلب — بلا وعدٍ بشراءٍ مرة واحدة
+      'الأكثر رواجًا',
+      // جولة الواجهة: العنوان والوصف كما كُتبا في الطلب حرفيًّا
       'بورتفوليو وسيرة ذاتية',
-      'بهوية واحدة.',
-      'اختر قالبًا، عدّل محتواك، وانشر موقعك مع سيرة ATS جاهزة.',
+      'بهوية واحدة',
+      'اختر قالبًا، عدّل محتواك، وانشر موقعك مع سيرة ATS جاهزة للتقديم.',
       'تصفح القوالب',
       'معاينة القوالب المجانية',
       // «ماذا ستحصل عليه؟» — أربعةُ مخرجاتٍ تُسلَّم فعلًا
@@ -184,9 +184,9 @@ const cases = [
     lang: 'en',
     expect: [
       'Qalb',
-      'Trending this week',
+      'Trending',
       'A portfolio and a résumé',
-      'carrying one identity.',
+      'carrying one identity',
       'Browse templates',
       'Preview free templates',
       'What’s included?',
@@ -1543,11 +1543,7 @@ for (const c of cases) {
   {
     const g = await render('http://localhost/', {}, { boot: deadBoot })
     const txt = g.txt()
-    ok(
-      'the home page still renders with the API unreachable',
-      /الأكثر رواجًا هذا الأسبوع/.test(txt) && /449/.test(txt),
-      txt.replace(/\s+/g, ' ').slice(0, 50),
-    )
+    ok('the home page still renders with the API unreachable', /الأكثر رواجًا/.test(txt) && /449/.test(txt), txt.replace(/\s+/g, ' ').slice(0, 50))
     ok('a failed /catalog does not trip the error screen', !/حدث خطأ غير متوقع/.test(txt))
     ok('the shell is mounted around the content', !!g.doc.querySelector('nav') && !!g.doc.querySelector('footer'))
     ok(
@@ -2103,22 +2099,23 @@ for (const c of cases) {
   )
   ok(
     'fields are parted by a written separator, so a linear read never welds them together',
-    parts.every((x) => x.price.includes('·')) && parts.every((x) => /\s·\s|·/.test(x.price)),
+    parts.every((x) => x.price.includes('—')),
     parts[0]?.price || '',
   )
   ok(
-    'the card says what the price buys: a live preview and the licence',
-    parts.every((x) => /معاينة حية/.test(x.price)) && cards.every((c) => /ترخيص/.test(c.querySelector('[data-tpl-licence]')?.textContent || '')),
+    'the price line says what it buys: «199 ر.س — ترخيص لمرة واحدة»',
+    parts.every((x) => /—\s*ترخيص لمرة واحدة/.test(x.price)) &&
+      cards.every((c) => /ترخيص/.test(c.querySelector('[data-tpl-licence]')?.textContent || '')),
     (cards[0]?.querySelector('[data-tpl-licence]')?.textContent || '').trim(),
   )
 
-  /* ——— الزرّان: «عرض القالب» و«أضف للسلة»، وحالةٌ بصريةٌ بعد الإضافة ——— */
+  /* ——— الزرّان: «معاينة حية» و«أضف للسلة»، وحالةٌ بصريةٌ بعد الإضافة ——— */
   const card = g.doc.querySelector('[data-tpl-card="nova"]')
   ok('a card links to its own detail page', !!card?.querySelector(`a[href="/template/${byId('nova').slug}"]`))
   ok(
-    'and that link is labelled “view the template”, not an icon alone',
+    'and that link is labelled “live preview”, not an icon alone',
     [...(card?.querySelectorAll('a') || [])].some(
-      (a) => a.getAttribute('href') === `/template/${byId('nova').slug}` && /عرض القالب/.test(a.textContent || ''),
+      (a) => a.getAttribute('href') === `/template/${byId('nova').slug}` && /معاينة حية/.test(a.textContent || ''),
     ),
   )
   const addBtn = [...(card?.querySelectorAll('button') || [])].find((b) => /أضف إلى السلة/.test(b.textContent || ''))
@@ -2143,7 +2140,7 @@ for (const c of cases) {
   }))
   ok(
     'the English card is separated the same way',
-    enParts.length > 0 && enParts.every((x) => x.name && x.desc.length > 8 && /SAR/.test(x.price) && x.price.includes('·')),
+    enParts.length > 0 && enParts.every((x) => x.name && x.desc.length > 8 && /SAR/.test(x.price) && /—\s*one-time licence/.test(x.price)),
     enParts[0] ? `${enParts[0].name} / ${enParts[0].price}` : 'none',
   )
   en.dom.window.close()
@@ -2837,7 +2834,7 @@ for (const c of cases) {
   ok('the product page reads its lists through LA', /LA\(tpl\.sections\)\.map\(/.test(readSrc('src/pages/Product.jsx')))
   ok(
     'and its highlights/best-for lists too',
-    /\[\.\.\.LA\(tpl\.highlights\)/.test(readSrc('src/pages/Product.jsx')) && /items=\{LA\(tpl\.bestFor\)\}/.test(readSrc('src/pages/Product.jsx')),
+    /items=\{LA\(tpl\.highlights\)\}/.test(readSrc('src/pages/Product.jsx')) && /items=\{LA\(tpl\.bestFor\)\}/.test(readSrc('src/pages/Product.jsx')),
   )
   ok('cards fall back on an unknown type', /typeLabel\[tpl\.type\] \|\| typeLabel\.portfolio/.test(readSrc('src/components/TemplateCard.jsx')))
   ok('the admin table refuses to print a protected path as a link', /isProtectedDownload\(r\.download\)/.test(readSrc('src/pages/Admin.jsx')))
@@ -5835,6 +5832,240 @@ for (const c of cases) {
   } else {
     groups++
     console.log(`✓ source export · three templates a month  (${checks.length} assertions)`)
+  }
+}
+
+/* ---------------- جولة الواجهة: البطاقة · التحميل · الشريط · صفحة القالب · الضمانات · القانون ---------------- */
+{
+  const checks = []
+  const ok = (name, cond, extra = '') => checks.push([name + (cond || !extra ? '' : ` (${extra})`), !!cond])
+  const click = (g, el) => el?.dispatchEvent(new g.win.MouseEvent('click', { bubbles: true, cancelable: true, button: 0 }))
+  const T = dict.ar
+
+  /* ——— البطاقة: عناصرُ مستقلة، ونصٌّ خطيٌّ بلا لصق ——— */
+  const cat = await render('http://localhost/templates')
+  const aether = cat.doc.querySelector('[data-tpl-card="aether"]')
+  ok('the card name is an <h3>', aether?.querySelector('[data-tpl-name]')?.tagName === 'H3')
+  ok('the description is a <p>', aether?.querySelector('[data-tpl-desc]')?.tagName === 'P')
+  ok('the price is a <span>', aether?.querySelector('[data-tpl-price]')?.tagName === 'SPAN')
+  ok('the badges sit in their own <div>', aether?.querySelector('[data-tpl-cat]')?.tagName === 'DIV')
+  const linear = (aether?.textContent || '').replace(/\s+/g, ' ')
+  const nm = byId('aether').name.ar
+  ok('a linear read never welds the name to the description', !new RegExp(`${nm}[\\u0600-\\u06FF]`).test(linear), linear.slice(0, 60))
+  ok('nor the price to its currency (199 ر.س, not 199ر.س)', /\d\sر\.س/.test(linear) && !/\dر\.س/.test(linear), linear.slice(0, 90))
+  ok(
+    'a template with no old price never claims “after discount”',
+    cat.doc.querySelectorAll('[data-tpl-card]').length > 0 &&
+      [...cat.doc.querySelectorAll('[data-tpl-card]')].every(
+        (c) => byId(c.getAttribute('data-tpl-card'))?.oldPrice || !/بعد الخصم/.test(c.textContent || ''),
+      ),
+  )
+  const actions = aether?.querySelector('[data-tpl-actions]')
+  ok(
+    'the two actions share one row: live preview + add to cart',
+    /معاينة حية/.test(actions?.textContent || '') && /أضف إلى السلة/.test(actions?.textContent || ''),
+  )
+  ok(
+    'the results area holds a minimum height, so the footer does not jump (CLS)',
+    /min-h-/.test(cat.doc.querySelector('[data-catalog-results]')?.className || ''),
+  )
+  ok('a healthy catalogue shows no offline notice', !cat.doc.querySelector('[data-catalog-offline]'))
+  const uiSrc = readFileSync('src/components/ui.jsx', 'utf8')
+  ok(
+    'the skeleton mirrors the card line by line (name · desc · price · meta · two h-9 buttons)',
+    ['name', 'desc', 'price', 'meta', 'actions'].every((k) => uiSrc.includes(`data-sk="${k}"`)) &&
+      (uiSrc.match(/h-9 animate-pulse/g) || []).length >= 2,
+  )
+  ok('the route fallback draws card skeletons, not a “loading…” line', /<TemplateCardSkeleton/.test(readFileSync('src/App.jsx', 'utf8')))
+
+  /* ——— «منظومة التوظيف9»: العدّاد مفصولٌ عن اسمه ——— */
+  const body = cat.doc.body.textContent || ''
+  ok('the hiring-suite label is never welded to its count', !/منظومة التوظيف\d/.test(body))
+  cat.dom.window.close()
+
+  /* ——— الشريط: من جدول الكوبون، والكودُ ظاهر، ويختفي بعد الأجل ——— */
+  const home = await render('http://localhost/')
+  const bar = home.doc.querySelector('[data-announce]')
+  const barTxt = (bar?.textContent || '').replace(/\s+/g, ' ')
+  const sale = couponInfo('SALE25')
+  ok(
+    'the banner states the full scope, as the cart does: the «site + CV» bundle and the whole store, until 30 September 2026 — code SALE25',
+    barTxt.includes(`خصم ${sale.pct}% على حزمة «موقع + سيرة» وكل المتجر حتى 30 سبتمبر 2026 — كود`) &&
+      sale.appliesTo === 'all' &&
+      /SALE25/.test(barTxt),
+    barTxt,
+  )
+  ok(
+    'the code is visible at every width (no hidden class)',
+    !/(^|\s)hidden(\s|$)/.test(bar?.querySelector('[data-announce-code]')?.className || 'hidden'),
+  )
+  ok('the banner links to the bundles', !!bar?.querySelector('a[href="/templates?type=bundle"]'))
+  ok('“this week” is gone from the home page', !/هذا الأسبوع/.test(home.txt()))
+  ok('the newsletter copy is the new line', home.txt().includes('اشترك لتصلك القوالب الجديدة ونصائح تجهيز سيرة وبورتفوليو احترافي.'))
+  ok('the headline is the value line', home.doc.querySelector('h1')?.textContent.replace(/\s+/g, ' ').trim() === 'بورتفوليو وسيرة ذاتية بهوية واحدة')
+  home.dom.window.close()
+
+  const after = await render(
+    'http://localhost/',
+    {},
+    {
+      boot: (win) => {
+        const RD = win.Date
+        const at = RD.UTC(2026, 9, 2, 9)
+        class FakeDate extends RD {
+          constructor(...a) {
+            super(...(a.length ? a : [at]))
+          }
+          static now() {
+            return at
+          }
+        }
+        win.Date = FakeDate
+      },
+    },
+  )
+  ok('after 30 September the banner takes itself down — no coupon the checkout would refuse', !after.doc.querySelector('[data-announce]'))
+  after.dom.window.close()
+
+  /* ——— الكتالوج بلا خادم: سطرٌ وزرّ «إعادة المحاولة»، ثم يختفي حين يعود ——— */
+  let up = false
+  const off = await render(
+    'http://localhost/templates',
+    {},
+    {
+      boot: (win) => {
+        win.__QALB_ENV = { VITE_QALB_API: 'rest', VITE_QALB_API_BASE: 'http://api.test' }
+        win.fetch = (u) =>
+          up
+            ? Promise.resolve({ ok: true, status: 200, json: async () => ({ overrides: {} }), text: async () => '{"overrides":{}}' })
+            : Promise.reject(new win.TypeError('api is down ' + u))
+      },
+    },
+  )
+  const note = off.doc.querySelector('[data-catalog-offline]')
+  ok('an unreachable server is said, not swallowed', !!note && /تعذّر تحديث الكتالوج/.test(note.textContent || ''))
+  ok('the cards still render from the published catalogue', off.doc.querySelectorAll('[data-tpl-card]').length > 0)
+  const retry = off.doc.querySelector('[data-catalog-retry]')
+  ok('with a “إعادة المحاولة” button', /إعادة المحاولة/.test(retry?.textContent || ''))
+  up = true
+  click(off, retry)
+  await off.wait()
+  ok('and a successful retry clears the notice', !off.doc.querySelector('[data-catalog-offline]'))
+  off.dom.window.close()
+
+  /* ——— /templates/<slug> → /template/<slug> ——— */
+  const alias = await render('http://localhost/templates/aether-portfolio')
+  ok(
+    '/templates/<slug> lands on the canonical detail page',
+    alias.win.location.pathname === '/template/aether-portfolio' && !!alias.doc.querySelector('[data-what-you-get]'),
+  )
+  alias.dom.window.close()
+
+  /* ——— صفحة القالب: ماذا ستحصل عليه · التقنيات · الترخيص · الضمانات · الصفحة الحيّة ——— */
+  const facts = async (slug) => {
+    const g = await render(`http://localhost/template/${slug}`)
+    const gets = [...g.doc.querySelectorAll('[data-get-item] h3')].map((h) => h.textContent.trim())
+    return { g, gets }
+  }
+  const site = await facts('aether-portfolio')
+  ok(
+    'site: “what you get” names the ready portfolio, setup guide and lifetime updates',
+    [T.detail.getSite, T.detail.getGuide, T.detail.getUpdates].every((x) => site.gets.includes(x)),
+    site.gets.join(' | '),
+  )
+  ok('site: and promises no résumé it does not ship', !site.gets.includes(T.detail.getCv))
+  ok('tech badges are the template’s own stack', site.g.doc.querySelectorAll('[data-tech-badge]').length === (byId('aether').stack || []).length)
+  ok('publishing requirements are listed for a static site', /Vercel/.test(site.g.doc.querySelector('[data-requirements]')?.textContent || ''))
+  ok(
+    'licence badges: personal ✓ · one client ✓ · resale ✗',
+    site.g.doc.querySelectorAll('[data-licence-ok="yes"]').length === 2 && site.g.doc.querySelectorAll('[data-licence-ok="no"]').length === 1,
+  )
+  ok('the licence box links to the full text at /licensing', !!site.g.doc.querySelector('[data-licence-badges] a[href="/licensing"]'))
+  const assure = site.g.doc.querySelector('[data-assure]')
+  ok(
+    'trust micro-copy sits by the purchase button: instant delivery · clear licence · e-mail support · free updates',
+    ['تسليم فوري بعد الدفع', 'ترخيص استخدام واضح', 'دعم عبر البريد', 'تحديثات مجانية'].every((x) => (assure?.textContent || '').includes(x)),
+    (assure?.textContent || 'none').slice(0, 80),
+  )
+  click(site.g, site.g.doc.querySelector('[data-mode="live"]'))
+  await site.g.wait()
+  const frame = site.g.doc.querySelector('iframe[data-live-frame]')
+  const src = frame?.getAttribute('srcdoc') || ''
+  ok('the live toggle mounts the delivered index.html in a frame', frame?.getAttribute('data-live-frame') === 'index.html')
+  ok('sandboxed with no permissions', frame?.getAttribute('sandbox') === '')
+  ok('its stylesheet inlined from the package (no dangling styles.css link)', src.includes('<style>') && !/href="\/?styles\.css"/.test(src))
+  site.g.dom.window.close()
+
+  const cv = await facts(byId('nova').slug)
+  ok(
+    'CV: “what you get” names the ATS résumé and no portfolio site',
+    cv.gets.includes(T.detail.getCv) && !cv.gets.includes(T.detail.getSite),
+    cv.gets.join(' | '),
+  )
+  click(cv.g, cv.g.doc.querySelector('[data-mode="live"]'))
+  await cv.g.wait()
+  ok('CV: the live frame is resume.html', cv.g.doc.querySelector('iframe[data-live-frame]')?.getAttribute('data-live-frame') === 'resume.html')
+  cv.g.dom.window.close()
+
+  const bundleSlug = byId('devbundle').slug
+  const bundle = await facts(bundleSlug)
+  ok(
+    'bundle: site + résumé + letter, all three',
+    [T.detail.getSite, T.detail.getCv, T.detail.getLetter].every((x) => bundle.gets.includes(x)),
+    bundle.gets.join(' | '),
+  )
+  bundle.g.dom.window.close()
+
+  /* ——— الضماناتُ في السلة والدفع ——— */
+  const cart = await render('http://localhost/cart', { 'qalb.cart.v1': seededCart })
+  ok('the cart shows the guarantees beside “checkout”', !!cart.doc.querySelector('[data-assure]'))
+  cart.dom.window.close()
+  const co = await render('http://localhost/checkout', { 'qalb.cart.v1': seededCart })
+  ok('and so does the checkout, beside its main button', !!co.doc.querySelector('[data-assure]'))
+  co.dom.window.close()
+
+  /* ——— الفوتر القانوني: خمسةُ مساراتٍ حيّة، ولكلٍّ منها نصُّه ——— */
+  const leg = await render('http://localhost/refunds')
+  const hrefs = [...leg.doc.querySelectorAll('footer a')].map((a) => a.getAttribute('href'))
+  ok(
+    'the footer links Terms · Privacy · Refunds · Licensing · Contact',
+    ['/terms', '/privacy', '/refunds', '/licensing', '/contact'].every((h) => hrefs.includes(h)),
+  )
+  ok(
+    '/refunds actually prints the refund policy (it used to render empty)',
+    leg.txt().includes(T.legal.r1.slice(0, 30)),
+    leg.txt().replace(/\s+/g, ' ').slice(0, 80),
+  )
+  ok('and marks its own tab as current', leg.doc.querySelector('nav a[aria-current="page"]')?.getAttribute('href') === '/refunds')
+  leg.dom.window.close()
+  const lic = await render('http://localhost/licensing')
+  ok('/licensing prints the licence text', lic.txt().includes(T.legal.l1.slice(0, 30)))
+  ok('and points to the key checker at /licence', !!lic.doc.querySelector('main a[href="/licence"]'))
+  lic.dom.window.close()
+
+  /* ——— الإيصال أثناء الانتظار: هيكلٌ لا دوّامة ——— */
+  const wait = await render(
+    'http://localhost/order?id=QALB-WAIT',
+    {},
+    {
+      boot: (win) => {
+        win.__QALB_ENV = { VITE_QALB_API: 'rest', VITE_QALB_API_BASE: 'http://api.test' }
+        win.fetch = () => new Promise(() => {})
+      },
+    },
+  )
+  ok('a receipt that is still loading draws its skeleton', !!wait.doc.querySelector('[data-receipt-skeleton]'))
+  wait.dom.window.close()
+
+  const bad = checks.filter(([, pass]) => !pass)
+  if (bad.length) {
+    failed++
+    groups++
+    console.log('✗ ui overhaul · cards · loading · banner · detail page · trust · legal')
+    bad.forEach(([n]) => console.log('   failed: ' + n))
+  } else {
+    groups++
+    console.log(`✓ ui overhaul · cards · loading · banner · detail page · trust · legal  (${checks.length} assertions)`)
   }
 }
 

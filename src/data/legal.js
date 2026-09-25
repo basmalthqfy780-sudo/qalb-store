@@ -19,6 +19,13 @@ export const SECTIONS = [
   { id: 'licence', h: 'legal.licence', paras: ['legal.l1', 'legal.l2', 'legal.l3', 'legal.l4'] },
 ]
 
-export const sectionById = (id) => SECTIONS.find((s) => s.id === id) || null
+/** مسارُ كلِّ قسم — المعرِّفُ مفرد (`refund`) والمسارُ كما يكتبه الناس (`/refunds`)،
+ *  ونصُّ الترخيص في `/licensing` لأن `/licence` أداةُ التحقق من المفتاح */
+export const ROUTE_OF = { terms: '/terms', privacy: '/privacy', refund: '/refunds', licence: '/licensing' }
+export const routeOf = (id) => ROUTE_OF[id] || `/${id}`
+
+/** يقبل المعرِّف أو صيغةَ المسار (`refunds`، `licensing`) — فلا صفحةٌ تُرسم فارغة لخطأ حرف */
+const ALIAS = { refunds: 'refund', licensing: 'licence', license: 'licence' }
+export const sectionById = (id) => SECTIONS.find((s) => s.id === (ALIAS[id] || id)) || null
 
 export default SECTIONS

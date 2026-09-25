@@ -6,7 +6,7 @@ import { templates, couponInfo } from '../data/templates'
 import { cartUpsells, addonDelivery } from '../data/upsells'
 import { ArtTile } from '../components/Preview'
 import TemplateCard from '../components/TemplateCard'
-import { Btn, Icon, Money, Pill } from '../components/ui'
+import { AssureRow, Btn, Icon, Money, Pill } from '../components/ui'
 import { useSeo } from '../components/Seo'
 
 export default function Cart() {
@@ -383,6 +383,7 @@ export default function Cart() {
                   {t('cart.trustLine')}
                 </span>
               </div>
+              <AssureRow className="mt-4 border-t border-line pt-4" />
             </div>
           </div>
         </aside>

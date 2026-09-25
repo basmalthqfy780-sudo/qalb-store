@@ -332,7 +332,7 @@ export function Money({ v, size = 'text-base', unitClass = 'text-[0.72em] opacit
   const { value, unit } = moneyParts(v, lang)
   return (
     <span className={`${size} inline-flex items-baseline gap-1 font-semibold`}>
-      <span className="num">{value}</span>
+      <span className="num">{value}</span> {/* مسافةٌ نصيّة: «199 ر.س» في النسخ واللصق وقارئ الشاشة، لا «199ر.س» */}
       <span className={`${unitClass} font-medium`}>{unit}</span>
     </span>
   )
@@ -452,10 +452,10 @@ export function PreviewSkeleton({ variant = 'cv', ratio, className = '', style, 
 }
 
 /**
- * هيكل بطاقة قالب أثناء التحميل — يحاكي البطاقة الحقيقية سطرًا بسطر: معاينة،
- * اسم، تصنيف، وصف، ثم صفُّ السعر. فلا «جارٍ التحميل…» في منتصف الشاشة، ولا قفزةُ
- * تصميمٍ حين تصل الحزمة الكسولة. الحركة من `animate-pulse` وحده، وهي تخضع
- * لـ`prefers-reduced-motion` في index.css.
+ * هيكل بطاقة قالب أثناء التحميل — نسخةٌ طبق الأصل من `TemplateCard` في الأبعاد:
+ * نفسُ الحشو والإطار ونسبةِ المعاينة، ثم اسمٌ (h3)، ووصفٌ بسطرين، وسطرُ السعر،
+ * وسطرُ التصنيف، وصفُّ الزرّين بارتفاع h-9 — فلا تقفز الشبكة (CLS) حين تصل
+ * البطاقات الحقيقية. الحركة من `animate-pulse` وحده، وتخضع لـ`prefers-reduced-motion`.
  */
 export function TemplateCardSkeleton({ className = '' }) {
   return (
@@ -465,17 +465,63 @@ export function TemplateCardSkeleton({ className = '' }) {
       data-card-skeleton
     >
       <PreviewSkeleton variant="site" className="rounded-xl" />
-      <div className="flex flex-1 flex-col px-1.5 pt-3">
-        <div className="h-4 w-2/5 animate-pulse rounded bg-panel2" />
-        <div className="mt-2 h-3 w-1/4 animate-pulse rounded bg-panel2/70" />
-        <div className="mt-2.5 h-3 w-4/5 animate-pulse rounded bg-panel2/50" />
-        <div className="mt-1.5 h-3 w-3/5 animate-pulse rounded bg-panel2/40" />
-        <div className="mt-auto flex items-end justify-between gap-2 border-t border-line pt-3">
-          <div className="h-5 w-24 animate-pulse rounded bg-panel2" />
-          <div className="h-9 w-24 animate-pulse rounded-lg bg-panel2/70" />
+      <div className="flex flex-1 flex-col px-1.5 pt-3.5">
+        {/* الاسم: 17px بسطرٍ مضغوط */}
+        <div className="h-[21px] w-2/5 animate-pulse rounded bg-panel2" data-sk="name" />
+        {/* الوصف: سطران بارتفاع 12.5px × 1.625 */}
+        <div className="mt-1 space-y-1.5 py-[3px]" data-sk="desc">
+          <div className="h-3.5 w-11/12 animate-pulse rounded bg-panel2/70" />
+          <div className="h-3.5 w-3/5 animate-pulse rounded bg-panel2/60" />
+        </div>
+        {/* السعر */}
+        <div className="mt-2.5 h-7 w-1/2 animate-pulse rounded bg-panel2" data-sk="price" />
+        {/* التصنيف والتقييم */}
+        <div className="mt-2.5 flex items-center gap-2" data-sk="meta">
+          <div className="h-5 w-20 animate-pulse rounded bg-panel2/60" />
+          <div className="h-5 w-12 animate-pulse rounded bg-panel2/50" />
+          <div className="ms-auto h-4 w-16 animate-pulse rounded bg-panel2/40" />
+        </div>
+        {/* الزرّان */}
+        <div className="mt-auto pt-3.5" data-sk="actions">
+          <div className="grid grid-cols-2 gap-2 border-t border-line pt-3">
+            <div className="h-9 animate-pulse rounded-lg bg-panel2/70" />
+            <div className="h-9 animate-pulse rounded-lg bg-panel2" />
+          </div>
         </div>
       </div>
     </div>
+  )
+}
+
+/**
+ * ضماناتُ الشراء — أربعةُ أسطرٍ قصيرة تُوضع بجانب كلِّ زرِّ شراءٍ رئيسي (صفحة القالب،
+ * السلة، الدفع). كلُّ سطرٍ منها وعدٌ ينفّذه المتجر فعلًا: التسليم من بوابة التسليم
+ * الموقّعة بعد تأكيد الدفع، والترخيص نصٌّ منشور في /licensing، والدعم على بريد
+ * المتجر، والتحديثات لنفس بريد الطلب. رابطُ الترخيص حقيقي، لا زخرفة.
+ */
+export function AssureRow({ className = '' }) {
+  const { t } = useI18n()
+  const items = [
+    ['bolt', t('assure.instant'), null],
+    ['shield', t('assure.licence'), '/licensing'],
+    ['mail', t('assure.support'), '/contact'],
+    ['refresh', t('assure.updates'), null],
+  ]
+  return (
+    <ul aria-label={t('assure.label')} data-assure className={`grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11.5px] font-semibold text-dim ${className}`}>
+      {items.map(([ic, label, to]) => (
+        <li key={ic} className="flex min-w-0 items-center gap-1.5">
+          <Icon n={ic} className="size-3.5 shrink-0 text-brand" />
+          {to ? (
+            <Link to={to} className="underline-offset-2 transition hover:text-brand hover:underline">
+              {label}
+            </Link>
+          ) : (
+            <span>{label}</span>
+          )}
+        </li>
+      ))}
+    </ul>
   )
 }
 

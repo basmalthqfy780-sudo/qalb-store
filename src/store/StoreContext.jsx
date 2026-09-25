@@ -49,6 +49,12 @@ export function StoreProvider({ children }) {
   // لقطة الكتالوج بعد دمج استثناءات لوحة الإدارة — قيمة حقيقية في الحالة،
   // فتُعاد الحسابات عند تغييرها بدل ما نعلّق على عدّاد لا تعرفه القواعد
   const [catalog, setCatalog] = useState(() => templates)
+  /**
+   * حالةُ مزامنة الكتالوج مع الخادم: `syncing` أثناء الجلب، `ready` بعده، و`offline`
+   * حين تعذّر الوصول في وضع rest — فنعرض النسخة المصدرية ونقول ذلك للزائر بزرِّ
+   * «إعادة المحاولة» بدل أن نبتلع الخطأ. في الوضع المحلي لا شبكة، فلا `offline` أبدًا.
+   */
+  const [catalogStatus, setCatalogStatus] = useState('syncing')
   const seq = useRef(0)
 
   useEffect(() => save(CART_KEY, lines), [lines])
@@ -63,9 +69,16 @@ export function StoreProvider({ children }) {
    * يستخدمها خادم الطلبات، فلا يختلف السعر المعروض عن السعر المحاسَب به المشتري.
    */
   const refreshCatalog = useCallback(async () => {
-    const { overrides } = (await fetchCatalog()) || {}
-    const r = applyOverlay(overrides || {})
+    setCatalogStatus('syncing')
+    let c
+    try {
+      c = await fetchCatalog()
+    } catch {
+      c = { offline: true }
+    }
+    const r = applyOverlay(c?.overrides || {})
     setCatalog([...templates])
+    setCatalogStatus(c?.offline ? 'offline' : 'ready')
     return r
   }, [])
 
@@ -76,9 +89,11 @@ export function StoreProvider({ children }) {
         if (!alive) return
         applyOverlay(c?.overrides || {})
         setCatalog([...templates])
+        setCatalogStatus(c?.offline ? 'offline' : 'ready')
       })
       .catch(() => {
-        /* بلا كتالوج مُعدَّل نعرض المصدر كما هو — لا نسقط الصفحة */
+        /* بلا كتالوج مُعدَّل نعرض المصدر كما هو — لا نسقط الصفحة، ونقول ذلك */
+        if (alive) setCatalogStatus('offline')
       })
     return () => {
       alive = false
@@ -220,6 +235,7 @@ export function StoreProvider({ children }) {
     setPersonal,
     resetPersonal,
     catalog,
+    catalogStatus,
     refreshCatalog,
     lines,
     items,

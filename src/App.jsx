@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import { Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
 import { Toasts } from './components/ui'
@@ -64,6 +64,17 @@ function RouteFallback() {
       <p className="sr-only">{t('misc.loading')}</p>
     </div>
   )
+}
+
+/**
+ * `/templates/<slug>` — الصيغةُ التي يكتبها الناس (وتقترحها أدلةُ المتاجر) — تُحوَّل إلى
+ * المسار القانوني `/template/<slug>` مع الإبقاء على الاستعلام والمرساة، فلا رابطٌ
+ * متداول يسقط في 404 ولا صفحتان بمحتوى واحد في فهرس البحث.
+ */
+function TemplateAlias() {
+  const { slug } = useParams()
+  const { search, hash } = useLocation()
+  return <Navigate to={`/template/${encodeURIComponent(slug || '')}${search}${hash}`} replace />
 }
 
 /** «لطيف» حسب تفضيل النظام: من طلب بلا حركة لا يُدفَع إلى حركةٍ ناعمة */
@@ -155,6 +166,7 @@ export default function App() {
               <Route path="/" element={<Home />} />
               <Route path="/templates" element={<Catalog />} />
               <Route path="/template/:slug" element={<Product />} />
+              <Route path="/templates/:slug" element={<TemplateAlias />} />
               <Route path="/cart" element={<Cart />} />
               <Route path="/checkout" element={<Checkout />} />
               <Route path="/order" element={<Success />} />
@@ -165,7 +177,9 @@ export default function App() {
               {/* الفوتر القانوني: كلُّ صفحةٍ على حدة بمسارها، لا قسمًا في صفحةٍ واحدة */}
               <Route path="/terms" element={<LegalDoc section="terms" />} />
               <Route path="/privacy" element={<LegalDoc section="privacy" />} />
-              <Route path="/refunds" element={<LegalDoc section="refunds" />} />
+              <Route path="/refunds" element={<LegalDoc section="refund" />} />
+              {/* نصُّ الترخيص صفحةً مستقلة — و/licence تبقى أداةَ التحقق من المفتاح */}
+              <Route path="/licensing" element={<LegalDoc section="licence" />} />
               <Route path="/contact" element={<LegalDoc section="contact" />} />
               <Route path="/b2b" element={<B2B />} />
               <Route path="/services" element={<Services />} />

@@ -10,6 +10,7 @@ import QuickView from '../components/QuickView'
 import RecentlyViewed from '../components/RecentlyViewed'
 import { useSeo, siteGraph, faqLd } from '../components/Seo'
 import { Btn, Head, Icon, Money, Pill, Reveal, Stars } from '../components/ui'
+import { useStore } from '../store/StoreContext'
 
 const HERO_IDS = ['aether', 'mirrorbundle', 'nexus', 'nova']
 const FAQ_KEYS = ['1', '2', '3', '4', '5', '6']
@@ -373,11 +374,13 @@ function Categories() {
 /* =============================== FEATURED =============================== */
 function Featured({ onQuick }) {
   const { t, lang } = useI18n()
+  // لقطةُ المخزن: سعرٌ عُدّل من اللوحة أو قالبٌ أُخفي يظهر هنا كما يظهر في الكتالوج
+  const { catalog } = useStore()
   const [tab, setTab] = useState('all')
   const list = useMemo(() => {
-    const base = tab === 'all' ? templates.filter((x) => x.featured || x.best) : templates.filter((x) => x.cats.includes(tab))
+    const base = tab === 'all' ? catalog.filter((x) => x.featured || x.best) : catalog.filter((x) => x.cats.includes(tab))
     return base.slice(0, 6)
-  }, [tab])
+  }, [catalog, tab])
 
   return (
     <section className="border-y border-line bg-bg2/50 py-20">
@@ -414,7 +417,7 @@ function Featured({ onQuick }) {
         </div>
 
         {list.length ? (
-          <div className="mt-7 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-7 grid gap-5 sm:grid-cols-2 lg:grid-cols-3" data-featured-grid>
             {list.map((tpl, k) => (
               <Reveal key={tpl.id} delay={k * 60} className="h-full">
                 <TemplateCard tpl={tpl} onQuick={onQuick} />
