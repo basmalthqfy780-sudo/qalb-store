@@ -23,11 +23,17 @@ export const HOST_FIELDS = ['name', 'role', 'email', 'phone', 'website', 'bio', 
 /** سقوف الحقول: نفس سقوف التخصيص، ويُضاف لها المدينة — تُطبَّق في المتجر والخادم معًا */
 export const HOST_LIMITS = { ...PERSONAL_LIMITS, city: 60 }
 
+/**
+ * Single Source of Truth: الأسعار تُقرأ حيًا من src/data/plans.js عبر priceOf()
+ * لا أرقام مكررة هنا — أي تغيير في PLANS هناك ينعكس فورًا في الاستضافة والفواتير.
+ */
 export const PLANS = {
   free: {
     id: 'free',
     name: { ar: 'مجاني', en: 'Free' },
-    price: tierPrice('free'),
+    get price() {
+      return tierPrice('free')
+    },
     period: null,
     brand: true,
     domain: false,
@@ -40,7 +46,9 @@ export const PLANS = {
   pro: {
     id: 'pro',
     name: { ar: 'Qalb Pro', en: 'Qalb Pro' },
-    price: tierPrice('pro'),
+    get price() {
+      return tierPrice('pro')
+    },
     period: 'month',
     brand: false,
     domain: true,

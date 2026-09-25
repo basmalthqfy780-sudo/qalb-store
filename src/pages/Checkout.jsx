@@ -189,6 +189,19 @@ export default function Checkout() {
               <Icon n="lock" className="mt-0.5 size-4 shrink-0" />
               <span>{t('checkout.demoProd')}</span>
             </div>
+          ) : apiMode === 'local' ? (
+            <div
+              role="status"
+              className="mb-6 flex items-start gap-3 rounded-2xl border border-line bg-panel/60 p-4 text-[13px] leading-relaxed text-slate-200 light:text-slate-600"
+            >
+              <span className="mt-1 size-2 shrink-0 rounded-full bg-gold animate-pulse" />
+              <span>
+                {t('checkout.demoMode')} —{' '}
+                {lang === 'ar'
+                  ? 'الطلب يُحفظ على جهازك فقط، والحزمة تُولّد بسرعة في المتصفح.'
+                  : 'Order stays on this device and the package is generated instantly in the browser.'}
+              </span>
+            </div>
           ) : null}
 
           {/* stepper */}
