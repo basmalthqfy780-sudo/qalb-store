@@ -512,9 +512,11 @@ function HowItWorks() {
                 <span className="relative grid size-[52px] place-items-center rounded-2xl bg-bg text-brand ring-1 ring-line">
                   <Icon n={s.icon} className="size-6" />
                 </span>
-                <span className="num absolute end-5 top-4 font-display text-[34px] font-extrabold leading-none text-dim opacity-60 select-none">{s.k}</span>
+                <span className="num absolute end-5 top-4 font-display text-[34px] font-extrabold leading-none text-slate-100 select-none light:text-ink/60">
+                  {s.k}
+                </span>
                 <h3 className="mt-5 font-display text-[19px] font-extrabold">{s.title}</h3>
-                <p className="mt-2 text-[14px] leading-relaxed text-dim">{s.d}</p>
+                <p className="mt-2 text-[14px] leading-relaxed text-slate-200 light:text-dim">{s.d}</p>
               </div>
             </Reveal>
           ))}
@@ -742,7 +744,7 @@ function Features() {
                 <Icon n={f.icon} className="size-5" />
               </span>
               <h3 className="mt-4 font-display text-[17px] font-extrabold">{f.title}</h3>
-              <p className="mt-2 text-[13.5px] leading-relaxed text-dim">{f.d}</p>
+              <p className="mt-2 text-[13.5px] leading-relaxed text-slate-200 light:text-dim">{f.d}</p>
             </div>
           </Reveal>
         ))}
@@ -855,7 +857,7 @@ function Testimonials() {
         {testimonials.map((x, k) => (
           <Reveal key={x.id} delay={k * 70} className="h-full">
             <figure className="relative flex h-full flex-col rounded-2xl border border-line bg-panel p-6 transition-all duration-300 hover:-translate-y-1 hover:border-brand/30 hover:shadow-soft">
-              <Icon n="quote" className="absolute end-5 top-5 size-8 text-dim opacity-40" fill sw={0} />
+              <Icon n="quote" className="absolute end-5 top-5 size-8 text-slate-400 light:text-dim" fill sw={0} />
               <Stars value={x.stars} size={13} show={false} />
               <blockquote className="mt-4 flex-1 text-[14.5px] leading-[1.85] text-ink">{L(x.text)}</blockquote>
               <figcaption className="mt-6 flex items-center gap-3 border-t border-line pt-5">
@@ -864,7 +866,7 @@ function Testimonials() {
                 </span>
                 <span className="min-w-0">
                   <span className="block truncate text-[13.5px] font-bold">{L(x.name)}</span>
-                  <span className="block truncate text-[11.5px] text-dim">{L(x.role)}</span>
+                  <span className="block truncate text-[11.5px] text-slate-300 light:text-dim">{L(x.role)}</span>
                 </span>
                 <span className="num ms-auto inline-flex shrink-0 items-center gap-1 rounded-md border border-brand/25 bg-brand/10 px-1.5 py-0.5 text-[10px] font-bold text-brand">
                   <Icon n="check" className="size-3" sw={2.8} />
@@ -948,9 +950,7 @@ function CtaBand() {
             <div className="max-w-2xl">
               <h2 className="font-display text-[clamp(1.55rem,3.2vw,2.3rem)] font-extrabold leading-[1.25]">{t('cta.title')}</h2>
               <p className="mt-3 text-[15px] leading-relaxed opacity-90">{t('cta.sub')}</p>
-              <p className="num mt-5 text-[12.5px] font-semibold opacity-85">
-                {t('hero.pill')}
-              </p>
+              <p className="num mt-5 text-[12.5px] font-semibold opacity-85">{t('hero.pill')}</p>
             </div>
             <div className="flex w-full shrink-0 flex-col gap-3 sm:w-auto sm:flex-row">
               <Btn to="/templates" size="lg" variant="gold" className="w-full sm:w-auto">

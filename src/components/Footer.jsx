@@ -90,7 +90,9 @@ export default function Footer() {
       <div className="page-x mx-auto max-w-[1400px] py-14">
         <div className="grid gap-12 lg:grid-cols-[1.15fr_2fr]">
           <div>
-            <div className="isolate"><Logo /></div>
+            <div className="isolate">
+              <Logo />
+            </div>
             <p className="mt-4 max-w-sm text-[14px] leading-relaxed text-dim">{t('footer.blurb')}</p>
             <div className="mt-5 rounded-2xl border border-line bg-panel p-4">
               <p className="text-[13.5px] font-bold">{t('footer.newsletter')}</p>

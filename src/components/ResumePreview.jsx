@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react'
 import { accentHex, demoFor, fontCss } from '../data/templates'
 import { useI18n } from '../i18n'
 import { useFitWidth } from '../lib/use-fit-width'
@@ -281,16 +280,10 @@ function Sheet({ demo, name, layout, a, ff, full, labels, lang }) {
 export default function ResumePreview({ template, layout, accent, font, variant = 'compact', zoom = 1, className = '', style }) {
   const { L, lang } = useI18n()
   const [ref, w] = useFitWidth()
-  const [ready, setReady] = useState(false)
   const full = variant === 'full'
   const lay = layout || template.layout
   const a = accent && String(accent).startsWith('#') ? accent : accentHex(accent || template.accent)
   const ff = fontCss(font || template.font)
-
-  useEffect(() => {
-    const id = requestAnimationFrame(() => setReady(true))
-    return () => cancelAnimationFrame(id)
-  }, [])
 
   const raw = demoFor(template) || {}
   const demo = {
@@ -323,8 +316,6 @@ export default function ResumePreview({ template, layout, accent, font, variant 
           width: DESIGN_W,
           height: DESIGN_H,
           transform: `scale(${scale})`,
-          opacity: ready ? 1 : 0,
-          transition: 'opacity .45s ease',
         }}
       >
         <Sheet demo={demo} name={name} layout={lay} a={a} ff={ff} full={full} labels={labels} lang={lang} />

@@ -573,7 +573,7 @@ export function Head({ kicker, title, sub, align = 'start', right, as = 'h2' }) 
           </div>
         )}
         <TitleTag className="text-3xl leading-[1.15] font-extrabold sm:text-4xl md:text-[2.6rem]">{title}</TitleTag>
-        {sub && <p className="mt-3 text-[15px] leading-relaxed text-dim">{sub}</p>}
+        {sub && <p className="mt-3 text-[15px] leading-relaxed text-slate-200 light:text-dim">{sub}</p>}
       </div>
       {right && <div className="shrink-0">{right}</div>}
     </div>
