@@ -98,7 +98,7 @@ function HiringSuite() {
                 <Icon n={x.icon} className="size-5" />
               </span>
               <p className="mt-3.5 text-[15px] font-extrabold text-ink">{t(x.k)}</p>
-              <p className="mt-1.5 text-[12.5px] leading-relaxed text-dim">{t(x.d)}</p>
+              <p className="mt-1.5 text-[12.5px] leading-relaxed text-slate-200 light:text-slate-600">{t(x.d)}</p>
               <span className="num mt-auto pt-3 text-[12px] font-bold text-brand">
                 {x.price ? `${num(x.price)} ${t('common.sar')}` : t('home.suiteFree')}
               </span>
@@ -128,7 +128,7 @@ function Hero({ onQuick }) {
 
   return (
     <section className="relative overflow-hidden">
-      <div className="pointer-events-none absolute inset-0 grid-lines opacity-[0.5] [mask-image:radial-gradient(70%_58%_at_50%_0%,#000,transparent)]" />
+      <div className="pointer-events-none absolute inset-0 grid-lines opacity-60 [mask-image:radial-gradient(70%_58%_at_50%_0%,#000,transparent)]" />
       <div className="pointer-events-none absolute inset-0 grad-mesh" />
       <div className="page-x relative mx-auto grid max-w-[1400px] items-center gap-14 pb-24 pt-14 lg:grid-cols-[1.02fr_.98fr] lg:gap-8 lg:pb-32 lg:pt-20">
         <div>
@@ -161,7 +161,7 @@ function Hero({ onQuick }) {
           </Reveal>
 
           <Reveal delay={120}>
-            <p className="mt-6 max-w-xl text-[16.5px] leading-[1.85] text-dim">{t('hero.sub')}</p>
+            <p className="mt-6 max-w-xl text-[16.5px] leading-[1.85] text-slate-200 light:text-slate-300">{t('hero.sub')}</p>
           </Reveal>
 
           <Reveal delay={180}>
@@ -175,7 +175,7 @@ function Hero({ onQuick }) {
                 {t('hero.ctaSecondary')}
               </Btn>
             </div>
-            <p className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12.5px] font-medium text-dim">
+            <p className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12.5px] font-medium text-slate-200 light:text-slate-600">
               {t('hero.note')
                 .split('·')
                 .map((s) => (
@@ -197,7 +197,7 @@ function Hero({ onQuick }) {
               ].map(([v, l]) => (
                 <div key={l}>
                   <dt className="num text-2xl font-extrabold tracking-tight">{v}</dt>
-                  <dd className="mt-1 text-[11.5px] leading-tight text-dim">{l}</dd>
+                  <dd className="mt-1 text-[11.5px] leading-tight text-slate-200 light:text-slate-600">{l}</dd>
                 </div>
               ))}
             </dl>
@@ -236,7 +236,7 @@ function Hero({ onQuick }) {
                 <ArtTile tpl={cur} size={34} />
                 <div>
                   <p className="text-[13.5px] font-extrabold">{L(cur.name)}</p>
-                  <p className="text-[11.5px] text-dim">{L(cur.tagline)}</p>
+                  <p className="text-[11.5px] text-slate-200 light:text-slate-600">{L(cur.tagline)}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -262,7 +262,7 @@ function Hero({ onQuick }) {
           {/* z-[10]: بطاقات المروحة تحمل zIndex صريحًا (بطول القائمة) فبدون طبقة أعلى
               كانت شارة «درجة الأداء» تُرسم خلف المعاينة وتُقصّ عند حوافها */}
           <div className="absolute -start-4 top-[-14px] z-[10] hidden animate-float rounded-2xl border border-line bg-panel/95 p-3 shadow-lift backdrop-blur sm:block">
-            <p className="text-[11px] font-medium text-dim">{cur.perf ? t('product.perfScore') : t('product.atsScore')}</p>
+            <p className="text-[11px] font-medium text-slate-200 light:text-slate-600">{cur.perf ? t('product.perfScore') : t('product.atsScore')}</p>
             <div className="mt-1 flex items-center gap-2">
               <span className="num text-[17px] font-extrabold text-brand">{cur.perf || cur.ats}</span>
               <span className="h-1.5 w-16 overflow-hidden rounded-full bg-line">
@@ -271,7 +271,7 @@ function Hero({ onQuick }) {
             </div>
           </div>
           <div className="absolute -end-3 bottom-16 z-[10] hidden animate-float rounded-2xl border border-line bg-panel/95 p-3 shadow-lift backdrop-blur [animation-delay:1.6s] lg:block">
-            <p className="text-[11px] font-medium text-dim">{t('product.stack')}</p>
+            <p className="text-[11px] font-medium text-slate-200 light:text-slate-600">{t('product.stack')}</p>
             <div className="mt-1.5 flex flex-wrap gap-1">
               {(cur.stack || []).slice(0, 3).map((f) => (
                 <span key={f} className="num rounded-md border border-line bg-bg px-1.5 py-0.5 text-[10px] font-bold text-ink">
@@ -293,12 +293,15 @@ function Trust() {
   return (
     <section className="border-y border-line bg-bg2/70 py-7" data-trust>
       <div className="page-x mx-auto flex max-w-[1400px] flex-col gap-5 md:flex-row md:items-center">
-        <p className="shrink-0 text-[11px] font-bold uppercase tracking-[0.18em] text-dim md:w-44">{t('trust.label')}</p>
+        <p className="shrink-0 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-200 light:text-slate-600 md:w-44">{t('trust.label')}</p>
         {/* صفّ ثابت: الشريط المتحرّك كان يقفز عند اللفّة — translateX(-50%) لا يساوي عرض نسخة واحدة
             ما دام الـ gap يفصل النسختين، فتظهر القفزة كأنها خطأ برمجي. */}
         <ul className="flex flex-1 flex-wrap items-center gap-x-8 gap-y-3 md:justify-between">
           {list.map((b) => (
-            <li key={b} className="whitespace-nowrap font-display text-[18px] font-bold opacity-75 transition hover:opacity-100">
+            <li
+              key={b}
+              className="whitespace-nowrap font-display text-[18px] font-bold text-slate-100 opacity-95 transition hover:opacity-100 light:text-ink"
+            >
               {b}
             </li>
           ))}
@@ -332,13 +335,13 @@ function Categories() {
                 </span>
                 <span className="relative min-w-0">
                   <span className="block truncate font-display text-[15.5px] font-bold">{lang === 'ar' ? c.ar : c.en}</span>
-                  <span className="num mt-0.5 block text-[11.5px] text-dim">
+                  <span className="num mt-0.5 block text-[11.5px] text-slate-200 light:text-slate-600">
                     {num(count)} {t('nav.templates')}
                   </span>
                 </span>
                 <Icon
                   n="arrow"
-                  className="relative ms-auto size-4 shrink-0 text-dim transition-all group-hover:translate-x-1 group-hover:text-brand rtl:-scale-x-100 rtl:group-hover:-translate-x-1"
+                  className="relative ms-auto size-4 shrink-0 text-slate-300 light:text-slate-500 transition-all group-hover:translate-x-1 group-hover:text-brand rtl:-scale-x-100 rtl:group-hover:-translate-x-1"
                 />
               </Link>
             </Reveal>
@@ -362,7 +365,7 @@ function Categories() {
             >
               <Icon n={ty.icon} className="size-5 text-brand" />
               <span className="text-[13.5px] font-bold">{t(`types.${ty.id}`)}</span>
-              <span className="num ms-auto text-[12px] font-bold text-dim">{num(n)}</span>
+              <span className="num ms-auto text-[12px] font-bold text-slate-200 light:text-slate-600">{num(n)}</span>
             </Link>
           )
         })}
@@ -408,7 +411,7 @@ function Featured({ onQuick }) {
               key={c.id}
               onClick={() => setTab(c.id)}
               className={`shrink-0 rounded-full border px-4 py-2 text-[13px] font-bold transition ${
-                tab === c.id ? 'border-brand bg-brand text-brandink' : 'border-line bg-panel text-dim hover:text-ink'
+                tab === c.id ? 'border-brand bg-brand text-brandink' : 'border-line bg-panel text-slate-200 light:text-slate-600 hover:text-ink'
               }`}
             >
               {lang === 'ar' ? c.ar : c.en}
@@ -425,7 +428,9 @@ function Featured({ onQuick }) {
             ))}
           </div>
         ) : (
-          <p className="mt-10 rounded-2xl border border-dashed border-line bg-panel p-10 text-center text-[14px] text-dim">{t('featured.empty')}</p>
+          <p className="mt-10 rounded-2xl border border-dashed border-line bg-panel p-10 text-center text-[14px] text-slate-200 light:text-slate-600">
+            {t('featured.empty')}
+          </p>
         )}
       </div>
     </section>
@@ -449,7 +454,7 @@ function Identity() {
                 </span>
                 <div>
                   <p className="font-display text-[16px] font-extrabold">{t(`identity.${k}`)}</p>
-                  <p className="mt-1 text-[13.5px] leading-relaxed text-dim">{t(`identity.${k}d`)}</p>
+                  <p className="mt-1 text-[13.5px] leading-relaxed text-slate-200 light:text-slate-600">{t(`identity.${k}d`)}</p>
                 </div>
               </li>
             ))}
@@ -462,7 +467,7 @@ function Identity() {
 
         <Reveal delay={120}>
           <div className="relative rounded-[28px] border border-line bg-panel p-5 shadow-lift">
-            <div className="pointer-events-none absolute inset-0 grid-lines opacity-40" />
+            <div className="pointer-events-none absolute inset-0 grid-lines opacity-60" />
             <div className="relative flex items-end gap-3">
               <div className="flex-1 overflow-hidden rounded-xl border border-line">
                 <Preview tpl={bundle} device="tablet" chrome className="rounded-lg" />
@@ -477,7 +482,7 @@ function Identity() {
                   <span key={c} className="size-4 rounded-full ring-1 ring-black/10" style={{ background: c }} />
                 ))}
               </span>
-              <span className="text-[11.5px] font-semibold text-dim">{t('product.color')}</span>
+              <span className="text-[11.5px] font-semibold text-slate-200 light:text-slate-600">{t('product.color')}</span>
               <Pill tone="brand" className="ms-auto">
                 <Icon n="bolt" className="size-3" fill sw={0} />
                 {t('identity.kicker')}
@@ -515,8 +520,8 @@ function HowItWorks() {
                 <span className="num absolute end-5 top-4 font-display text-[34px] font-extrabold leading-none text-slate-100 select-none light:text-ink/60">
                   {s.k}
                 </span>
-                <h3 className="mt-5 font-display text-[19px] font-extrabold">{s.title}</h3>
-                <p className="mt-2 text-[14px] leading-relaxed text-slate-200 light:text-dim">{s.d}</p>
+                <h3 className="mt-5 font-display text-[19px] font-extrabold text-slate-100 light:text-ink">{s.title}</h3>
+                <p className="mt-2 text-[14px] leading-relaxed text-slate-200 light:text-slate-600">{s.d}</p>
               </div>
             </Reveal>
           ))}
@@ -537,20 +542,20 @@ function ProofBlock() {
 
   return (
     <section className="relative overflow-hidden py-20" id="proof">
-      <div className="pointer-events-none absolute inset-0 grad-mesh opacity-70" />
+      <div className="pointer-events-none absolute inset-0 grad-mesh opacity-80" />
       <div className="page-x relative mx-auto grid max-w-[1400px] items-center gap-12 lg:grid-cols-2">
         <Reveal>
           <div>
             <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-danger">{t('proof.kicker')}</p>
             <h2 className="mt-3 font-display text-[clamp(1.7rem,3.4vw,2.5rem)] font-extrabold leading-[1.2]">{t('proof.title')}</h2>
-            <p className="mt-4 max-w-lg text-[15.5px] leading-relaxed text-dim">{t('proof.sub')}</p>
+            <p className="mt-4 max-w-lg text-[15.5px] leading-relaxed text-slate-200 light:text-slate-600">{t('proof.sub')}</p>
             <div className="mt-8 grid gap-3 sm:grid-cols-2">
               <ul className="space-y-2.5 rounded-2xl border border-line bg-panel p-4">
-                <li className="mb-1 text-[11px] font-bold uppercase tracking-[0.14em] text-dim">{t('proof.bad')}</li>
+                <li className="mb-1 text-[11px] font-bold uppercase tracking-[0.14em] text-slate-300 light:text-slate-600">{t('proof.bad')}</li>
                 {bad.map((x) => (
                   <li key={x} className="flex gap-2.5 text-[13px] leading-relaxed">
                     <Icon n="close" className="mt-0.5 size-4 shrink-0 text-danger" sw={2.4} />
-                    <span className="text-dim">{x}</span>
+                    <span className="text-slate-200 light:text-slate-600">{x}</span>
                   </li>
                 ))}
               </ul>
@@ -613,7 +618,7 @@ function ProofBlock() {
                 ].map(([l, v]) => (
                   <div key={l}>
                     <div className="flex items-center justify-between text-[11.5px] font-semibold">
-                      <span className="text-dim">{l}</span>
+                      <span className="text-slate-200 light:text-slate-600">{l}</span>
                       <span className="num">{pct ? v : 0}</span>
                     </div>
                     <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-line">
@@ -626,7 +631,7 @@ function ProofBlock() {
                 ))}
               </div>
             </div>
-            <div className="mt-6 space-y-2 rounded-2xl border border-line bg-bg p-4 font-mono text-[11.5px] leading-relaxed text-dim">
+            <div className="mt-6 space-y-2 rounded-2xl border border-line bg-bg p-4 font-mono text-[11.5px] leading-relaxed text-slate-200 light:text-slate-700">
               {[
                 ['✓', 'hero.scan1'],
                 ['✓', 'hero.scan2'],
@@ -665,19 +670,22 @@ function DeployBlock() {
           <div>
             <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-brand">{t('deploy.kicker')}</p>
             <h2 className="mt-3 font-display text-[clamp(1.7rem,3.4vw,2.4rem)] font-extrabold leading-[1.2]">{t('deploy.title')}</h2>
-            <p className="mt-4 text-[15.5px] leading-relaxed text-dim">{t('deploy.sub')}</p>
+            <p className="mt-4 text-[15.5px] leading-relaxed text-slate-200 light:text-slate-600">{t('deploy.sub')}</p>
             <ul className="mt-7 space-y-2.5">
               {['p1', 'p2', 'p3'].map((k) => (
                 <li key={k} className="flex items-center gap-2.5 text-[13.5px]">
                   <Icon n="check" className="size-4 shrink-0 text-brand" sw={2.6} />
-                  <span className="text-dim">{t(`deploy.${k}`)}</span>
+                  <span className="text-slate-200 light:text-slate-600">{t(`deploy.${k}`)}</span>
                 </li>
               ))}
             </ul>
-            <p className="mt-7 text-[11px] font-bold uppercase tracking-[0.14em] text-dim">{t('deploy.hosts')}</p>
+            <p className="mt-7 text-[11px] font-bold uppercase tracking-[0.14em] text-slate-200 light:text-slate-600">{t('deploy.hosts')}</p>
             <div className="mt-2 flex flex-wrap gap-1.5">
               {['Vercel', 'Netlify', 'Cloudflare', 'GitHub Pages'].map((h) => (
-                <span key={h} className="num rounded-lg border border-line bg-panel px-2.5 py-1 text-[11.5px] font-bold text-dim">
+                <span
+                  key={h}
+                  className="num rounded-lg border border-line bg-panel px-2.5 py-1 text-[11.5px] font-bold text-slate-200 light:text-slate-600"
+                >
                   {h}
                 </span>
               ))}
@@ -693,7 +701,7 @@ function DeployBlock() {
                   <i key={c} className="size-2.5 rounded-full" style={{ background: c }} />
                 ))}
               </span>
-              <span className="num ms-2 text-[11.5px] font-semibold text-dim">zsh — qalb/aether</span>
+              <span className="num ms-2 text-[11.5px] font-semibold text-slate-200 light:text-slate-500">zsh — qalb/aether</span>
               <button
                 type="button"
                 onClick={copy}
@@ -743,8 +751,8 @@ function Features() {
               <span className="grid size-11 place-items-center rounded-xl border border-line bg-bg text-brand transition-transform duration-300 group-hover:-translate-y-0.5">
                 <Icon n={f.icon} className="size-5" />
               </span>
-              <h3 className="mt-4 font-display text-[17px] font-extrabold">{f.title}</h3>
-              <p className="mt-2 text-[13.5px] leading-relaxed text-slate-200 light:text-dim">{f.d}</p>
+              <h3 className="mt-4 font-display text-[17px] font-extrabold text-slate-100 light:text-ink">{f.title}</h3>
+              <p className="mt-2 text-[13.5px] leading-relaxed text-slate-200 light:text-slate-600">{f.d}</p>
             </div>
           </Reveal>
         ))}
@@ -787,11 +795,11 @@ function WhatsIncluded() {
                   <span className="grid size-11 place-items-center rounded-2xl border border-line bg-bg text-brand">
                     <Icon n={x.icon} className="size-5" />
                   </span>
-                  <h3 className="mt-4 flex items-start gap-2 font-display text-[16.5px] font-extrabold leading-snug">
+                  <h3 className="mt-4 flex items-start gap-2 font-display text-[16.5px] font-extrabold leading-snug text-slate-100 light:text-ink">
                     <Icon n="check" className="mt-1 size-4 shrink-0 text-[#3ecf8e]" sw={2.6} />
                     {t(x.k)}
                   </h3>
-                  <p className="mt-2 text-[13px] leading-relaxed text-dim">{t(x.d)}</p>
+                  <p className="mt-2 text-[13px] leading-relaxed text-slate-200 light:text-slate-600">{t(x.d)}</p>
                   <span className="mt-4 inline-flex items-center gap-1 text-[12px] font-bold text-brand">
                     {t('included.more')}
                     <Icon n="arrow" className="size-3.5 transition group-hover:translate-x-1 rtl:-scale-x-100 rtl:group-hover:-translate-x-1" />
@@ -831,7 +839,7 @@ function PlanBand() {
         />
       </Reveal>
       <PlanCards />
-      <p className="mx-auto mt-8 max-w-[640px] text-center text-[12px] leading-relaxed text-dim">{t('pro.note')}</p>
+      <p className="mx-auto mt-8 max-w-[640px] text-center text-[12px] leading-relaxed text-slate-200 light:text-slate-600">{t('pro.note')}</p>
     </section>
   )
 }
@@ -857,7 +865,7 @@ function Testimonials() {
         {testimonials.map((x, k) => (
           <Reveal key={x.id} delay={k * 70} className="h-full">
             <figure className="relative flex h-full flex-col rounded-2xl border border-line bg-panel p-6 transition-all duration-300 hover:-translate-y-1 hover:border-brand/30 hover:shadow-soft">
-              <Icon n="quote" className="absolute end-5 top-5 size-8 text-slate-400 light:text-dim" fill sw={0} />
+              <Icon n="quote" className="absolute end-5 top-5 size-8 text-slate-300 light:text-slate-500" fill sw={0} />
               <Stars value={x.stars} size={13} show={false} />
               <blockquote className="mt-4 flex-1 text-[14.5px] leading-[1.85] text-ink">{L(x.text)}</blockquote>
               <figcaption className="mt-6 flex items-center gap-3 border-t border-line pt-5">
@@ -866,7 +874,7 @@ function Testimonials() {
                 </span>
                 <span className="min-w-0">
                   <span className="block truncate text-[13.5px] font-bold">{L(x.name)}</span>
-                  <span className="block truncate text-[11.5px] text-slate-300 light:text-dim">{L(x.role)}</span>
+                  <span className="block truncate text-[11.5px] text-slate-300 light:text-slate-500">{L(x.role)}</span>
                 </span>
                 <span className="num ms-auto inline-flex shrink-0 items-center gap-1 rounded-md border border-brand/25 bg-brand/10 px-1.5 py-0.5 text-[10px] font-bold text-brand">
                   <Icon n="check" className="size-3" sw={2.8} />
@@ -917,14 +925,14 @@ function Faq() {
                 >
                   <span className="flex-1 text-[15px] font-bold leading-snug">{t(`faq.q${k}`)}</span>
                   <span
-                    className={`grid size-7 shrink-0 place-items-center rounded-full border transition-all duration-300 ${isOpen ? 'rotate-45 border-brand bg-brand/12 text-brand' : 'border-line text-dim'}`}
+                    className={`grid size-7 shrink-0 place-items-center rounded-full border transition-all duration-300 ${isOpen ? 'rotate-45 border-brand bg-brand/12 text-brand' : 'border-line text-slate-300 light:text-slate-500'}`}
                   >
                     <Icon n="plus" className="size-3.5" sw={2.2} />
                   </span>
                 </button>
                 <div className={`grid transition-all duration-300 ease-out ${isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
                   <div className="overflow-hidden">
-                    <p className="px-5 pb-5 text-[14px] leading-[1.9] text-dim">{t(`faq.a${k}`)}</p>
+                    <p className="px-5 pb-5 text-[14px] leading-[1.9] text-slate-200 light:text-slate-600">{t(`faq.a${k}`)}</p>
                   </div>
                 </div>
               </div>
@@ -943,14 +951,14 @@ function CtaBand() {
     <section className="page-x mx-auto max-w-[1400px] py-20" id="contact">
       <Reveal>
         <div className="relative overflow-hidden rounded-[28px] border border-line bg-ink px-7 py-14 text-bg shadow-lift sm:px-12 light:bg-brand light:text-brandink">
-          <div className="pointer-events-none absolute inset-0 grid-lines opacity-[0.14]" />
+          <div className="pointer-events-none absolute inset-0 grid-lines opacity-20" />
           <div className="pointer-events-none absolute -end-24 -top-24 size-64 rounded-full bg-brand/25 blur-3xl" />
           <div className="pointer-events-none absolute -bottom-28 start-10 size-72 rounded-full bg-gold/20 blur-3xl" />
           <div className="relative flex flex-col items-start justify-between gap-8 lg:flex-row lg:items-center">
             <div className="max-w-2xl">
               <h2 className="font-display text-[clamp(1.55rem,3.2vw,2.3rem)] font-extrabold leading-[1.25]">{t('cta.title')}</h2>
-              <p className="mt-3 text-[15px] leading-relaxed opacity-90">{t('cta.sub')}</p>
-              <p className="num mt-5 text-[12.5px] font-semibold opacity-85">{t('hero.pill')}</p>
+              <p className="mt-3 text-[15px] leading-relaxed text-slate-100">{t('cta.sub')}</p>
+              <p className="num mt-5 text-[12.5px] font-semibold text-slate-200">{t('hero.pill')}</p>
             </div>
             <div className="flex w-full shrink-0 flex-col gap-3 sm:w-auto sm:flex-row">
               <Btn to="/templates" size="lg" variant="gold" className="w-full sm:w-auto">

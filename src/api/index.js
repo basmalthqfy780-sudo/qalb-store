@@ -125,7 +125,7 @@ export async function submitOrder(draft) {
     return order
   }
   const order = stamp(draft)
-  await new Promise((r) => setTimeout(r, 900)) // simulated gateway latency
+  await new Promise((r) => setTimeout(r, 320)) // fast local preview — reduced from 900ms for smoother checkout
   const all = read(ORDERS, [])
   write(ORDERS, [order, ...all].slice(0, 50))
   write(LAST, order)
