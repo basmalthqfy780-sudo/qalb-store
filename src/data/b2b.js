@@ -8,6 +8,7 @@
  * لا تصدران من هذا المتجر، بل تُطلبان بالبريد. الصفحة تقول ذلك، ولا تُظهر «تم الإرسال».
  */
 import { templates } from './templates.js'
+import { secureRandom } from '../lib/rand.js'
 
 export const B2B_TIERS = [
   {
@@ -99,8 +100,12 @@ export const normalizeCode = (v) =>
     .toUpperCase()
     .replace(/[\s_]/g, '-')
 
-/** الرمز يُبنى عشوائيًا في الخادم؛ rand() تُمرَّر في الفحص ليثبت الشكل لا القيمة */
-export function makeOrgCode(rand = Math.random) {
+/**
+ * الرمز يُبنى عشوائيًا في الخادم؛ `rand()` تُمرَّر في الفحص ليثبت الشكل لا القيمة.
+ * الافتراضي مولّدُ النظام الآمن لا `Math.random`: الرمزُ يصرف مقاعد عقدٍ مدفوع
+ * (حتى ٥٠٠ مقعد)، و`Math.random` قابلٌ للتنبؤ من مخرجاته.
+ */
+export function makeOrgCode(rand = secureRandom) {
   const block = (n) => Array.from({ length: n }, () => CODE_ALPHABET[Math.floor(rand() * CODE_ALPHABET.length)]).join('')
   return `QALB-${block(4)}-${block(4)}`
 }

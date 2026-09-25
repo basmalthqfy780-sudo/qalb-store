@@ -12,6 +12,14 @@ server/*.jsonl
 server/.admin-secret
 server/.download-secret
 
+# وQALB_DATA_DIR قد يشير إلى مجلدٍ آخر على حجمٍ قابل للكتابة (السحابة تطلب ذلك):
+# نفس الدفاتر، فلا تُودَع أينما وُضعت. الأنماط عامة لأن الدفتر يحمل مالًا وبريدًا.
+/data/
+/var/
+*.jsonl
+.admin-secret
+.download-secret
+
 # قد يكتب المشغّل credential.helper store داخل جذر المستودع (~ = مجلد العمل):
 .git-credentials
 .git-credentials.lock

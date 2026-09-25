@@ -12,39 +12,25 @@
  * بريدٍ قالبٌ مجانيٌّ واحد: الطلبُ الثاني يعيدُ طلبه الأول، فلا مزرعةُ حسابات.
  */
 import { appendFile, readFile } from 'node:fs/promises'
-import { existsSync, openSync, fstatSync, readSync, closeSync } from 'node:fs'
+import { existsSync } from 'node:fs'
 import path from 'node:path'
 import { PRIVATE } from './seal.js'
+import { SlidingWindow, clientIp, endsWithNewline, readBody } from './http.js'
 
 const MAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/
-const endsWithNewline = (file) => {
-  let fd
-  try {
-    fd = openSync(file, 'r')
-    const size = fstatSync(fd).size
-    if (!size) return true
-    const buf = Buffer.alloc(1)
-    readSync(fd, buf, 0, 1, size - 1)
-    return buf[0] === 0x0a
-  } catch {
-    return true
-  } finally {
-    if (fd != null) closeSync(fd)
-  }
-}
+/** بريدٌ واسمٌ ومنصب: بضعة كيلوبايت تكفي، وما زاد يُرفض قبل التخزين */
+const MAX_BODY = 16 * 1024
 
 export function createSubscribersApi({ dir, env = process.env, orders = async () => [], makeOrder, apiPublic = '', freeId } = {}) {
   const FILE = path.join(dir, 'subscribers.jsonl')
   const FREE = freeId || String(env.QALB_FREE_TEMPLATE || 'folio').trim()
-  const HITS = new Map() // خانقٌ بسيط بالذاكرة: لا حملَ إضافي لبوّابةٍ تُفتح للعامّة
+  // خانقٌ بالذاكرة: لا حملَ إضافي لبوّابةٍ تُفتح للعامّة — بسقفٍ على عدد المفاتيح،
+  // فلا تصير خريطةُ الخانق نفسها ثغرةً بعناوين مُختلَقة
+  const HITS = new SlidingWindow({ max: 8, windowMs: 60_000, cap: 5_000 })
 
   const throttled = (ip) => {
     if (!ip) return false
-    const now = Date.now()
-    const hits = (HITS.get(ip) || []).filter((t) => now - t < 60_000)
-    hits.push(now)
-    HITS.set(ip, hits)
-    return hits.length > 8
+    return HITS.add(ip) > 8
   }
 
   async function loadSubs() {
@@ -63,12 +49,8 @@ export function createSubscribersApi({ dir, env = process.env, orders = async ()
     return rows
   }
 
-  const ipOf = (req) =>
-    String(req.headers['x-forwarded-for'] || '')
-      .split(',')[0]
-      .trim() ||
-    req.socket?.remoteAddress ||
-    ''
+  /** العنوان من `server/http.js`: السوكت وحده، إلا أن يُعلن المشغّل وسيطًا أمامه */
+  const ipOf = (req) => clientIp(req, env)
 
   async function subscribe({ email, name, source, locale }) {
     const who = String(email || '')
@@ -146,17 +128,10 @@ export function createSubscribersApi({ dir, env = process.env, orders = async ()
     // تحت /api: فالمسار /free صفحةٌ في المتجر، ولو حُوِّل إلى الخادم لابتلعها الوكيل
     if (u.pathname !== '/api/subscribe' && u.pathname !== '/api/free') return false
     if (throttled(ipOf(req))) return (json(res, 429, { ok: false, error: 'too many requests — wait a minute' }), true)
-    const raw = await new Promise((r) => {
-      let b = ''
-      req.on('data', (c) => (b += c))
-      req.on('end', () => r(b))
-    })
-    let body
-    try {
-      body = JSON.parse(raw || '{}')
-    } catch {
-      return (json(res, 400, { ok: false, error: 'json body required' }), true)
-    }
+    const got = await readBody(req, MAX_BODY)
+    if (got.tooBig) return (json(res, 413, { ok: false, error: 'body too large' }), true)
+    const body = got.body
+    if (!body) return (json(res, 400, { ok: false, error: 'json body required' }), true)
     if (u.pathname === '/api/subscribe') {
       const r = await subscribe(body)
       return (json(res, r.ok ? 201 : 400, r), true)

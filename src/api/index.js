@@ -12,6 +12,8 @@
  * الاستضافة في وحدة شقيقة (src/api/hosting.js) تُحمَّل مع صفحاتها وحدها:
  * لا يدفع متجرٌ كاملٌ كودَ المولّدات وهو يعرض قائمة قوالب.
  */
+import { randKey } from '../lib/rand.js'
+
 /** اللوحة تستورده عند الحاجة فقط: لا يحمل متجرٌ صفحته الأولى كودَ الإدارة */
 const localAdmin = () => import('./adminLocal.js').then((m) => m.localAdmin)
 
@@ -52,7 +54,8 @@ export const write = (k, v) => {
   }
 }
 
-const rand = (n) => Array.from({ length: n }, () => Math.random().toString(36).slice(2, 6).toUpperCase()).join('-')
+/** الوضع المحلي يولّد مفتاحه هنا: نفس العشوائية الآمنة التي يولّد بها الخادم */
+const rand = randKey
 
 /** Order id + licence key are issued by the server in rest mode, locally here. */
 const stamp = (draft) => ({

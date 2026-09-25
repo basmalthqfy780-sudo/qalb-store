@@ -22,6 +22,14 @@ export const PRIVATE_FILES = [
   'accounts.json',
   'market.json',
   'market-sales.json',
+  // مقاعد المؤسسات: الرمز الذي يُستبدل به مقعدٌ مجاني، وبريدُ كل طالبٍ استبدل
+  'orgs.json',
+  // دفتر المدفوعات: بريدُ المشتري ومبلغُه ومرجعُ البوابة ومرجعُ التحويل
+  'payments.jsonl',
+  // صندوق الصادر: الرسالة كاملةً بعناوين المشترين (كما يقول تعليق mail.js نفسه)
+  'mail.outbox.jsonl',
+  // النشرة: بريدُ كل من طلب القالب المجاني
+  'subscribers.jsonl',
   '.admin-secret',
   '.download-secret',
 ]

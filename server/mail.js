@@ -13,25 +13,10 @@
  * هذه الدالة وحدها.
  */
 import { appendFile, readFile } from 'node:fs/promises'
-import { existsSync, openSync, fstatSync, readSync, closeSync } from 'node:fs'
+import { existsSync } from 'node:fs'
 import path from 'node:path'
 import { PRIVATE } from './seal.js'
-
-const endsWithNewline = (file) => {
-  let fd
-  try {
-    fd = openSync(file, 'r')
-    const size = fstatSync(fd).size
-    if (!size) return true
-    const buf = Buffer.alloc(1)
-    readSync(fd, buf, 0, 1, size - 1)
-    return buf[0] === 0x0a
-  } catch {
-    return true
-  } finally {
-    if (fd != null) closeSync(fd)
-  }
-}
+import { endsWithNewline } from './http.js'
 
 export function createMailApi({ dir, env = process.env } = {}) {
   const FILE = path.join(dir, 'mail.outbox.jsonl')
