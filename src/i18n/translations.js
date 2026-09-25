@@ -528,8 +528,9 @@ export const dict = {
       published: 'نُشر',
     },
     announce: {
-      // النسبة والأجل يُقرآن من جدول الكوبونات (SALE25) — والشريط يختفي وحده بعد الأجل
-      text: 'خصم {p}% على حزمة «موقع + سيرة» حتى {d} — كود',
+      // النسبة والأجل يُقرآن من جدول الكوبونات (SALE25) — والشريط يختفي وحده بعد الأجل.
+      // «وكل المتجر»: الكوبون appliesTo: 'all'، فالشريط يقول نطاقه كاملًا كما تقوله السلة
+      text: 'خصم {p}% على حزمة «موقع + سيرة» وكل المتجر حتى {d} — كود',
       code: 'SALE25',
       link: 'شاهد الحزم',
     },
@@ -2088,7 +2089,7 @@ export const dict = {
       published: 'Published',
     },
     announce: {
-      text: '{p}% off the “Site + CV” bundle until {d} — code',
+      text: '{p}% off the “Site + CV” bundle and the whole store until {d} — code',
       code: 'SALE25',
       link: 'See bundles',
     },

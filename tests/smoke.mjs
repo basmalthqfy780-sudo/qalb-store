@@ -5889,8 +5889,10 @@ for (const c of cases) {
   const barTxt = (bar?.textContent || '').replace(/\s+/g, ' ')
   const sale = couponInfo('SALE25')
   ok(
-    'the banner reads as written: 25% on the «site + CV» bundle until 30 September 2026 — code SALE25',
-    barTxt.includes(`خصم ${sale.pct}% على حزمة «موقع + سيرة» حتى 30 سبتمبر 2026 — كود`) && /SALE25/.test(barTxt),
+    'the banner states the full scope, as the cart does: the «site + CV» bundle and the whole store, until 30 September 2026 — code SALE25',
+    barTxt.includes(`خصم ${sale.pct}% على حزمة «موقع + سيرة» وكل المتجر حتى 30 سبتمبر 2026 — كود`) &&
+      sale.appliesTo === 'all' &&
+      /SALE25/.test(barTxt),
     barTxt,
   )
   ok(
