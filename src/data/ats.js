@@ -157,13 +157,15 @@ const BAND = (score) => ATS_BANDS.find((b) => score >= b.min) || ATS_BANDS[ATS_B
 export function analyzeAts(source = '', { html = false } = {}) {
   const raw = String(source || '')
   const isHtml = html || /<\s*(html|body|p|ul|li|div)\b/i.test(raw)
-  const text = isHtml ? raw.replace(/<[^>]+>/g, ' ') : raw
+  // محتوى التنسيق لا يقرؤه قارئ سير ولا آلة فرز: يُستبعد `<style>` قبل أي قياس، والصيغة
+  // نفسها حرفيًا في سكربت الحزمة (deliverable.js ← atsScript) — لا مقياسان في منتجٍ واحد.
+  // وفي النصّ الصريح: سطر النقطة ما يبدأ بعلامة، ولا تُحسب الفقرة نقطةً تخنق النسبة.
+  const bare = isHtml ? raw.replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, ' ') : raw
+  const text = isHtml ? bare.replace(/<[^>]+>/g, ' ') : raw
   const clean = text.replace(/\s+/g, ' ').trim()
   const words = (clean.match(/[\p{L}\p{N}'’-]+/gu) || []).length
-  // في HTML: الصيغة نفسها حرفيًا في سكربت الحزمة (deliverable.js ← atsScript) — لا مقياسان في
-  // منتجٍ واحد. وفي النصّ الصريح: سطر النقطة ما يبدأ بعلامة، ولا تُحسب الفقرة نقطةً تخنق النسبة.
   const items = isHtml
-    ? [...raw.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/gi)].map((m) => m[1].replace(/<[^>]+>/g, ' ').trim()).filter(Boolean)
+    ? [...bare.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/gi)].map((m) => m[1].replace(/<[^>]+>/g, ' ').trim()).filter(Boolean)
     : raw
         .split('\n')
         .filter((x) => /^\s*[-•*·]\s+\S/.test(x))
@@ -171,7 +173,7 @@ export function analyzeAts(source = '', { html = false } = {}) {
         .filter((x) => x.length > 8)
   const bullets = items.length
   const measured = items.filter((x) => /\d/.test(x)).length
-  const tables = isHtml ? /<table/i.test(raw) : /\t|[│|]{2,}/.test(raw)
+  const tables = isHtml ? /<table/i.test(bare) : /\t|[│|]{2,}/.test(raw)
   const hasLink = ATS_LINKS.some((l) => clean.toLowerCase().includes(l))
 
   const checks = []

@@ -8,6 +8,7 @@ import { SUPPORT_MAIL } from '../data/contact'
 import { useSeo } from '../components/Seo'
 import { Btn, Head, Icon, Pill } from '../components/ui'
 import StudioTools from '../components/StudioTools'
+import PkgStudio from '../components/PkgStudio'
 
 /**
  * استوديو التحرير: يقرأ سجلّ الموقع ويعيد نفس مولّدات الحزمة في iframe، فكل
@@ -28,7 +29,41 @@ const TYPE_LABEL = Object.fromEntries(TYPES.map((x) => [x.id, x]))
 const HOSTABLE = templates.filter((t) => t && t.id)
 const emptyForm = { name: '', role: '', city: '', email: '', phone: '', website: '', bio: '', theme: 'dark', lang: 'ar', template: HOSTABLE[0].id }
 
+/**
+ * صفحة /studio بمساحتين تحت سقفٍ واحد:
+ *   ?tab=site  (الافتراضي) استوديو المواقع المستضافة — كما هو تمامًا.
+ *   ?tab=pkg   استوديو تخصيص القالب للمشترين الموثّقين (نصوص · صور · أقسام · تصدير ZIP).
+ */
 export default function Studio() {
+  const [params, setParams] = useSearchParams()
+  const { t } = useI18n()
+  const tab = params.get('tab') === 'pkg' ? 'pkg' : 'site'
+  const go = (v) => setParams(v === 'pkg' ? { tab: 'pkg' } : {})
+  return (
+    <>
+      <div className="page-x mx-auto flex max-w-[1400px] flex-wrap items-center gap-2 pt-8" data-studio-tabs>
+        {[
+          { v: 'site', label: t('studio.tab.site') },
+          { v: 'pkg', label: t('studio.tab.pkg') },
+        ].map((x) => (
+          <button
+            key={x.v}
+            type="button"
+            data-studio-tab={x.v}
+            aria-pressed={tab === x.v}
+            onClick={() => go(x.v)}
+            className={`h-9 rounded-xl border px-3.5 text-[12.5px] font-bold transition ${tab === x.v ? 'border-brand/55 bg-brand/10 text-ink' : 'border-line bg-bg text-dim hover:border-brand/40'}`}
+          >
+            {x.label}
+          </button>
+        ))}
+      </div>
+      {tab === 'pkg' ? <PkgStudio /> : <StudioSite />}
+    </>
+  )
+}
+
+function StudioSite() {
   const { t, lang, L } = useI18n()
   const [params, setParams] = useSearchParams()
   const device = useMemo(() => sites.device(), [])
