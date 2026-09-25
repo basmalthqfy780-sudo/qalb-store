@@ -14,6 +14,7 @@ import { B2B_TIERS } from '../src/data/b2b.js'
 import { EMBED_TIERS } from '../src/data/embed.js'
 import { LEAD_STATUSES, leadCsv, normalizeLead } from '../src/data/leads.js'
 import { PRIVATE, writePrivateJson } from './seal.js'
+import { SlidingWindow, clientIp, readBody as readBodyShared } from './http.js'
 
 const json = (res, code, body) => {
   res.writeHead(code, {
@@ -30,35 +31,15 @@ const RATE_WINDOW = 60_000
 const RATE_MAX = 5
 const STAFF_KEYS = ['status', 'staffNote', 'creditApplied'] // لا تُلمس من بابٍ عامّ
 
-const readBody = (req) =>
-  new Promise((done) => {
-    let buf = ''
-    let tooBig = false
-    let settled = false
-    const finish = (v) => {
-      if (settled) return
-      settled = true
-      done(v)
-    }
-    req.on('data', (c) => {
-      if (tooBig) return
-      buf += c
-      if (buf.length > MAX_BODY) {
-        tooBig = true
-        finish([null, true])
-      }
-    })
-    req.on('end', () => {
-      if (tooBig) return
-      if (!buf) return finish([{}, false])
-      try {
-        finish([JSON.parse(buf), false])
-      } catch {
-        finish([null, false])
-      }
-    })
-    req.on('error', () => finish([null, false]))
-  })
+/**
+ * يعيد [القيمة, هل تجاوز الحجم] — نفس العقد، والقراءة من `server/http.js`: حدٌّ
+ * صريح يُرفض عنده الجسم قبل تخزينه، وتجميعٌ بـ`Buffer` فلا ينشقّ حرفٌ عربيٌّ بين
+ * قطعتين (`buf += c` كانت تحوّل كل قطعة وحدها utf-8 فتُفسد الاسم العربي).
+ */
+const readBody = async (req) => {
+  const got = await readBodyShared(req, MAX_BODY)
+  return [got.tooBig ? null : got.body, got.tooBig]
+}
 
 export function createLeadsApi({ dir, env = process.env, admin = null } = {}) {
   const FILE = path.join(dir, 'leads.json')
@@ -80,17 +61,12 @@ export function createLeadsApi({ dir, env = process.env, admin = null } = {}) {
       .filter((x) => x && typeof x === 'object')
       .sort((a, b) => String(b.at || '').localeCompare(String(a.at || '')))
 
-  const hits = new Map()
-  const throttled = (ip) => (hits.get(ip) || []).filter((t) => Date.now() - t < RATE_WINDOW).length >= RATE_MAX
-  const touch = (ip) => {
-    const kept = (hits.get(ip) || []).filter((t) => Date.now() - t < RATE_WINDOW)
-    kept.push(Date.now())
-    hits.set(ip, kept)
-  }
-  const ipOf = (req) =>
-    String(req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'local')
-      .split(',')[0]
-      .trim()
+  // نافذةٌ بسقفٍ على عدد المفاتيح: بلا سقف كانت خريطةُ الحدود نفسها ثغرةَ ذاكرة
+  const hits = new SlidingWindow({ max: RATE_MAX, windowMs: RATE_WINDOW, cap: 5_000 })
+  const throttled = (ip) => hits.blocked(ip)
+  const touch = (ip) => hits.add(ip)
+  /** العنوان من `server/http.js`: السوكت افتراضيًا، وXFF فقط خلف وسيطٍ مُعلن */
+  const ipOf = (req) => clientIp(req, env)
 
   async function handle(req, res, u) {
     if (!ON()) return false

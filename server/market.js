@@ -22,6 +22,7 @@ import { planOf as planOfTier } from '../src/data/plans.js'
 import { inspectListing, stateFromVerdict, kindOfReport, appealsLayer } from '../src/data/inspect.js'
 import { applyReports, appealStateOf, payoutState, sanitizeListing, split, stateOf } from '../src/data/marketplace.js'
 import { writePrivateJson, PRIVATE } from './seal.js'
+import { SlidingWindow, clientIp, readBody as readBodyShared } from './http.js'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 const MAX_BODY = 256 * 1024 // حزمة قالب نصية كاملة، لا صورة
@@ -42,35 +43,15 @@ const json = (res, code, body) => {
   res.end(JSON.stringify(body))
 }
 
-const readBody = (req) =>
-  new Promise((done) => {
-    let buf = ''
-    let tooBig = false
-    let settled = false
-    const finish = (v) => {
-      if (settled) return
-      settled = true
-      done(v)
-    }
-    req.on('data', (c) => {
-      if (tooBig) return
-      buf += c
-      if (buf.length > MAX_BODY) {
-        tooBig = true
-        finish([null, true])
-      }
-    })
-    req.on('end', () => {
-      if (tooBig) return
-      if (!buf) return finish([{}, false])
-      try {
-        finish([JSON.parse(buf), false])
-      } catch {
-        finish([null, false])
-      }
-    })
-    req.on('error', () => finish([null, false]))
-  })
+/**
+ * يعيد [القيمة, هل تجاوز الحجم] — نفس العقد، والقراءة من `server/http.js`: حدٌّ
+ * صريح يُرفض عنده الجسم قبل تخزينه، وتجميعٌ بـ`Buffer` فلا ينشقّ حرفٌ عربيٌّ بين
+ * قطعتين (`buf += c` كانت تحوّل كل قطعة وحدها utf-8 فتُفسد الاسم العربي).
+ */
+const readBody = async (req) => {
+  const got = await readBodyShared(req, MAX_BODY)
+  return [got.tooBig ? null : got.body, got.tooBig]
+}
 
 const secret = (n = 20) => randomBytes(n).toString('base64url').slice(0, n)
 const nowIso = () => new Date().toISOString()
@@ -132,24 +113,24 @@ export function createMarketApi({ dir, env = process.env, admin = null } = {}) {
   const writeSales = (rows) => writePrivateJson(SALES, rows)
 
   /* ---------- معدّل الطلبات: العنوان العام يُقنص ---------- */
-  const hits = new Map()
-  function rateOk(ip, bucket = 'listing') {
-    const t = Date.now()
-    const id = `${ip}·${bucket}`
-    const max = RATE_MAX[bucket] ?? 10
-    const arr = (hits.get(id) || []).filter((x) => t - x < RATE_WINDOW)
-    if (arr.length >= max) {
-      hits.set(id, arr)
-      return false
+  // نافذةٌ لكل خانة، وسقفٌ على عدد المفاتيح في كلٍّ منها
+  const windows = new Map()
+  const windowOf = (bucket) => {
+    let w = windows.get(bucket)
+    if (!w) {
+      w = new SlidingWindow({ max: RATE_MAX[bucket] ?? 10, windowMs: RATE_WINDOW, cap: 5_000 })
+      windows.set(bucket, w)
     }
-    arr.push(t)
-    hits.set(id, arr)
+    return w
+  }
+  function rateOk(ip, bucket = 'listing') {
+    const w = windowOf(bucket)
+    if (w.blocked(ip)) return false
+    w.add(ip)
     return true
   }
-  const ipOf = (req) =>
-    String(req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'local')
-      .split(',')[0]
-      .trim()
+  /** العنوان من `server/http.js`: السوكت افتراضيًا، وXFF فقط خلف وسيطٍ مُعلن */
+  const ipOf = (req) => clientIp(req, env)
 
   /* ---------- مصادقة الحساب: مفتاحٌ واحد لكل سجل ---------- */
   const keyHeader = (req) => String(req.headers['x-qalb-account-key'] || '')

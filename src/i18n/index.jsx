@@ -1,34 +1,31 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
-import { dict } from './translations'
+import { LANG_STORE, dictOf, initialLang, loadDict, read } from './loader'
 
 const LangCtx = createContext(null)
-const STORE = 'qalb.lang'
 const THEME = 'qalb.theme'
 
-const read = (k, fb) => {
-  try {
-    return localStorage.getItem(k) || fb
-  } catch {
-    return fb
-  }
-}
-
-/**
- * اللغة عند أول فتح: ?lang=en/ar أولًا (وهو ما تشير إليه hreflang فتفتح النسخة
- * الموعودة فعلًا)، ثم ما حُفظ في الجهاز، ثم العربية.
- */
-const initialLang = () => {
-  try {
-    const p = typeof location !== 'undefined' ? new URLSearchParams(location.search).get('lang') : null
-    if (p === 'en' || p === 'ar') return p
-  } catch {
-    /* location غير متاح (بيئة اختبار) — نرجع للمخزَّن */
-  }
-  return read(STORE, 'ar')
-}
-
-export function LangProvider({ children }) {
+export function LangProvider({ children, dicts: injected = null }) {
   const [lang, setLangState] = useState(initialLang)
+  /**
+   * الإنجليزية chunk يُطلب عند الحاجة، فلا تحمل حزمةُ الدخول قاموسَ لغةٍ لا
+   * يقرؤها الزائر. `injected` مدخلُ الفحوصات: تدخل باللغتين معًا فيبقى الاختبار
+   * متزامنًا ولا ينتظر وحدةً ديناميكية (tests/entry.jsx).
+   */
+  const [en, setEn] = useState(() => injected?.en || null)
+  // useMemo لا كائن جديد في كل رسم: `dicts` في اعتمادات value وt، ومرجعٌ يتغير كل
+  // مرة كان يعيد رسم كل مستهلكي السياق (أي المتجر كله) عند أي تغيير
+  const dicts = useMemo(() => injected || { ar: dictOf('ar'), en }, [injected, en])
+
+  useEffect(() => {
+    if (injected || lang !== 'en' || en) return
+    let alive = true
+    loadDict('en').then((d) => {
+      if (alive) setEn(d)
+    })
+    return () => {
+      alive = false
+    }
+  }, [injected, lang, en])
   // The pre-paint script in index.html resolves the effective theme (stored
   // value → system preference → dark) and publishes it on <html data-theme>,
   // so React adopts it instead of flashing the opposite theme on first paint.
@@ -51,7 +48,7 @@ export function LangProvider({ children }) {
     el.lang = lang
     el.dir = lang === 'ar' ? 'rtl' : 'ltr'
     try {
-      localStorage.setItem(STORE, lang)
+      localStorage.setItem(LANG_STORE, lang)
     } catch {
       /* localStorage may be full or blocked — never a hard requirement */
     }
@@ -80,8 +77,8 @@ export function LangProvider({ children }) {
   const toggleTheme = useCallback(() => setThemeState((t) => (t === 'dark' ? 'light' : 'dark')), [])
 
   const value = useMemo(
-    () => ({ lang, dir: lang === 'ar' ? 'rtl' : 'ltr', setLang, toggleLang, theme, toggleTheme }),
-    [lang, theme, setLang, toggleLang, toggleTheme],
+    () => ({ lang, dir: lang === 'ar' ? 'rtl' : 'ltr', setLang, toggleLang, theme, toggleTheme, dicts }),
+    [lang, theme, setLang, toggleLang, toggleTheme, dicts],
   )
 
   return <LangCtx.Provider value={value}>{children}</LangCtx.Provider>
@@ -90,7 +87,7 @@ export function LangProvider({ children }) {
 export function useI18n() {
   const ctx = useContext(LangCtx)
   if (!ctx) throw new Error('useI18n must be used inside <LangProvider>')
-  const { lang } = ctx
+  const { lang, dicts } = ctx
 
   /** t('nav.templates') or t('catalog.sub', { n: 12 }) */
   const t = useCallback(
@@ -99,13 +96,16 @@ export function useI18n() {
         String(path)
           .split('.')
           .reduce((o, k) => (o == null ? undefined : o[k]), obj)
-      let out = get(dict[lang])
-      if (out === undefined) out = get(dict.en)
+      // الاحتياط إلى العربية قبل الإنجليزية: الإنجليزية قد لا تكون حُمّلت بعد
+      // (chunk يُطلب عند الحاجة)، والعربية كاملة المفاتيح ومحمولة دائمًا
+      let out = get(dicts[lang])
+      if (out === undefined) out = get(dicts.ar)
+      if (out === undefined) out = get(dicts.en)
       if (typeof out !== 'string') out = String(path)
       if (vars) out = out.replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? '')
       return out
     },
-    [lang],
+    [lang, dicts],
   )
 
   /** LA({ar:[],en:[]}) → قائمة دائمًا؛ حقل مفقود في منتج مُعدَّل لا يُسقط الصفحة عند .map() */

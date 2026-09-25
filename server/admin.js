@@ -19,11 +19,13 @@
 import { createHmac, randomBytes, scryptSync, timingSafeEqual } from 'node:crypto'
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { writePrivateJson } from './seal.js'
+import { SlidingWindow, clientIp, readBody as readBodyShared } from './http.js'
 import path from 'node:path'
 import { sanitize, priceTable, MIN_PRICE, MAX_PRICE } from '../src/data/catalog.js'
 import { computeStats, csvOf } from '../src/data/stats.js'
 
 const COOKIE = 'qalb_admin'
+const MAX_BODY = 200_000
 const SESSION_MS = 12 * 3600e3
 const MIN_PASS = 10
 const WINDOW_MS = 10 * 60e3
@@ -104,18 +106,16 @@ export function createAdminApi({ dir, vat = 0.15, env = process.env, orders = as
   }
 
   /* ---------- login throttling ---------- */
-  const fails = new Map()
-  const waitLeft = (key) => {
-    const hit = fails.get(key)
-    if (!hit || hit.n < MAX_FAILS) return 0
-    const left = WINDOW_MS - (Date.now() - hit.t)
-    if (left <= 0) {
-      fails.delete(key)
-      return 0
-    }
-    return Math.ceil(left / 1000)
-  }
-  const noteFail = (key) => fails.set(key, { n: (fails.get(key)?.n || 0) + 1, t: Date.now() })
+  /**
+   * القفل على **(العنوان + البريد)** لا على العنوان وحده: كان ستةُ طلباتٍ خاطئة
+   * من أيٍّ كان تُخرج المالك الحقيقي من لوحته عشر دقائق (حجبُ خدمةٍ بمحاولةٍ
+   * واحدة)، وخلف وسيطٍ عكسي يصير كلُّ الزوار عنوانًا واحدًا فيشمل القفل الجميع.
+   * والخريطة نفسها بسقفٍ على عدد المفاتيح — فالنسخة القديمة كانت تحتفظ بكل عنوان
+   * فشل مرةً واحدة إلى الأبد.
+   */
+  const fails = new SlidingWindow({ max: MAX_FAILS, windowMs: WINDOW_MS, cap: 5_000 })
+  const waitLeft = (key) => fails.leftSeconds(key)
+  const noteFail = (key) => fails.add(key)
 
   /* ---------- session tokens ---------- */
   const token = (uid) => {
@@ -144,11 +144,20 @@ export function createAdminApi({ dir, vat = 0.15, env = process.env, orders = as
   }
 
   /* ---------- http helpers ---------- */
+  /**
+   * `*` مع `allow-credentials: true` جمعٌ يرفضه المتصفح أصلًا، فلا هو يعمل ولا هو
+   * مقصود: إن ضُبط `ADMIN_ORIGIN` صُدِّق وحده مع الكوكي، وإلا `*` **بلا** كوكي —
+   * والجلسة تصل بـ`Authorization: Bearer` أو من نفس الأصل عبر وكيل Vite.
+   */
+  const corsHeaders = () =>
+    env.ADMIN_ORIGIN
+      ? { 'access-control-allow-origin': String(env.ADMIN_ORIGIN).replace(/\/+$/, ''), 'access-control-allow-credentials': 'true' }
+      : { 'access-control-allow-origin': '*' }
+
   const json = (res, code, data, headers = {}) => {
     res.writeHead(code, {
       'content-type': 'application/json; charset=utf-8',
-      'access-control-allow-origin': env.ADMIN_ORIGIN || '*',
-      'access-control-allow-credentials': 'true',
+      ...corsHeaders(),
       'access-control-allow-headers': 'content-type, x-qalb-admin, authorization',
       'access-control-allow-methods': 'GET,POST,PATCH,DELETE,OPTIONS',
       'cache-control': 'no-store',
@@ -156,18 +165,14 @@ export function createAdminApi({ dir, vat = 0.15, env = process.env, orders = as
     })
     res.end(data == null ? '' : JSON.stringify(data))
   }
+  /**
+   * الحدُّ نفسه (٢٠٠ ألف بايت) لكنه يُفحص **أثناء** القراءة لا بعدها: النسخة
+   * القديمة كانت تخزّن الجسم كاملًا ثم تقيسه، فأيّ جسمٍ ضخم يُبتلع في الذاكرة
+   * قبل أن يُرفض. والتجميع بـ`Buffer` فلا ينشقّ حرفٌ عربيّ بين قطعتين.
+   */
   const readBody = async (req) => {
-    const raw = await new Promise((r) => {
-      let b = ''
-      req.on('data', (c) => (b += c))
-      req.on('end', () => r(b))
-    })
-    if (raw.length > 200000) return null
-    try {
-      return JSON.parse(raw || '{}')
-    } catch {
-      return null
-    }
+    const got = await readBodyShared(req, MAX_BODY)
+    return got.tooBig ? null : got.body
   }
 
   /* ---------- finance: نفس دوال اللوحة في وضع local ---------- */
@@ -190,7 +195,9 @@ export function createAdminApi({ dir, vat = 0.15, env = process.env, orders = as
     if (u.pathname === '/admin/login' && req.method === 'POST') {
       const b = await readBody(req)
       if (!b) return (json(res, 400, { error: 'bad json' }), true)
-      const key = req.socket.remoteAddress || '?'
+      const key = `${clientIp(req, env)}|${String(b.email || '')
+        .trim()
+        .toLowerCase()}`
       const left = waitLeft(key)
       if (left) return (json(res, 429, { error: 'too many attempts', retryAfter: left }), true)
 
@@ -223,7 +230,7 @@ export function createAdminApi({ dir, vat = 0.15, env = process.env, orders = as
         noteFail(key)
         return (json(res, 401, { error: 'bad credentials' }), true)
       }
-      fails.delete(key)
+      fails.clear(key)
       const all = listUsers().map((x) => (x.id === hit.id ? { ...x, lastLogin: today() } : x))
       writeJson(ADMINS, all)
       const t = token(hit.id)

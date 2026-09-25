@@ -16,8 +16,12 @@ jobs:
           node-version: 20
           cache: npm
 
-      - name: Pillow (only needed to re-rasterise the OG cards)
-        run: python3 -m pip install --quiet pillow || echo "og-cover will be skipped — the build tolerates that"
+      # البطاقاتُ الاجتماعية (public/og/*.png وog-cover.png) أصولٌ مولَّدة ومُودَعة.
+      # فإن تعذّر رسمها بقيت قديمة **بصمت** — وقد حدث فعلًا: بطاقة apex-cv أعلنت
+      # «١٤٢ تقييمًا» والكتالوج يقول ٨. فالتثبيت خطوةٌ جادة (بلا `|| echo`)،
+      # والإصدارات مثبّتة لأن فحص الانحراف بعدها يقارن البايت بالبايت.
+      - name: Python deps for the generated social cards
+        run: python3 -m pip install --quiet pillow==12.3.0 arabic_reshaper==3.0.1 python-bidi==0.6.11
 
       - run: npm ci
 
@@ -31,6 +35,12 @@ jobs:
       # فوجود dist هنا يعني أن الوعد يُختبَر في CI كما يُختبَر عندك محليًا.
       - name: Build
         run: npm run build
+
+      # البناء (prebuild) يُعيد توليد البطاقات وrobots وsitemap وllms وكتلة meta في
+      # index.html. فإن اختلف القرص عمّا في المستودع فالتوليدُ لم يُلحق بالكتالوج —
+      # وهذا بالضبط الانحرافُ الذي عاش بصمتًا، فيُرفض الدمج بدل نشر صورةٍ قديمة.
+      - name: Generated assets match the catalog (no silent drift)
+        run: git diff --exit-code -- public/ index.html
 
       - name: Tests (real app rendered in jsdom + admin API over a spawned server)
         run: npm test

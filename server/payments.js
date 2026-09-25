@@ -18,31 +18,16 @@
  * المخزَّن بعدَ أن أعاد الخادم حسابَه، فإن لم يُعثر على الطلب فلا جلسة.
  */
 import { appendFile, readFile } from 'node:fs/promises'
-import { existsSync, openSync, fstatSync, readSync, closeSync } from 'node:fs'
+import { existsSync } from 'node:fs'
 import path from 'node:path'
 import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto'
 import { PRIVATE } from './seal.js'
+import { endsWithNewline } from './http.js'
 
 export const PROVIDERS = ['manual', 'moyasar', 'tap', 'stripe']
 
 /** أقلُّ وحدةٍ في العملة (هللة) — ما تطلبه البوّابات السعودية والخليجية */
 const halalas = (v) => Math.round((Number(v) || 0) * 100)
-
-const endsWithNewline = (file) => {
-  let fd
-  try {
-    fd = openSync(file, 'r')
-    const size = fstatSync(fd).size
-    if (!size) return true
-    const buf = Buffer.alloc(1)
-    readSync(fd, buf, 0, 1, size - 1)
-    return buf[0] === 0x0a
-  } catch {
-    return true
-  } finally {
-    if (fd != null) closeSync(fd)
-  }
-}
 
 /** الحقل البيئيّ: نصٌّ أو فراغ — لا «undefined» يظهر في تعليمات التحويل */
 const envOf = (env, ...keys) => {

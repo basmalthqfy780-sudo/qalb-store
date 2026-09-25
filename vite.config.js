@@ -21,6 +21,18 @@ const API = process.env.QALB_API_TARGET || 'http://127.0.0.1:8787'
 const PROXY_PATHS = ['/orders', '/org', '/leads', '/licences', '/catalog', '/admin/', '/download', '/dl/', '/health', '/payments', '/api']
 const PROXY = Object.fromEntries(PROXY_PATHS.map((p) => [p, { target: API, changeOrigin: true }]))
 
+/*
+ * بناءُ إنتاجٍ بوضعٍ محلي = متجرٌ بلا بيع: لا طلبٌ يُسجَّل عندك، ولا بوابةُ تقبض،
+ * والحزمُ المدفوعة تُولَّد في متصفح المشتري. الوضعُ المحلي للتجربة على الجهاز،
+ * والنشرُ الجاد يريد VITE_QALB_API=rest مع server/worker.js شغّالًا. فالبناءُ
+ * يقول ذلك بصوتٍ عالٍ بدل أن يكتشفه المالك من غياب الإيراد.
+ */
+if (process.argv.includes('build') && (process.env.VITE_QALB_API || 'local') !== 'rest') {
+  console.warn(
+    '[qalb] building PRODUCTION in LOCAL mode: no order server, no payments — paid packages will be generated in the buyer’s browser. Set VITE_QALB_API=rest (and run server/worker.js) to sell for real.',
+  )
+}
+
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {

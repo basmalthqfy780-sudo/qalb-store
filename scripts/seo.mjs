@@ -101,7 +101,19 @@ writeFileSync(path.join(PUB, 'sitemap.xml'), xml)
 // MSVG يفقد النصوص العربية المختلطة بالأرقام/Latin.
 const py = spawnSync('python3', [path.join(ROOT, 'scripts', 'og-cover.py')], { encoding: 'utf8' })
 const rasterized = py.status === 0 && existsSync(path.join(PUB, 'og-cover.png'))
-if (py.status !== 0) console.warn('og-cover: تخطّي —', (py.stderr || py.stdout).trim().split('\n').pop())
+/**
+ * سببُ التخطي كما قاله بايثون فعلًا — لا «no pillow» عامةً مهما كان النقص.
+ * (كان التلخيص القديم يطبع «no pillow» والناقصُ `arabic_reshaper`، فيبحث
+ * المشغّل عن علةٍ غير الموجودة وتبقى البطاقات قديمة.)
+ */
+const ogWhy =
+  py.status === 0
+    ? ''
+    : String(py.stderr || py.stdout || '')
+        .trim()
+        .split('\n')
+        .pop()
+if (py.status !== 0) console.warn('og-cover: تخطّي —', ogWhy)
 
 /* ---------------- per-template social cards (public/og/<slug>.png) ---------------- */
 const hexOf = (id) => (PALETTE.find((c) => c.id === id) || PALETTE[3]).hex
@@ -126,7 +138,14 @@ const cards = spawnSync('python3', [path.join(ROOT, 'scripts', 'og-cover.py'), '
   input: JSON.stringify(rows),
 })
 const ogCount = cards.status === 0 ? rows.length : 0
-if (cards.status !== 0) console.warn('og/ بطاقات: تخطّي —', (cards.stderr || cards.stdout).trim().split('\n').pop())
+const cardsWhy =
+  cards.status === 0
+    ? ''
+    : String(cards.stderr || cards.stdout || '')
+        .trim()
+        .split('\n')
+        .pop()
+if (cards.status !== 0) console.warn('og/ بطاقات: تخطّي —', cardsWhy)
 
 /* ---------------- index.html meta block (idempotent) ---------------- */
 // الكتلة بين العلامتين تُعاد كتابتها مع كل بناء، فيصحّح SITE_URL الجديد
@@ -173,5 +192,5 @@ for (const [name, text] of [
 }
 
 console.log(
-  `seo: ${urls.length} urls in sitemap · robots.txt (${agents.AI_AGENTS.length} AI agents allowed) · llms.txt · روابطُ خام بلا Markdown · og-cover.png=${rasterized ? 'ok' : 'skipped (no pillow)'} · public/og=${ogCount} بطاقات`,
+  `seo: ${urls.length} urls in sitemap · robots.txt (${agents.AI_AGENTS.length} AI agents allowed) · llms.txt · روابطُ خام بلا Markdown · og-cover.png=${rasterized ? 'ok' : `skipped — ${ogWhy}`} · public/og=${ogCount} بطاقات${ogCount ? '' : cardsWhy ? ` — ${cardsWhy}` : ''}`,
 )

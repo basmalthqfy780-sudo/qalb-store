@@ -26,6 +26,7 @@ import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
 import { existsSync, readFileSync, writeFileSync, chmodSync } from 'node:fs'
 import { appendFile } from 'node:fs/promises'
 import { PRIVATE } from './seal.js'
+import { SlidingWindow, clientIp } from './http.js'
 import path from 'node:path'
 import { bundleFiles, packageName, packageZip } from '../src/data/deliverable.js'
 import { zipStore } from '../src/data/zip.js'
@@ -66,20 +67,23 @@ export function createDeliverApi({ dir, env = process.env, orders = async () => 
   }
 
   /* ---------- الحالة في الذاكرة: nonce مُستهلك + عدّاد لكل IP ---------- */
+  // العدّاد نافذةٌ منزلقة بسقفٍ على عدد المفاتيح: كان كل عنوانٍ مُختلَق في
+  // `X-Forwarded-For` يترك مدخلًا لا يُطرد قبل انتهاء الصلاحية، فتكبر الذاكرة
+  // بطلباتٍ لا تنفع صاحبها
+  const hits = new SlidingWindow({ max: MAX_PER_IP, windowMs: TTL * 1000, cap: 20_000 })
   const used = new Map() // nonce → expiry(ms)
-  const hits = new Map() // ip → { n, at }
+  const USED_CAP = 50_000
   const prune = () => {
     const t = Date.now()
     for (const [k, v] of used) if (v < t) used.delete(k)
-    for (const [k, v] of hits) if (t - v.at > TTL * 1000) hits.delete(k)
+    // سقفٌ صريح: تُطرد أقدم التذاكر (Map تحفظ ترتيب الإدخال) فلا حدود للذاكرة
+    while (used.size > USED_CAP) {
+      const oldest = used.keys().next()
+      if (oldest.done) break
+      used.delete(oldest.value)
+    }
   }
-  const throttle = (ip) => {
-    prune()
-    const rec = hits.get(ip) || { n: 0, at: Date.now() }
-    rec.n += 1
-    hits.set(ip, rec)
-    return rec.n > MAX_PER_IP
-  }
+  const throttle = (ip) => hits.add(ip) > MAX_PER_IP
   const log = (rec) => {
     const line = JSON.stringify({ at: new Date().toISOString(), ...rec }) + '\n'
     appendFile(LEDGER, line, { encoding: 'utf8', mode: PRIVATE }).catch(() => {
@@ -107,12 +111,12 @@ export function createDeliverApi({ dir, env = process.env, orders = async () => 
     res.writeHead(code, { location: to, 'cache-control': 'no-store', 'x-robots-tag': 'noindex, nofollow' })
     res.end()
   }
-  const ipOf = (req) =>
-    String(req.headers['x-forwarded-for'] || '')
-      .split(',')[0]
-      .trim() ||
-    req.socket?.remoteAddress ||
-    'unknown'
+  /**
+   * العنوان من `server/http.js`. كان أول قيم `X-Forwarded-For` — وهي ترويسة يكتبها
+   * العميل — فصار تجاوزُ حدِّ المحاولات طلبًا واحدًا بترويسة جديدة، وبقيت الخريطة
+   * تجمع العناوين المُختلَقة.
+   */
+  const ipOf = (req) => clientIp(req, env)
 
   const byId = (id) => tpls.find((t) => t.id === id) || null
   const sellerUrl = (id) => {
@@ -180,8 +184,10 @@ export function createDeliverApi({ dir, env = process.env, orders = async () => 
   }
 
   function readToken(token) {
+    prune() // التذاكر المنتهية (وما زاد على السقف) تُطرد هنا، فلا تكبر الخريطة بكل رابطٍ قديم
     const [payload, sig] = String(token).split('.')
-    if (!payload || !sig || sign(payload) !== sig) return { why: 'bad signature' }
+    // المقارنة timing-safe كسائر مقارنات هذا الملف: `!==` على توقيع تُقارن بايتًا بايت
+    if (!payload || !sig || !eq(sign(payload), sig)) return { why: 'bad signature' }
     let body
     try {
       body = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'))

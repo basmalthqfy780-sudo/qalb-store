@@ -34,7 +34,7 @@
  */
 import { createServer } from 'node:http'
 import { appendFile, readFile } from 'node:fs/promises'
-import { existsSync, mkdirSync, openSync, fstatSync, readSync, closeSync } from 'node:fs'
+import { existsSync, mkdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import { templates, coupons } from '../src/data/templates.js'
@@ -53,6 +53,8 @@ import { createPaymentsApi } from './payments.js'
 import { createMailApi } from './mail.js'
 import { invoiceHtml, receiptMail } from './invoice.js'
 import { createSubscribersApi } from './subscribers.js'
+import { DEFAULT_MAX_BODY, MAX_WEBHOOK_BODY, SlidingWindow, clientIp, endsWithNewline, readBody } from './http.js'
+import { randKey } from '../src/lib/rand.js'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 loadDotEnv(ROOT) // PORT / SUPABASE_* من .env إن وُجد — node لا يقرأه وحده
@@ -83,15 +85,57 @@ const send = (res, code, body) => {
   res.end(JSON.stringify(body))
 }
 const now = () => new Date().toISOString().slice(0, 10)
-/** نصّ الطلب كاملًا (الإشعارات تُوقَّع على النصّ الخام لا على ما ينتجه JSON.parse) */
-const readBody = (req) =>
-  new Promise((r) => {
-    let b = ''
-    req.on('data', (c) => (b += c))
-    req.on('end', () => r(b))
-  })
-const rand = (n) => Array.from({ length: n }, () => Math.random().toString(36).slice(2, 6).toUpperCase()).join('-')
-const rid = () => `QALB-${rand(1)}-${Date.now().toString(36).slice(-4).toUpperCase()}`
+
+/**
+ * المفتاح والمعرّف من `src/lib/rand.js` — عشوائيةُ النظام الآمنة، لا `Math.random`
+ * القابل للتنبؤ. الشكلُ المطبوع لم يتغير (مجموعاتٌ رباعية من 0-9A-Z)، لكن المعرّف
+ * صار عشوائيًا كله: كان آخرُه ختمَ زمنٍ base36، أي أن جزءًا منه يُخمَّن من ساعة
+ * الشراء — والمعرّفُ رابطُ قدرةٍ يُفتح به الإيصال ومعه المفتاح.
+ */
+const rand = randKey
+const rid = () => `QALB-${rand(2)}`
+
+/**
+ * حدود القراءة: عدّادٌ لكل عنوان IP على مسارات الإيصالات (`/orders…` و`/licences…`).
+ * المعرّف وحده كان يكفي لفتح إيصال، فالتعداد هو الباب الوحيد المتبقي — ويُقفل هنا.
+ */
+const LOOKUP_MAX = Math.max(10, Math.round(Number(process.env.QALB_LOOKUP_MAX) || 240))
+const lookups = new SlidingWindow({ max: LOOKUP_MAX, windowMs: 10 * 60e3, cap: 5_000 })
+const lookupBlocked = (req) => lookups.add(clientIp(req, process.env)) > LOOKUP_MAX
+
+/** جلسات الدفع لكل عنوان في عشر دقائق — سقفٌ سخيٌّ فوق ما يفعله مشتري واحد */
+const SESSION_MAX = Math.max(10, Math.round(Number(process.env.QALB_SESSION_MAX) || 60))
+const sessions = new SlidingWindow({ max: SESSION_MAX, windowMs: 10 * 60e3, cap: 5_000 })
+
+/**
+ * ما يجوز أن يقرأه صاحب البريد من دفتر طلباته: حقولٌ معدودةٌ **بقائمة سماح**، لا
+ * بحذفٍ من نسخة كاملة. فلا `key` (وهي ما يفتح التحميل)، ولا `phone` ولا `vatNo`
+ * ولا `personalize` ولا `idempotency`، ولا `org` الذي يحمل رمز المؤسسة ومقاعدها.
+ * الإيصال نفسه (`/orders/:id`) يبقى كاملًا لأن رابط البريد يفتحه — ومعرفه عشوائي.
+ */
+const BUYER_FIELDS = [
+  'id',
+  'date',
+  'count',
+  'method',
+  'methodLabel',
+  'currency',
+  'subtotal',
+  'discount',
+  'vat',
+  'vatRate',
+  'total',
+  'coupon',
+  'invoice',
+]
+const buyerView = (o) => ({
+  ...Object.fromEntries(BUYER_FIELDS.filter((k) => o[k] !== undefined).map((k) => [k, o[k]])),
+  lines: (Array.isArray(o.lines) ? o.lines : []).map((l) => ({ id: l.id, slug: l.slug ?? null, qty: l.qty || 1, price: l.price })),
+  addons: (Array.isArray(o.addons) ? o.addons : []).map((a) => ({ id: a.id, price: a.price })),
+})
+
+/** ما يقوله الخادم للعميل صراحةً لأنه قاعدةُ شراء، وما عداه عطلٌ داخلي يُسجَّل ولا يُطبع */
+const PUBLIC_ERROR = /^(lines required|unknown template:|unknown add-on:|unknown coupon:|expired coupon:|total mismatch|order not found)/
 
 const admin = createAdminApi({
   dir: DATA,
@@ -138,25 +182,8 @@ async function save(order) {
   // سطرٌ ناقص في آخر الدفتر (ملف كُتب يدويًا أو سُطر نصفه) لا يبتلع الطلب التالي:
   // نضع فاصلًا قبل الملحق إن لم يكن المنتهي فاصلة — وإلا صار سطران JSON في سطر واحد
   // فيسقطهما load() بصمت، وهو أسوأ ما يحدث لدفتر فيه مال.
-  await appendFile(FILE, (endsWithNewline() ? '' : '\n') + JSON.stringify(order) + '\n', { encoding: 'utf8', mode: PRIVATE })
+  await appendFile(FILE, (endsWithNewline(FILE) ? '' : '\n') + JSON.stringify(order) + '\n', { encoding: 'utf8', mode: PRIVATE })
   return order
-}
-
-/** آخر بايت في الملف: فاصلة سطر؟ نقرأ بايتًا واحدًا، لا الدفتر كلّه */
-function endsWithNewline() {
-  let fd
-  try {
-    fd = openSync(FILE, 'r')
-    const size = fstatSync(fd).size
-    if (!size) return true
-    const buf = Buffer.alloc(1)
-    readSync(fd, buf, 0, 1, size - 1)
-    return buf[0] === 0x0a
-  } catch {
-    return true // ملف لا يُقرأ: نلحق ولا نخترع فواصل
-  } finally {
-    if (fd != null) closeSync(fd)
-  }
 }
 
 /**
@@ -343,7 +370,9 @@ const server = createServer(async (req, res) => {
   try {
     if (await sites.handle(req, res, u)) return // الاستضافة — انظر server/sites.js
   } catch (e) {
-    if (!res.headersSent) send(res, 500, { error: 'hosting layer failed', why: String(e.message || e).slice(0, 160) })
+    // السببُ يُسجَّل ولا يُطبع: رسالةُ عطلٍ داخلي تصل المتصفح تكشف ما وراء الواجهة
+    console.warn(`qalb api · hosting layer failed on ${req.method} ${u.pathname}: ${String(e?.message || e).slice(0, 200)}`)
+    if (!res.headersSent) send(res, 500, { error: 'hosting layer failed' })
     return
   }
   if (await orgs.handle(req, res, u)) return // مقاعد المؤسسات — قبل اللوحة: /admin/orgs ملك هذه الطبقة
@@ -355,12 +384,12 @@ const server = createServer(async (req, res) => {
 
   try {
     if (req.method === 'POST' && u.pathname === '/orders') {
-      const raw = await new Promise((r) => {
-        let b = ''
-        req.on('data', (c) => (b += c))
-        req.on('end', () => r(b))
-      })
-      const body = JSON.parse(raw || '{}')
+      // حدٌّ صريح على الجسم: طلبُ متجرٍ لا يتجاوز بضع عشرات من الكيلوبايت، وما زاد
+      // يُرفض قبل أن يُخزَّن — لا بعد ابتلاعه كاملًا في الذاكرة
+      const got = await readBody(req, DEFAULT_MAX_BODY)
+      if (got.tooBig) return send(res, 413, { error: 'body too large' })
+      if (!got.body) return send(res, 400, { error: 'json body required' })
+      const body = got.body
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(body.email || '')) return send(res, 400, { error: 'email required' })
       if (!String(body.name || '').trim()) return send(res, 400, { error: 'name required' })
 
@@ -390,7 +419,12 @@ const server = createServer(async (req, res) => {
 
     /* ——— المدفوعات: إنشاءُ جلسة، وحالة، وإبلاغُ تحويل، وإشعارُ بوّابة ——— */
     if (req.method === 'POST' && u.pathname === '/payments') {
-      const body = JSON.parse((await readBody(req)) || '{}')
+      // جلسةُ دفعٍ تكتب سطرًا في الدفتر **وتُرسل بريدًا** للمشتري: فبلا حدٍّ يصير
+      // المسار أداة إغراق لصندوق أيّ مشتري يعرف المهاجم رقم طلبه
+      if (sessions.add(clientIp(req, process.env)) > SESSION_MAX) return send(res, 429, { error: 'too many payment sessions — wait a few minutes' })
+      const got = await readBody(req, DEFAULT_MAX_BODY)
+      if (got.tooBig) return send(res, 413, { error: 'body too large' })
+      const body = got.body || {}
       const rec = await payments.create({ orderId: String(body.order || '').trim(), method: body.method || null })
       // بريدٌ فوريٌّ بتعليمات الدفع قبل أن يغلق المشتري التبويب
       const order = (await load()).find((o) => o.id === rec.order)
@@ -403,14 +437,19 @@ const server = createServer(async (req, res) => {
 
     if (req.method === 'POST' && /^\/payments\/[^/]+\/transfer$/.test(u.pathname)) {
       const id = decodeURIComponent(u.pathname.split('/')[2])
-      const body = JSON.parse((await readBody(req)) || '{}')
+      const got = await readBody(req, DEFAULT_MAX_BODY)
+      if (got.tooBig) return send(res, 413, { error: 'body too large' })
+      const body = got.body || {}
       return send(res, 200, await payments.noteTransfer(id, body.ref))
     }
 
     if (req.method === 'POST' && /^\/payments\/webhook\/[^/]+$/.test(u.pathname)) {
       const which = u.pathname.split('/').pop().toLowerCase()
-      const raw = await readBody(req) // النصّ الخام: توقيعُ Stripe يُحسَب على البايتات لا على JSON
-      const r = await payments.handleWebhook(which, raw, req.headers)
+      // النصّ الخام: توقيعُ Stripe يُحسَب على البايتات لا على ما ينتجه JSON.parse —
+      // بسقفٍ هو الآخر، فإشعارُ بوّابة لا يبلغ ميجابايت
+      const got = await readBody(req, MAX_WEBHOOK_BODY)
+      if (got.tooBig) return send(res, 413, { error: 'body too large' })
+      const r = await payments.handleWebhook(which, got.raw || '', req.headers)
       return send(res, r.ok ? 200 : 401, r)
     }
 
@@ -424,18 +463,31 @@ const server = createServer(async (req, res) => {
     }
 
     if (req.method === 'GET' && u.pathname.startsWith('/orders/')) {
+      if (lookupBlocked(req)) return send(res, 429, { error: 'too many lookups — wait a few minutes' })
       const id = decodeURIComponent(u.pathname.split('/').pop())
       const hit = (await load()).find((o) => o.id === id)
       return hit ? send(res, 200, hit) : send(res, 404, { error: 'not found' })
     }
 
     if (req.method === 'GET' && u.pathname === '/orders') {
+      if (lookupBlocked(req)) return send(res, 429, { error: 'too many lookups — wait a few minutes' })
       const email = (u.searchParams.get('email') || '').toLowerCase()
       const all = await load()
-      return send(res, 200, email ? all.filter((o) => String(o.email).toLowerCase() === email) : all.slice(0, 50))
+      /**
+       * بلا بريدٍ هذه قائمةُ المتجر كلِّها، وفيها اسمُ كلِّ مشتري وجواله ومفتاحُ
+       * ترخيصه — فلا تُقرأ إلا بجلسة موظف. والواجهة لا تستدعيها أصلًا: مسار
+       * الإيصالات (`?email=`) هو ما تستعمله صفحةُ «تتبّع طلبك»، وهو يعيد نسخةً
+       * منقوصة بقائمة سماح (`buyerView`) لا مفتاح فيها ولا جوال ولا رمز مؤسسة.
+       */
+      if (!email) {
+        if (!admin.who(req)) return send(res, 401, { error: 'staff session required' })
+        return send(res, 200, all.slice(0, 50))
+      }
+      return send(res, 200, all.filter((o) => String(o.email).toLowerCase() === email).map(buyerView))
     }
 
     if (req.method === 'GET' && u.pathname.startsWith('/licences/')) {
+      if (lookupBlocked(req)) return send(res, 429, { error: 'too many lookups — wait a few minutes' })
       const key = decodeURIComponent(u.pathname.split('/').pop()).toUpperCase()
       const hit = (await load()).find((o) => o.key === key)
       return send(res, 200, hit ? { valid: true, order: hit.id, seats: 1, domains: '*' } : { valid: false })
@@ -443,7 +495,15 @@ const server = createServer(async (req, res) => {
 
     send(res, 404, { error: 'no such route' })
   } catch (e) {
-    send(res, 400, { error: String(e.message || e) })
+    /**
+     * رسائلُ التحقق وحدها تصل العميل: هي قواعدُ شراءٍ يحتاجها (سعرٌ تغيّر، رمزٌ
+     * منتهٍ، قالبٌ مسحوب). وما عداها — عطلٌ في Supabase أو مسارٌ داخلي — يُسجَّل
+     * هنا ويصل العميلَ بعنوانٍ عام، فلا تُطبع تفاصيلُ الخادم في متصفحه.
+     */
+    const msg = String(e?.message || e)
+    if (PUBLIC_ERROR.test(msg)) return send(res, 400, { error: msg })
+    console.warn(`qalb api · ${req.method} ${u.pathname} refused: ${msg.slice(0, 200)}`)
+    send(res, 400, { error: 'bad request' })
   }
 })
 

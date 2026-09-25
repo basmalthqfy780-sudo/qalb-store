@@ -14,6 +14,7 @@ import path from 'node:path'
 import { randomBytes } from 'node:crypto'
 import { PLANS, droppedSiteFields, editWindow, planOf, publicUrl, quotaNotice, renderSite, sanitizeSite, slugify } from '../src/data/hosting.js'
 import { writePrivateJson } from './seal.js'
+import { readBody as readBodyShared } from './http.js'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 const MAX_BODY = 64 * 1024
@@ -26,37 +27,15 @@ const json = (res, code, body, extra = {}) => {
   })
   res.end(JSON.stringify(body))
 }
-/** يعيد [القيمة, هل تجاوز الحجم] دائمًا — Promise تُحلّ بقيمة واحدة، فالزوج لا بد صريح */
-/** يعيد [القيمة, هل تجاوز الحجم] دائمًا — Promise تُحلّ بقيمة واحدة، فالزوج لا بد صريح */
-const readBody = (req) =>
-  new Promise((done) => {
-    let buf = ''
-    let tooBig = false
-    let settled = false
-    const finish = (v) => {
-      if (settled) return
-      settled = true
-      done(v)
-    }
-    req.on('data', (c) => {
-      if (tooBig) return // نكمل الابتلاع دون تخزين: القفل على المنفذ يبقى سليمًا
-      buf += c
-      if (buf.length > MAX_BODY) {
-        tooBig = true
-        finish([null, true])
-      }
-    })
-    req.on('end', () => {
-      if (tooBig) return
-      if (!buf) return finish([{}, false])
-      try {
-        finish([JSON.parse(buf), false])
-      } catch {
-        finish([null, false])
-      }
-    })
-    req.on('error', () => finish([null, false]))
-  })
+/**
+ * يعيد [القيمة, هل تجاوز الحجم] دائمًا — Promise تُحلّ بقيمة واحدة، فالزوج لا بد
+ * صريح. القراءة نفسها من `server/http.js`: حدٌّ صريح على الحجم، وتجميعٌ بـ`Buffer`
+ * لا بضمّ النصوص (ضمُّ قطعةٍ يحوّلها وحدها utf-8 فينشقّ الحرف العربي بين قطعتين).
+ */
+const readBody = async (req) => {
+  const got = await readBodyShared(req, MAX_BODY)
+  return [got.tooBig ? null : got.body, got.tooBig]
+}
 
 const tok = (n = 20) => randomBytes(n).toString('base64url')
 const today = () => new Date().toISOString().slice(0, 10)
@@ -274,7 +253,9 @@ export function createSitesApi({ dir, env = process.env, admin = null } = {}) {
             true
           )
         } catch (e) {
-          return (json(res, 502, { ok: false, error: 'dns lookup failed', why: String(e.message || e).slice(0, 120) }), true)
+          // سببُ العطل يُسجَّل ولا يُطبع للزائر
+          console.warn(`qalb sites · dns lookup failed for ${cur.domain}: ${String(e?.message || e).slice(0, 160)}`)
+          return (json(res, 502, { ok: false, error: 'dns lookup failed' }), true)
         }
       }
       return (json(res, 405, { error: 'method not allowed' }), true)

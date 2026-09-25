@@ -434,21 +434,68 @@ def emit(lang_idx):
 ar_block = emit(0)
 en_block = emit(1)
 
-path = 'src/i18n/translations.js'
-src = open(path, encoding='utf8').read()
-
 START = '/* == QALB-REVENUE-I18N =='
 END = '/* == QALB-REVENUE-I18N END == */\n'
-marker = START
-if START in src:
-    # إعادة التوليد: تُنزع الكتلة القديمة كلها (من فاتحتها إلى خاتمتها) قبل الحقن،
-    # وإلا تكرّر `deepAssign` وسقط الملف عند التحليل.
-    i = src.index(START)
-    j = src.index(END, i) + len(END)
-    print('already injected — replacing the previous block', file=sys.stderr)
-    src = src[:i] + src[j:]
 
-inject = f"""{marker}
+# القاموس صار لغةً لكل ملف (انظر src/i18n/loader.js: الحزمة تحمل لغة الزائر وحدها)،
+# فالحقنُ في ملفين وكلٌّ يحمل كتلته بلغته. `src/i18n/translations.js` مُجمِّعٌ
+# يستوردهما لقرّاء Node (المولّدات والفحوصات)، فلا يُحقن فيه شيء.
+TARGETS = [
+    ('src/i18n/locales/ar.js', 'ar', ar_block),
+    ('src/i18n/locales/en.js', 'en', en_block),
+]
+
+def norm(text):
+    """بلا مسافات: التنميق (prettier) يغيّر البياض وحده، فالمقارنة تتجاهله"""
+    return re.sub(r'\s+', '', text)
+
+
+def keynames(text):
+    return set(re.findall(r'([A-Za-z0-9_]+):', text))
+
+
+FORCE = '--force' in sys.argv
+
+for path, name, block in TARGETS:
+    src = open(path, encoding='utf8').read()
+    if START in src:
+        # ------------------------------------------------------------------
+        # حاجزُ الانحراف: القاموس المُودَع حُرِّر بعد آخر توليد (مفاتيحُ حِصصِ
+        # التصدير ونشرِ الخطط أُضيفت يدويًا، وأربعُ قيمٍ عُدِّلت). فإعادةُ التوليد
+        # الأعمى كانت تحذف ٩ مفاتيح وتُعيد القيم المعدّلة إلى سابق عهدها — أي
+        # تُسقط نصوصًا حيّة من المتجر بصمت. لذلك تُقارَن الكتلةُ المولَّدة بما في
+        # الملف، ولا تُكتب إلا إن طابقت (أو بـ`--force` مع علمٍ بما يُمحى).
+        # ------------------------------------------------------------------
+        a = src.index(START)
+        b = src.index(END, a) + len(END)
+        existing = src[a:b]
+        mine = norm(f'deepAssign({name}, {{{block}}})')
+        m_call = re.search(r'deepAssign\([a-z]+,\s*\{.*?\n\}\)', existing, re.S)
+        assert m_call, f'{path}: the revenue block has no deepAssign call to compare'
+        theirs = norm(m_call.group(0))
+        mine = norm(mine)
+        if mine != theirs:
+            missing = sorted(keynames(theirs) - keynames(mine))
+            added = sorted(keynames(mine) - keynames(theirs))
+            print(f'{path}: DRIFT — the committed dictionary no longer matches this generator.', file=sys.stderr)
+            if missing:
+                print(f'  keys only in the file (would be LOST): {len(missing)} — {", ".join(missing[:12])}', file=sys.stderr)
+            if added:
+                print(f'  keys only in the generator: {len(added)} — {", ".join(added[:12])}', file=sys.stderr)
+            if not missing and not added:
+                print('  same keys, different values — inspect before overwriting.', file=sys.stderr)
+            if not FORCE:
+                print('  Update the table in this script to match, or re-run with --force to overwrite.', file=sys.stderr)
+                sys.exit(1)
+            print('  --force given: overwriting.', file=sys.stderr)
+        # إعادة التوليد: تُنزع الكتلة القديمة كلها (من فاتحتها إلى خاتمتها) قبل الحقن،
+        # وإلا تكرّر `deepAssign` وسقط الملف عند التحليل.
+    if START in src:
+        a = src.index(START)
+        b = src.index(END, a) + len(END)
+        src = src[:a] + src[b:]
+
+    inject = f"""{START}
  * أقسام نموذج الربح (v1.7.0) — مولَّدة بـ scripts/revenue-i18n.py من جدول واحد
  * بالعربية والإنجليزية، فالتطابق بين اللغتين مضمون بالبناء لا بالمراجعة.
  *
@@ -463,19 +510,17 @@ const deepAssign = (target, src) => {{
   }}
   return target
 }}
-deepAssign(dict.ar, {{
-{ar_block}
-}})
-deepAssign(dict.en, {{
-{en_block}
+deepAssign({name}, {{
+{block}
 }})
 /* == QALB-REVENUE-I18N END == */
 
 """
+    # الحقن قبل `export default <اللغة>`
+    anchor = f'export default {name}'
+    assert anchor in src, f'{path}: no {anchor} anchor'
+    src = src.replace(anchor, inject + anchor)
+    open(path, 'w', encoding='utf8').write(src)
+    print(f'{path}: injected {len(S)} keys')
 
-# الحقن قبل `export default dict`
-anchor = 'export default dict'
-assert anchor in src
-src = src.replace(anchor, inject + anchor)
-open(path, 'w', encoding='utf8').write(src)
 print(f'injected {len(S)} keys × 2 languages')

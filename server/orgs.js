@@ -26,6 +26,7 @@ import {
 } from '../src/data/b2b.js'
 import { sanitizePersonal } from '../src/data/deliverable.js'
 import { writePrivateJson } from './seal.js'
+import { SlidingWindow, clientIp, readBody as readBodyShared } from './http.js'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 const MAX_BODY = 32 * 1024
@@ -46,35 +47,15 @@ const text = (res, code, body, type = 'text/plain; charset=utf-8') => {
   res.end(body)
 }
 
-const readBody = (req) =>
-  new Promise((done) => {
-    let buf = ''
-    let tooBig = false
-    let settled = false
-    const finish = (v) => {
-      if (settled) return
-      settled = true
-      done(v)
-    }
-    req.on('data', (c) => {
-      if (tooBig) return
-      buf += c
-      if (buf.length > MAX_BODY) {
-        tooBig = true
-        finish([null, true])
-      }
-    })
-    req.on('end', () => {
-      if (tooBig) return
-      if (!buf) return finish([{}, false])
-      try {
-        finish([JSON.parse(buf), false])
-      } catch {
-        finish([null, false])
-      }
-    })
-    req.on('error', () => finish([null, false]))
-  })
+/**
+ * يعيد [القيمة, هل تجاوز الحجم] — نفس العقد، والقراءة من `server/http.js`: حدٌّ
+ * صريح يُرفض عنده الجسم قبل تخزينه، وتجميعٌ بـ`Buffer` فلا ينشقّ حرفٌ عربيٌّ بين
+ * قطعتين (`buf += c` كانت تحوّل كل قطعة وحدها utf-8 فتُفسد الاسم العربي).
+ */
+const readBody = async (req) => {
+  const got = await readBodyShared(req, MAX_BODY)
+  return [got.tooBig ? null : got.body, got.tooBig]
+}
 
 const mailOf = (v) => {
   const s = String(v == null ? '' : v)
@@ -108,20 +89,15 @@ export function createOrgsApi({ dir, env = process.env, admin = null, makeOrder 
     return map[norm] || Object.values(map).find((o) => o.code === norm) || null
   }
 
-  const fails = new Map()
-  const blocked = (ip) => (fails.get(ip) || []).filter((t) => Date.now() - t < FAIL_WINDOW).length >= FAIL_MAX
-  const note = (ip) => {
-    const at = (fails.get(ip) || []).filter((t) => Date.now() - t < FAIL_WINDOW)
-    at.push(Date.now())
-    fails.set(ip, at)
-  }
-  const clear = (ip) => fails.delete(ip)
+  // نافذةُ التخمين بسقفٍ على المفاتيح: الرمز يُخمَّن، والخريطةُ لا تُترَك تكبر
+  const fails = new SlidingWindow({ max: FAIL_MAX, windowMs: FAIL_WINDOW, cap: 5_000 })
+  const blocked = (ip) => fails.blocked(ip)
+  const note = (ip) => fails.add(ip)
+  const clear = (ip) => fails.clear(ip)
 
   const isAdmin = (req) => !!(admin && admin.who && admin.who(req))
-  const ipOf = (req) =>
-    String(req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'local')
-      .split(',')[0]
-      .trim()
+  /** العنوان من `server/http.js`: السوكت افتراضيًا، وXFF فقط خلف وسيطٍ مُعلن */
+  const ipOf = (req) => clientIp(req, env)
 
   async function handle(req, res, u) {
     if (!ON()) return false
