@@ -30,8 +30,16 @@ BRAND = (52, 211, 153)
 GOLD = (245, 196, 81)
 TODAY = (246, 247, 249)
 
-FD = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
-FB = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+# خطوطٌ مضمّنة في المستودع لا خطوط النظام: البطاقات أصلٌ مولَّد ومُودَع وفحصُ
+# الانحراف يقارن البايت بالبايت، ونسخُ DejaVu تختلف بين البيئات (ubuntu هنا وهناك
+# والماك) فكانت البطاقة الواحدة تُرسم مختلفةً في كل بيئة — أي انحرافٌ دائمٌ لا
+# انحرافَ كتالوج. فالرسمُ هنا مكتفٍ ذاتيًا: هذه الملفات + إصدارات بايثون المثبّتة
+# في CI، والنتيجة بايتاتٌ واحدة أينما جرى التوليد. الرخصة في LICENSE-DejaVu.txt.
+HERE = os.path.dirname(os.path.abspath(__file__))
+FD = os.path.join(HERE, "fonts", "DejaVuSans.ttf")
+FB = os.path.join(HERE, "fonts", "DejaVuSans-Bold.ttf")
+if not (os.path.exists(FD) and os.path.exists(FB)):
+    raise SystemExit(f"og-cover: الخطوط المضمّنة ناقصة: {HERE}/fonts — أعِد DejaVuSans.ttf وDejaVuSans-Bold.ttf")
 
 
 def font(path, size):
