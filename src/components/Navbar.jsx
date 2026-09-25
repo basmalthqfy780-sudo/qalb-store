@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
-import { useI18n } from '../i18n'
+import { useI18n, dateLabel } from '../i18n'
 import { useStore } from '../store/StoreContext'
-import { categories, templates } from '../data/templates'
+import { categories, templates, couponInfo } from '../data/templates'
 import { Icon, Btn } from './ui'
 import { ArtTile } from './Preview'
 
@@ -64,6 +64,8 @@ function Count({ n }) {
 
 export default function Navbar() {
   const { t, lang, toggleLang, theme, toggleTheme } = useI18n()
+  // يُقرأ عند كل رسم: تجاوزُ منتصف الليل في تبويبٍ مفتوح يُخفي الشريط في التنقّل التالي
+  const sale = couponInfo('SALE25')
   const { totals, wish } = useStore()
   const [scrolled, setScrolled] = useState(false)
   const [mega, setMega] = useState(false)
@@ -151,21 +153,31 @@ export default function Navbar() {
 
   return (
     <>
-      {/* announcement */}
-      <div className="relative overflow-hidden bg-ink text-bg light:bg-brand light:text-brandink">
-        <div className="page-x mx-auto flex max-w-[1400px] flex-wrap items-center justify-center gap-x-3 gap-y-1 py-2 text-center text-[12px] font-medium sm:text-[12.5px]">
-          <Icon n="bolt" className="size-3.5 shrink-0 text-gold" fill sw={0} />
-          {/* لا truncate: نصّ الشريط يلتفّ في سطرين على الجوال بدل أن يُقطع بنهاية مبتورة */}
-          <span>{t('announce.text')}</span>
-          <span className="num hidden rounded-md border border-current/25 px-1.5 py-0.5 text-[11px] font-bold tracking-wider sm:inline-block">
-            {t('announce.code')}
-          </span>
-          <Link to="/templates" className="hidden shrink-0 items-center gap-1 font-bold underline decoration-2 underline-offset-2 md:inline-flex">
-            {t('announce.link')}
-            <Icon n="arrow" className="size-3.5 rtl:-scale-x-100" />
-          </Link>
+      {/* announcement — النسبةُ والأجلُ من جدول الكوبونات نفسه الذي تقرؤه السلة والخادم؛
+          وبعد الأجل يختفي الشريط وحده، فلا يُعلَن كوبونٌ يرفضه الدفع */}
+      {sale && !sale.expired && (
+        <div className="relative overflow-hidden bg-ink text-bg light:bg-brand light:text-brandink" data-announce>
+          <div className="page-x mx-auto flex max-w-[1400px] flex-wrap items-center justify-center gap-x-2 gap-y-1 py-2 text-center text-[12px] font-medium sm:text-[12.5px]">
+            <Icon n="bolt" className="size-3.5 shrink-0 text-gold" fill sw={0} />
+            {/* لا truncate: نصّ الشريط يلتفّ في سطرين على الجوال بدل أن يُقطع بنهاية مبتورة */}
+            <span>{t('announce.text', { p: sale.pct, d: dateLabel(sale.endsAt, lang) })}</span>{' '}
+            {/* الكود ظاهرٌ في كل المقاسات: الشريط على الجوال كان يقول «استخدم كود» ثم لا شيء */}
+            <span
+              className="num inline-block rounded-md border border-current/25 px-1.5 py-0.5 text-[11px] font-bold tracking-wider"
+              data-announce-code
+            >
+              {t('announce.code')}
+            </span>{' '}
+            <Link
+              to="/templates?type=bundle"
+              className="hidden shrink-0 items-center gap-1 font-bold underline decoration-2 underline-offset-2 sm:inline-flex"
+            >
+              {t('announce.link')}
+              <Icon n="arrow" className="size-3.5 rtl:-scale-x-100" />
+            </Link>
+          </div>
         </div>
-      </div>
+      )}
 
       <header
         className={`sticky top-0 z-50 border-b transition-all duration-300 ${
@@ -382,7 +394,7 @@ export default function Navbar() {
                   {/* أدوات التوظيف — التسعُ أدوات */}
                   <div>
                     <p className="mb-2 flex items-center gap-2 px-2 text-[11px] font-bold uppercase tracking-[0.14em] text-dim">
-                      {t('footer.careers')}
+                      {t('footer.careers')}{' '}
                       <span
                         className="num rounded-md border border-brand/25 bg-brand/10 px-1.5 py-0.5 text-[10px] font-bold text-brand"
                         data-menu-tools-count
@@ -494,7 +506,7 @@ export default function Navbar() {
             </div>
             {/* درجُ الجوال يجمع روابط المنصة كلَّها كما تجمعها قائمة ☰ على الشاشات الكبيرة */}
             <p className="flex items-center gap-2 px-1 pb-2 pt-4 text-[11px] font-bold uppercase tracking-[0.14em] text-dim">
-              {t('footer.careers')}
+              {t('footer.careers')}{' '}
               <span
                 className="num rounded-md border border-brand/25 bg-brand/10 px-1.5 py-0.5 text-[10px] font-bold text-brand"
                 data-menu-tools-count

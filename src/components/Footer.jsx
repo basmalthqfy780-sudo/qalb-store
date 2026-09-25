@@ -71,8 +71,11 @@ export default function Footer() {
         { to: '/terms', label: t('footer.terms') },
         { to: '/privacy', label: t('footer.privacy') },
         { to: '/refunds', label: t('footer.refund') },
+        // نصُّ الترخيص في /licensing، والتحقق من المفتاح في /licence — صفحتان لغرضين
+        { to: '/licensing', label: t('footer.license') },
+        { to: '/licence', label: t('footer.licenceVerify') },
+        { to: '/contact', label: t('legal.contactTitle') },
         { to: '/legal', label: t('legal.allPages') },
-        { to: '/licence', label: t('footer.license') },
       ],
     },
   ]
@@ -175,6 +178,9 @@ export default function Footer() {
             </Link>
             <Link to="/refunds" className="font-bold text-ink/75 transition hover:text-brand">
               {t('footer.refund')}
+            </Link>
+            <Link to="/licensing" className="font-bold text-ink/75 transition hover:text-brand">
+              {t('footer.license')}
             </Link>
             <Link to="/contact" className="font-bold text-ink/75 transition hover:text-brand">
               {t('legal.contactTitle')}

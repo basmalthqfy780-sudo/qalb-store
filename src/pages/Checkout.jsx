@@ -6,7 +6,7 @@ import { useStore, VAT } from '../store/StoreContext'
 import Personalize from '../components/Personalize'
 import { sanitizePersonal } from '../data/deliverable'
 import { Logo } from '../components/Navbar'
-import { Btn, Icon, Money } from '../components/ui'
+import { AssureRow, Btn, Icon, Money } from '../components/ui'
 import { useSeo } from '../components/Seo'
 
 const METHODS = [
@@ -444,6 +444,7 @@ export default function Checkout() {
               <span className={`size-1.5 rounded-full ${apiMode === 'rest' ? 'bg-brand' : 'bg-gold'}`} />
               {apiMode === 'rest' ? t('checkout.liveMode') : t('checkout.demoMode')}
             </p>
+            <AssureRow className="mx-auto mt-3 max-w-sm" />
           </div>
         </form>
 

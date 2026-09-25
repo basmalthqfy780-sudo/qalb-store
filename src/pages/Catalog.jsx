@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useI18n, num } from '../i18n'
-import { TYPES, categories, templates, demoFor, siteFor } from '../data/templates'
+import { TYPES, categories, demoFor, siteFor } from '../data/templates'
+import { useStore } from '../store/StoreContext'
 import TemplateCard from '../components/TemplateCard'
 import QuickView from '../components/QuickView'
 import { Btn, Head, Icon, Pill, Reveal } from '../components/ui'
@@ -25,6 +26,9 @@ const PRICE_BUCKETS = [
 
 export default function Catalog() {
   const { t, lang } = useI18n()
+  // لقطةُ الكتالوج من المخزن لا المصفوفة المصدرية: حين تصل تعديلات لوحة الإدارة (سعرٌ
+  // جديد، منتجٌ مخفي) تُعاد الفلترة فورًا، بدل أن تبقى البطاقاتُ على أرقام أول رسم
+  const { catalog: templates, catalogStatus, refreshCatalog } = useStore()
   const [sp, setSp] = useSearchParams()
   const [openFilters, setOpenFilters] = useState(false)
   const [quick, setQuick] = useState(null)
@@ -111,7 +115,7 @@ export default function Catalog() {
     }[sort]
     out = [...out].sort(cmp)
     return out
-  }, [cat, type, q, level, price, sort, flags])
+  }, [templates, cat, type, q, level, price, sort, flags])
 
   // حجم الصفحة مشتقّ من مفتاح الفلاتر: أي تغيير فيها يعيده إلى ٩ تلقائيًا —
   // لا effect ولا setState أثناء الرندر، ولا جولة رسم إضافية
@@ -338,36 +342,55 @@ export default function Catalog() {
             </div>
           )}
 
-          {list.length ? (
-            <>
-              <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-                {shown.map((tpl, k) => (
-                  <Reveal key={tpl.id} delay={(k % 3) * 70} className="h-full">
-                    <TemplateCard tpl={tpl} onQuick={setQuick} />
-                  </Reveal>
-                ))}
-              </div>
-              {per < list.length && (
-                <div className="mt-10 flex justify-center">
-                  <Btn variant="outline" size="lg" onClick={loadMore}>
-                    {t('nav.viewAll')}
-                    <Icon n="chevron" className="size-4" />
-                  </Btn>
-                </div>
-              )}
-            </>
-          ) : (
-            <div className="rounded-3xl border border-dashed border-line bg-panel/50 px-6 py-20 text-center">
-              <span className="mx-auto grid size-14 place-items-center rounded-2xl border border-line bg-bg text-dim">
-                <Icon n="search" className="size-6" />
-              </span>
-              <h3 className="mt-5 font-display text-xl font-extrabold">{t('catalog.noResults')}</h3>
-              <p className="mx-auto mt-2 max-w-sm text-[14px] text-dim">{t('catalog.noResultsHint')}</p>
-              <Btn onClick={reset} className="mt-6">
-                {t('catalog.reset')}
+          {/* الخادم لم يُجب: نقولها بسطرٍ واحد وزرّ، والبطاقاتُ تبقى من النسخة المنشورة */}
+          {catalogStatus === 'offline' && (
+            <div
+              role="status"
+              data-catalog-offline
+              className="mb-5 flex flex-wrap items-center gap-3 rounded-2xl border border-gold/35 bg-gold/10 px-4 py-3 text-[12.5px] font-semibold text-ink/85"
+            >
+              <Icon n="pulse" className="size-4 shrink-0 text-gold" />
+              <span className="min-w-0 flex-1">{t('catalog.offline')}</span>
+              <Btn size="sm" variant="outline" onClick={() => refreshCatalog()} data-catalog-retry>
+                <Icon n="refresh" className="size-3.5" />
+                {t('catalog.retry')}
               </Btn>
             </div>
           )}
+
+          {/* ارتفاعٌ أدنى ثابت للنتائج: تبديلُ الفلاتر أو وصولُ الكتالوج لا يُقفز الفوتر (CLS) */}
+          <div className="min-h-[70vh]" data-catalog-results aria-busy={catalogStatus === 'syncing' ? 'true' : undefined}>
+            {list.length ? (
+              <>
+                <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                  {shown.map((tpl, k) => (
+                    <Reveal key={tpl.id} delay={(k % 3) * 70} className="h-full">
+                      <TemplateCard tpl={tpl} onQuick={setQuick} />
+                    </Reveal>
+                  ))}
+                </div>
+                {per < list.length && (
+                  <div className="mt-10 flex justify-center">
+                    <Btn variant="outline" size="lg" onClick={loadMore}>
+                      {t('nav.viewAll')}
+                      <Icon n="chevron" className="size-4" />
+                    </Btn>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="rounded-3xl border border-dashed border-line bg-panel/50 px-6 py-20 text-center">
+                <span className="mx-auto grid size-14 place-items-center rounded-2xl border border-line bg-bg text-dim">
+                  <Icon n="search" className="size-6" />
+                </span>
+                <h3 className="mt-5 font-display text-xl font-extrabold">{t('catalog.noResults')}</h3>
+                <p className="mx-auto mt-2 max-w-sm text-[14px] text-dim">{t('catalog.noResultsHint')}</p>
+                <Btn onClick={reset} className="mt-6">
+                  {t('catalog.reset')}
+                </Btn>
+              </div>
+            )}
+          </div>
 
           <RecentlyViewed exclude={null} />
         </div>

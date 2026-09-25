@@ -3,11 +3,11 @@ import { useI18n } from '../i18n'
 import { useSeo } from '../components/Seo'
 import { SUPPORT_MAIL } from '../data/contact'
 import { COMPANY, VAT_RATE, isSet } from '../data/company'
-import { SECTIONS, sectionById } from '../data/legal'
+import { SECTIONS, sectionById, routeOf } from '../data/legal'
 import { Btn, Head, Icon } from '../components/ui'
 
 /**
- * صفحةٌ قانونيةٌ واحدة بمسارها — `/terms` و`/privacy` و`/refunds` و`/contact`.
+ * صفحةٌ قانونيةٌ واحدة بمسارها — `/terms` و`/privacy` و`/refunds` و`/licensing` و`/contact`.
  *
  * الفكرة: روابطُ التذييل كانت تنزل على قسمٍ في صفحةٍ جامعة، فلا عنوانٌ مستقل ولا
  * رابطٌ يُشارَك. اليوم كلُّ قسمٍ صفحةٌ كاملة العنوان والوصف والمسار، ونصُّها هو
@@ -63,10 +63,10 @@ export default function LegalDoc({ section = 'terms' }) {
           {SECTIONS.map((s) => (
             <Link
               key={s.id}
-              to={`/${s.id === 'refund' ? 'refunds' : s.id}`}
-              aria-current={s.id === section ? 'page' : undefined}
+              to={routeOf(s.id)}
+              aria-current={s.id === sec?.id ? 'page' : undefined}
               className={`rounded-xl border px-3 py-1.5 text-[12.5px] font-bold transition ${
-                s.id === section ? 'border-brand/50 bg-brand/10 text-brand' : 'border-line bg-panel text-dim hover:border-brand/50 hover:text-ink'
+                s.id === sec?.id ? 'border-brand/50 bg-brand/10 text-brand' : 'border-line bg-panel text-dim hover:border-brand/50 hover:text-ink'
               }`}
             >
               {t(s.h)}
@@ -156,6 +156,15 @@ export default function LegalDoc({ section = 'terms' }) {
                   <Icon n="mail" className="size-3.5 text-brand" />
                   {SUPPORT_MAIL}
                 </a>
+              ) : null}
+              {sec.id === 'licence' ? (
+                <Link
+                  to="/licence"
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-line bg-panel px-3 py-1.5 text-[12.5px] font-bold text-ink transition hover:border-brand/50"
+                >
+                  <Icon n="check" className="size-3.5 text-brand" />
+                  {t('licence.title')}
+                </Link>
               ) : null}
             </div>
           </section>

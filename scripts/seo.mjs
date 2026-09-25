@@ -51,6 +51,7 @@ const urls = [
   { loc: '/terms', pri: '0.3', freq: 'yearly' },
   { loc: '/privacy', pri: '0.3', freq: 'yearly' },
   { loc: '/refunds', pri: '0.3', freq: 'yearly' },
+  { loc: '/licensing', pri: '0.3', freq: 'yearly' },
   { loc: '/contact', pri: '0.3', freq: 'yearly' },
   { loc: '/host', pri: '0.8', freq: 'weekly' },
   { loc: '/ats', pri: '0.9', freq: 'weekly' },

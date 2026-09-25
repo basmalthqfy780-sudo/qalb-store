@@ -7,7 +7,7 @@ import { upsellById, addonDelivery } from '../data/upsells'
 import { bundleZip, isProtectedDownload, kindOf, packageFiles, packageIndex, packageZip, packageName, readmeText } from '../data/deliverable'
 import { kitGrantFor } from '../data/kit'
 import { SUPPORT_MAIL } from '../data/contact'
-import { Btn, Icon, Money, Pill } from '../components/ui'
+import { Btn, Icon, Money, Pill, Skeleton } from '../components/ui'
 import { useSeo } from '../components/Seo'
 import { saveZip as libSaveZip, saveFile as libSaveFile } from '../lib/download'
 
@@ -72,9 +72,20 @@ export default function Success() {
 
   if (wanted && order === undefined) {
     return (
-      <div role="status" className="page-x mx-auto max-w-[1400px] py-28 text-center">
-        <span className="mx-auto block size-8 animate-spin rounded-full border-2 border-line border-t-brand" />
-        <p className="mt-4 text-[13px] text-dim">{t('misc.loading')}</p>
+      // هيكلُ الإيصال بأبعاده — عنوان، رقم طلب، ثم بطاقاتُ البنود وملخّصُ المبلغ — لا دوّامةٌ في فراغ
+      <div role="status" aria-live="polite" data-receipt-skeleton className="page-x mx-auto max-w-[1100px] py-14">
+        <Skeleton className="mx-auto size-14" rounded="rounded-2xl" />
+        <Skeleton className="mx-auto mt-6 h-8 w-2/3 max-w-md" rounded="rounded-lg" />
+        <Skeleton className="mx-auto mt-3 h-4 w-1/2 max-w-sm" rounded="rounded" />
+        <div className="mt-10 grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
+          <div className="space-y-3">
+            {[0, 1].map((i) => (
+              <Skeleton key={i} className="h-28 w-full" rounded="rounded-2xl" />
+            ))}
+          </div>
+          <Skeleton className="h-60 w-full" rounded="rounded-2xl" />
+        </div>
+        <p className="sr-only">{t('misc.loading')}</p>
       </div>
     )
   }

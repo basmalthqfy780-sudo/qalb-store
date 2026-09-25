@@ -20,7 +20,8 @@ import Preview, { showSite } from '../components/Preview'
 import TemplateCard from '../components/TemplateCard'
 import QuickView from '../components/QuickView'
 import { useSeo, productLd, breadcrumbLd, graph } from '../components/Seo'
-import { Btn, Head, Icon, Money, Pill, Reveal, Stars } from '../components/ui'
+import { AssureRow, Btn, Head, Icon, Money, Pill, Reveal, Stars } from '../components/ui'
+import { livePage } from '../lib/live-page'
 import { useStore } from '../store/StoreContext'
 import Personalize from '../components/Personalize'
 
@@ -45,6 +46,8 @@ export default function Product() {
   const [zoom, setZoom] = useState(1)
   const [tab, setTab] = useState('details')
   const [demo, setDemo] = useState(false)
+  // «معاينة تفاعلية» (المكوّن المرسوم بمتغيّرات التخصيص) أو «الصفحة الحيّة» (ملفُّ الحزمة نفسه في iframe)
+  const [mode, setMode] = useState('design')
 
   const related = useMemo(() => (tpl ? templates.filter((x) => x.id !== tpl.id && x.cats.some((c) => tpl.cats.includes(c))).slice(0, 3) : []), [tpl])
 
@@ -85,6 +88,8 @@ export default function Product() {
   }
 
   const viewingSite = isBundle ? kind === 'site' : showSite(tpl)
+  // بعد الإرجاع المبكّر فلا hook هنا — و`livePage` يحفظ نتيجته لكل قالبٍ ونوع
+  const live = mode === 'live' ? livePage(tpl, isBundle ? kind : undefined) : null
   const off = tpl.oldPrice ? Math.round((1 - tpl.price / tpl.oldPrice) * 100) : 0
   const hex = accentHex(accent)
   const saved = wish.includes(tpl.id)
@@ -127,10 +132,31 @@ export default function Product() {
           <div className="relative overflow-hidden rounded-3xl border border-line bg-panel p-4 sm:p-6">
             <div className="pointer-events-none absolute inset-0 grid-lines opacity-40" />
             <div className="relative mb-4 flex flex-wrap items-center gap-2">
-              <Pill tone="brand">
-                <Icon n={viewingSite ? 'monitor' : 'file'} className="size-3" />
-                {t('product.preview')}
-              </Pill>
+              <span
+                role="group"
+                aria-label={t('detail.viewLabel')}
+                className="inline-flex rounded-lg border border-line bg-bg p-0.5"
+                data-preview-mode
+              >
+                {[
+                  ['design', t('detail.viewDesign'), viewingSite ? 'monitor' : 'file'],
+                  ['live', t('detail.viewLive'), 'play'],
+                ].map(([v, lb, ic]) => (
+                  <button
+                    type="button"
+                    key={v}
+                    onClick={() => setMode(v)}
+                    aria-pressed={mode === v}
+                    data-mode={v}
+                    className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-bold transition ${
+                      mode === v ? 'bg-brand/15 text-brand' : 'text-dim hover:text-ink'
+                    }`}
+                  >
+                    <Icon n={ic} className="size-3.5" />
+                    {lb}
+                  </button>
+                ))}
+              </span>
               {isBundle && (
                 <span role="group" aria-label={t('product.kind')} className="inline-flex rounded-lg border border-line bg-bg p-0.5">
                   {[
@@ -178,7 +204,7 @@ export default function Product() {
                   ))}
                 </div>
               )}
-              {!viewingSite && (
+              {!viewingSite && mode === 'design' && (
                 <div className="ms-auto flex items-center gap-1">
                   {[
                     ['minus', () => setZoom((z) => Math.max(0.85, +(z - 0.15).toFixed(2)))],
@@ -199,32 +225,64 @@ export default function Product() {
               )}
             </div>
 
-            <div className="thin-bar relative overflow-auto rounded-2xl" style={{ maxHeight: 'min(72vh, 760px)' }}>
-              <div
-                data-zoom={viewingSite ? undefined : zoom}
-                className="mx-auto"
-                style={
-                  viewingSite
-                    ? { width: device === 'desktop' ? '100%' : device === 'tablet' ? '62%' : '33%', minWidth: 220 }
-                    : { width: `${Math.round(74 * zoom)}%`, minWidth: 300 }
-                }
-              >
-                <Preview
-                  tpl={tpl}
-                  kind={isBundle ? kind : undefined}
-                  device={device}
-                  theme={viewingSite ? theme : undefined}
-                  hero={hero}
-                  gallery={gallery}
-                  layout={layout}
-                  accent={hex}
-                  font={font}
-                  variant="full"
-                  chrome={viewingSite}
-                  className="rounded-xl"
-                />
+            {mode === 'live' ? (
+              <div className="relative" data-live-page>
+                {live ? (
+                  <>
+                    <div
+                      className="mx-auto overflow-hidden rounded-xl border border-line bg-white"
+                      // عرضٌ بالبكسل لا بالنسبة: الإطار يُطلق استعلامات الوسائط في CSS القالب كما يطلقها جهازٌ حقيقي
+                      style={{
+                        width: viewingSite ? (device === 'desktop' ? '100%' : device === 'tablet' ? 'min(100%, 768px)' : 'min(100%, 390px)') : '100%',
+                      }}
+                    >
+                      <iframe
+                        title={t('detail.liveTitle', { n: L(tpl.name) })}
+                        sandbox=""
+                        srcDoc={live.html}
+                        loading="lazy"
+                        className="block w-full"
+                        style={{ height: 'min(72vh, 760px)' }}
+                        data-live-frame={live.file}
+                      />
+                    </div>
+                    <p className="mt-3 flex items-start gap-2 text-[11.5px] leading-relaxed text-dim">
+                      <Icon n="file" className="mt-0.5 size-3.5 shrink-0 text-brand" />
+                      <span>{t('detail.liveNote', { f: live.file })}</span>
+                    </p>
+                  </>
+                ) : (
+                  <div className="h-[min(72vh,760px)] w-full animate-pulse rounded-xl bg-panel2" aria-hidden="true" />
+                )}
               </div>
-            </div>
+            ) : (
+              <div className="thin-bar relative overflow-auto rounded-2xl" style={{ maxHeight: 'min(72vh, 760px)' }}>
+                <div
+                  data-zoom={viewingSite ? undefined : zoom}
+                  className="mx-auto"
+                  style={
+                    viewingSite
+                      ? { width: device === 'desktop' ? '100%' : device === 'tablet' ? '62%' : '33%', minWidth: 220 }
+                      : { width: `${Math.round(74 * zoom)}%`, minWidth: 300 }
+                  }
+                >
+                  <Preview
+                    tpl={tpl}
+                    kind={isBundle ? kind : undefined}
+                    device={device}
+                    theme={viewingSite ? theme : undefined}
+                    hero={hero}
+                    gallery={gallery}
+                    layout={layout}
+                    accent={hex}
+                    font={font}
+                    variant="full"
+                    chrome={viewingSite}
+                    className="rounded-xl"
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* ---------- customizer ---------- */}
@@ -305,6 +363,9 @@ export default function Product() {
             )}
           </div>
 
+          {/* ---------- ماذا ستحصل عليه · التقنيات والنشر · الترخيص ---------- */}
+          <ProductFacts tpl={tpl} pkg={pkg} />
+
           {/* ---------- tabs ---------- */}
           <div id="reviews" className="mt-12 scroll-mt-28">
             <div className="no-bar flex gap-1 overflow-x-auto rounded-xl border border-line bg-panel p-1">
@@ -326,11 +387,7 @@ export default function Product() {
 
             {tab === 'details' && (
               <div className="mt-6 grid gap-6 md:grid-cols-2">
-                <List
-                  icon="check"
-                  title={t('product.whatYouGet')}
-                  items={[...LA(tpl.highlights), `${t('product.stack')}: ${(tpl.stack || []).join(' · ')}`, t('product.updates')]}
-                />
+                <List icon="check" title={t('detail.highlights')} items={LA(tpl.highlights)} />
                 <List icon="spark" title={t('product.bestFor')} items={LA(tpl.bestFor)} />
                 <p className="md:col-span-2 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[12px] text-dim" title={t('product.filesNote')}>
                   <Icon n="file" className="size-3.5 shrink-0" />
@@ -507,6 +564,9 @@ export default function Product() {
                 )}
               </div>
 
+              {/* ضماناتُ الشراء بجانب الزرّ نفسه — لا في فوتر الصفحة */}
+              <AssureRow className="mt-4 rounded-xl border border-line bg-bg/60 p-3" />
+
               {/* يُكتب هنا ويُدفَع هنا: نفس الحقول في خطوة الدفع، ونفس المخزن يربطهما */}
               <Personalize compact className="mt-5" />
 
@@ -616,6 +676,137 @@ function List({ items, title, icon }) {
           </li>
         ))}
       </ul>
+    </div>
+  )
+}
+
+/**
+ * الحقائقُ الثلاث قبل الشراء، كلُّها مقروءةٌ من مصدرها لا مكتوبةٌ باليد:
+ *   • «ماذا ستحصل عليه» من `packageIndex(tpl)` — قائمةُ ملفّات الحزمة التي تُنزَّل فعلًا،
+ *     فسيرةٌ وحدها لا تَعِد بموقع، وحزمةٌ بلا خطاب لا تَعِد بخطاب.
+ *   • التقنيات من `tpl.stack`، ومتطلباتُ النشر بحسب نوع الحزمة (موقعٌ ثابت أم سيرة).
+ *   • الترخيص كما في LICENSE.txt: شخصي ✓، تجاري لعميل واحد ✓، إعادة البيع ✗.
+ */
+function ProductFacts({ tpl, pkg }) {
+  const { t } = useI18n()
+  const paths = pkg?.paths || []
+  const has = (f) => paths.includes(f)
+  const projects = paths.filter((f) => f.startsWith('projects/')).length
+  const hasSite = has('index.html')
+  const hasCv = has('resume.html')
+
+  const gets = [
+    hasSite && { ic: 'globe', h: t('detail.getSite'), d: t('detail.getSiteD', { n: num(projects) }), files: ['index.html', 'styles.css'] },
+    hasCv && { ic: 'file', h: t('detail.getCv'), d: t('detail.getCvD'), files: ['resume.html', 'scripts/check-ats.mjs'] },
+    has('cover-letter.md') && { ic: 'mail', h: t('detail.getLetter'), d: t('detail.getLetterD'), files: ['cover-letter.md'] },
+    has('README.md') && {
+      ic: 'rocket',
+      h: t('detail.getGuide'),
+      d: has('vercel.json') ? t('detail.getGuideD') : t('detail.getGuideCv'),
+      files: ['README.md', ...(has('vercel.json') ? ['vercel.json'] : [])],
+    },
+    has('framework/README.md') && { ic: 'layers', h: t('detail.getFramework'), d: t('detail.getFrameworkD'), files: ['framework/'] },
+    { ic: 'refresh', h: t('detail.getUpdates'), d: t('detail.getUpdatesD'), files: [] },
+  ].filter(Boolean)
+
+  const reqs = hasSite
+    ? [t('detail.reqStatic'), t('detail.reqHosts'), t('detail.reqNode'), t('detail.reqDomain')]
+    : [t('detail.reqBrowser'), t('detail.reqNodeCv'), t('detail.reqNoAccount')]
+
+  const lic = [
+    { ok: true, h: t('detail.licPersonal'), d: t('detail.licPersonalD') },
+    { ok: true, h: t('detail.licClient'), d: t('detail.licClientD') },
+    { ok: false, h: t('detail.licResale'), d: t('detail.licResaleD') },
+  ]
+
+  return (
+    <div className="mt-12 space-y-6" data-product-facts>
+      <section aria-labelledby="get-title" data-what-you-get>
+        <h2 id="get-title" className="font-display text-[22px] font-extrabold">
+          {t('detail.getTitle')}
+        </h2>
+        <p className="mt-1 text-[12.5px] text-dim">{t('detail.getSub', { n: num(pkg?.count || 0) })}</p>
+        <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+          {gets.map((g) => (
+            <li key={g.h} className="flex gap-3 rounded-2xl border border-line bg-panel p-4" data-get-item>
+              <span className="grid size-9 shrink-0 place-items-center rounded-xl border border-brand/25 bg-brand/10 text-brand">
+                <Icon n={g.ic} className="size-4" />
+              </span>
+              <div className="min-w-0">
+                <h3 className="text-[14px] font-bold">{g.h}</h3>
+                <p className="mt-1 text-[12.5px] leading-relaxed text-dim">{g.d}</p>
+                {g.files.length ? (
+                  <p className="mt-2 flex flex-wrap gap-1">
+                    {g.files.map((f) => (
+                      <code key={f} dir="ltr" className="rounded-md border border-line bg-bg px-1.5 py-0.5 text-[10.5px] text-dim">
+                        {f}
+                      </code>
+                    ))}
+                  </p>
+                ) : null}
+              </div>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <section className="rounded-2xl border border-line bg-panel p-5" data-tech>
+          <h2 className="text-[11px] font-bold uppercase tracking-[0.14em] text-dim">{t('detail.stackTitle')}</h2>
+          <ul className="mt-3 flex flex-wrap gap-1.5">
+            {(tpl.stack || []).map((x) => (
+              <li
+                key={x}
+                dir="ltr"
+                className="rounded-lg border border-brand/25 bg-brand/10 px-2 py-1 text-[12px] font-bold text-brand"
+                data-tech-badge
+              >
+                {x}
+              </li>
+            ))}
+          </ul>
+          <h2 className="mt-5 text-[11px] font-bold uppercase tracking-[0.14em] text-dim">{t('detail.reqTitle')}</h2>
+          <ul className="mt-2.5 space-y-2" data-requirements>
+            {reqs.map((r) => (
+              <li key={r} className="flex items-start gap-2 text-[12.5px] leading-relaxed text-ink/85">
+                <Icon n="check" className="mt-0.5 size-3.5 shrink-0 text-brand" sw={2.6} />
+                <span>{r}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section className="rounded-2xl border border-line bg-panel p-5" data-licence-badges>
+          <h2 className="text-[11px] font-bold uppercase tracking-[0.14em] text-dim">{t('detail.licTitle')}</h2>
+          <ul className="mt-3 space-y-2.5">
+            {lic.map((l) => (
+              <li key={l.h} className="flex items-start gap-3">
+                <span
+                  className={`mt-0.5 inline-flex shrink-0 items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10.5px] font-bold ${
+                    l.ok ? 'border-brand/35 bg-brand/10 text-brand' : 'border-danger/35 bg-danger/10 text-danger'
+                  }`}
+                  data-licence-ok={l.ok ? 'yes' : 'no'}
+                >
+                  <Icon n={l.ok ? 'check' : 'close'} className="size-3" sw={2.8} />
+                  {l.ok ? t('detail.included') : t('detail.notIncluded')}
+                </span>
+                <div className="min-w-0">
+                  <h3 className="text-[13.5px] font-bold">{l.h}</h3>
+                  <p className="text-[12px] leading-relaxed text-dim">{l.d}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+          <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1.5 border-t border-line pt-3 text-[12px] font-bold">
+            <Link to="/licensing" className="text-brand underline-offset-2 hover:underline">
+              {t('detail.licRead')}
+            </Link>
+            <Link to="/b2b" className="text-dim underline-offset-2 hover:text-brand hover:underline">
+              {t('detail.licMore')}
+            </Link>
+          </div>
+        </section>
+      </div>
     </div>
   )
 }
