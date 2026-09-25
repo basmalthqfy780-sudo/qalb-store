@@ -442,13 +442,13 @@ export default function SitePreview({ template, device = 'desktop', theme, hero,
   const themeNow = theme || template?.theme || 'light'
   const accHex = accent && String(accent).startsWith('#') ? accent : accentHex(accent || template?.accent || raw.accent)
   const ff = fontCss(font || template?.font || raw.font)
+  // The frame never reads as a black hole: an accent-tinted bright gradient stands
+  // behind the site, so a box whose content has not painted yet still reads as a
+  // thumbnail. The content itself is always rendered (see `scale`) — never gated.
+  const frameBg = `linear-gradient(140deg, ${accHex}59 0%, ${accHex}24 46%, ${themeNow === 'dark' ? '#273049' : '#eef1f7'} 100%)`
 
   return (
-    <div
-      ref={ref}
-      className={`fitbox ${className}`}
-      style={{ aspectRatio: `${dev.w} / ${dev.h}`, background: themeNow === 'dark' ? '#0c0d12' : '#fff', ...style }}
-    >
+    <div ref={ref} className={`fitbox ${className}`} style={{ aspectRatio: `${dev.w} / ${dev.h}`, background: frameBg, ...style }}>
       <div
         className="fitscale"
         style={{
@@ -458,8 +458,6 @@ export default function SitePreview({ template, device = 'desktop', theme, hero,
           width: dev.w,
           height: dev.h,
           transform: `scale(${scale})`,
-          opacity: w ? 1 : 0,
-          transition: 'opacity .4s ease',
           display: 'flex',
           flexDirection: 'column',
         }}

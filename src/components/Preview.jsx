@@ -19,8 +19,10 @@ export default function Preview({ tpl, kind, ...rest }) {
  * (cart rows, mega menu, order summary).
  */
 export function ArtTile({ tpl, size = 44, className = '', label }) {
-  const a = accentHex(tpl.accent || tpl.siteAccent || 'azure')
   const isSite = showSite(tpl)
+  const id = tpl.accent || tpl.siteAccent || 'azure'
+  // 'ink' (graphite) is too dark to read as a tile — site thumbnails keep it bright
+  const a = isSite && id === 'ink' ? accentHex('azure') : accentHex(id)
   return (
     <span
       className={`relative block shrink-0 overflow-hidden rounded-[7px] ring-1 ring-black/10 ${className}`}
