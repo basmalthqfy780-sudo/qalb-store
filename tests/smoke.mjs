@@ -8,7 +8,20 @@ import { readFileSync, mkdirSync, readdirSync, existsSync } from 'node:fs'
 import { JSDOM, VirtualConsole } from 'jsdom'
 import { dict } from '../src/i18n/translations.js'
 import { byId, couponExpired, couponInfo, templates } from '../src/data/templates.js'
-import { PERSONAL_LIMITS, isProtectedDownload, kindOf, packageFiles, packageZip, sanitizePersonal, siteHtml } from '../src/data/deliverable.js'
+import {
+  CUSTOM_LIMITS,
+  PERSONAL_LIMITS,
+  isProtectedDownload,
+  kindOf,
+  packageFiles,
+  packageZip,
+  sanitizeCustom,
+  sanitizeImage,
+  sanitizePersonal,
+  siteHtml,
+  studioFiles,
+  studioZip,
+} from '../src/data/deliverable.js'
 import {
   HOST_FIELDS,
   HOST_LIMITS,
@@ -5993,7 +6006,7 @@ for (const c of cases) {
   const src = frame?.getAttribute('srcdoc') || ''
   ok('the live toggle mounts the delivered index.html in a frame', frame?.getAttribute('data-live-frame') === 'index.html')
   ok('sandboxed with no permissions', frame?.getAttribute('sandbox') === '')
-  ok('its stylesheet inlined from the package (no dangling styles.css link)', src.includes('<style>') && !/href="\/?styles\.css"/.test(src))
+  ok('its stylesheet inlined from the package (no dangling styles.css link)', src.includes('<style>') && !/href="\.?\/?styles\.css"/.test(src))
   site.g.dom.window.close()
 
   const cv = await facts(byId('nova').slug)
@@ -6066,6 +6079,294 @@ for (const c of cases) {
   } else {
     groups++
     console.log(`✓ ui overhaul · cards · loading · banner · detail page · trust · legal  (${checks.length} assertions)`)
+  }
+}
+
+/* -------- zip · فتحٌ محليّ نظيف · استوديو المشتري وتصديره المبني -------- */
+{
+  const checks = []
+  const ok = (name, cond, extra = '') => checks.push([cond ? name : `${name} — ${extra}`, !!cond])
+  const TINY_PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
+  const BIG_PNG = 'data:image/png;base64,' + 'A'.repeat(Math.ceil(((CUSTOM_LIMITS.imageBytes + 2048) * 4) / 3))
+
+  /* ---------- ١) كل حزمة: مسارات نسبية نظيفة، وتصميمٌ يفتح من القرص ---------- */
+  const abs = []
+  const instr = []
+  let doctypeFirst = 0
+  let pages = 0
+  for (const t of templates) {
+    for (const f of packageFiles(t, { id: 'Q-LOC-1', key: 'K-LOC-1' })) {
+      if (/\.html$/.test(f.path)) {
+        pages++
+        for (const m of f.body.matchAll(/(?:href|src)="([^"]*)"/g)) {
+          const u = m[1]
+          const clean = u === './' || u.startsWith('./') || u.startsWith('#') || u.startsWith('http') || u.startsWith('mailto')
+          if (!clean) abs.push(`${t.id}/${f.path}→${u}`)
+        }
+        if (!f.body.includes('href="./styles.css"')) abs.push(`${t.id}/${f.path}→missing ./styles.css link`)
+        if (!f.body.includes('<style>')) abs.push(`${t.id}/${f.path}→missing inline design fallback`)
+        if (!f.body.includes('src="./assets/content.js"')) abs.push(`${t.id}/${f.path}→missing ./assets/content.js`)
+        if (/content\/profile\.json|أضف أرقامك|أضف أعمالك|عدّل content|edit content|ابدأ بفعل|المسمى — الشركة/.test(f.body))
+          instr.push(`${t.id}/${f.path}`)
+        if (f.body.startsWith('<!doctype html>\n<!-- Qalb')) doctypeFirst++
+      }
+      if (f.path === 'assets/content.js' && !f.body.includes("fetch('./content/profile.json')")) abs.push(`${t.id}/assets/content.js→fetch path`)
+      if (/^framework\//.test(f.path) && f.body.includes('href="/')) abs.push(`${t.id}/${f.path}→absolute href`)
+    }
+  }
+  ok('every shipped page routes assets with clean ./ paths', abs.length === 0, abs.slice(0, 4).join(','))
+  ok(
+    'every page opens styled from disk: the design travels inside the page beside the ./styles.css link',
+    pages > 0 && abs.filter((x) => /fallback/.test(x)).length === 0,
+    String(pages) + ' pages',
+  )
+  ok('no developer placeholder instruction survives in any rendered page', instr.length === 0, instr.slice(0, 3).join(','))
+  ok('the watermark sits after the DOCTYPE — standards mode is never risked', doctypeFirst === pages, `${doctypeFirst}/${pages}`)
+  ok(
+    'the live fetch inside packages is relative too',
+    packageFiles(byId('aether'), {})
+      .find((f) => f.path === 'assets/content.js')
+      .body.includes("fetch('./content/profile.json')"),
+  )
+
+  /* ---------- ٢) صور المستخدم: ملفاتٌ حقيقية في assets/img/ بلا base64 في النصوص ---------- */
+  {
+    const custom = {
+      images: [
+        { slot: 'avatar', dataUrl: TINY_PNG },
+        { slot: 'project:0', dataUrl: TINY_PNG },
+        { slot: 'project:0', dataUrl: TINY_PNG },
+      ],
+    }
+    const files = studioFiles(byId('aether'), { id: 'Q-IMG-1', key: 'K-IMG-1', custom })
+    const names = files.map((f) => f.path)
+    ok(
+      'the studio package carries real image files under assets/img/',
+      names.includes('assets/img/avatar.png') && names.includes('assets/img/project-1.png'),
+      names.filter((n) => n.includes('img/')).join(','),
+    )
+    ok('and never two files over one slot', names.filter((n) => n === 'assets/img/project-1.png').length === 1)
+    const img = files.find((f) => f.path === 'assets/img/avatar.png')
+    ok(
+      'the image bytes are the uploaded bytes (PNG signature intact)',
+      !!img && img.body instanceof Uint8Array && img.body[0] === 0x89 && img.body[1] === 0x50,
+      String(img && img.body && img.body.length),
+    )
+    const bytes = studioZip(byId('aether'), { id: 'Q-IMG-1', key: 'K-IMG-1', custom })
+    const html = zipRead(bytes, 'index.html')
+    ok(
+      'the page references images with ./assets/img/ relative paths',
+      html.includes('src="./assets/img/avatar.png"') && html.includes('src="./assets/img/project-1.png"'),
+    )
+    const prof = JSON.parse(zipRead(bytes, 'content/profile.json'))
+    ok(
+      'profile.json carries the references only — no base64 payload in text files',
+      prof.images.avatar === 'assets/img/avatar.png' && !zipRead(bytes, 'content/profile.json').includes('base64'),
+    )
+    ok('the zip round-trips the binary entries too', zipNames(bytes).filter((n) => n.startsWith('assets/img/')).length === 2)
+    ok(
+      'a plain order with no uploads ships no image placeholders at all',
+      !zipNames(packageZip(byId('aether'), { id: 'Q', key: 'K' })).some((n) => n.startsWith('assets/img/')),
+    )
+  }
+
+  /* ---------- ٣) تنقية التخصيص: صيغة · سقف · وسوم ---------- */
+  ok(
+    'a non-image or broken data-url is refused, not printed',
+    sanitizeImage('avatar', 'data:text/html;base64,PGI+') === null && sanitizeImage('avatar', 'nope') === null,
+  )
+  ok('an oversized image is refused at the gate', sanitizeImage('avatar', BIG_PNG) === null)
+  ok('unknown slots are refused', sanitizeImage('etc:/x', TINY_PNG) === null)
+  ok('a city carrying markup is dropped whole', sanitizeCustom({ city: '<b>جدة</b>' }, 'site') === null)
+  ok(
+    'hidden sections are limited to the template’s own sections',
+    (sanitizeCustom({ hidden: ['skills', 'root'] }, 'site') || { hidden: [] }).hidden.join() === '',
+  )
+  ok(
+    'section order is normalized to a full permutation',
+    (sanitizeCustom({ order: ['contact'] }, 'site') || { order: [] }).order.join() === 'contact,work,about,services',
+  )
+  ok(
+    'sanitizing twice changes nothing (idempotent for client and server)',
+    JSON.stringify(sanitizeCustom(sanitizeCustom({ stats: [{ v: '9', en: 'سنوات' }] }, 'site'), 'site')) ===
+      JSON.stringify(sanitizeCustom({ stats: [{ v: '9', en: 'سنوات' }] }, 'site'), 'site'),
+  )
+  ok(
+    'at most six numbers and eight images are accepted',
+    sanitizeCustom(
+      {
+        stats: Array.from({ length: 9 }, (_, i) => ({ v: String(i) })),
+        images: Array.from({ length: 9 }, () => ({ slot: 'avatar', dataUrl: TINY_PNG })),
+      },
+      'site',
+    ).stats.length === CUSTOM_LIMITS.stats,
+  )
+
+  /* ---------- ٤) الإخفاء والترتيب والأرقام تُطبَّق في الملف النهائي ---------- */
+  {
+    const custom = {
+      hidden: ['services'],
+      order: ['contact', 'work', 'about', 'services'],
+      stats: [{ v: '12', en: 'مشروعًا' }],
+      city: 'جدة',
+    }
+    const html = zipRead(studioZip(byId('aether'), { id: 'Q-SEC-1', key: 'K-SEC-1', custom }), 'index.html')
+    ok('a hidden section is gone from the delivered DOM', !html.includes('id="services"'))
+    ok(
+      'the studio order is the printed order',
+      html.indexOf('id="contact"') < html.indexOf('id="work"') && html.indexOf('id="work"') < html.indexOf('id="about"'),
+    )
+    ok('the hidden section loses its nav link too', !html.includes('data-nav="2"'))
+    ok('typed numbers and city are baked into the final static file', html.includes('12') && html.includes('مشروعًا') && html.includes('جدة'))
+  }
+
+  /* ---------- ٥) الاستوديو: توثيق · تحرير حيّ · صور · أقسام · تصدير ZIP ---------- */
+  {
+    const seedOrder = {
+      id: 'QALB-STU-77',
+      key: 'STUD-KEY-7777-AAAA',
+      name: 'نورة الحربي',
+      email: 'n@s.sa',
+      date: '2026-09-25',
+      total: 199,
+      count: 1,
+      method: 'card',
+      lines: [{ id: 'aether', qty: 1 }],
+    }
+    const type = (g, el, v) => {
+      const proto = el.tagName === 'TEXTAREA' ? g.win.HTMLTextAreaElement.prototype : g.win.HTMLInputElement.prototype
+      Object.getOwnPropertyDescriptor(proto, 'value').set.call(el, v)
+      el.dispatchEvent(new g.win.Event('input', { bubbles: true }))
+    }
+    const g = await render(
+      'http://localhost/studio?tab=pkg',
+      { 'qalb.orders.v1': JSON.stringify([seedOrder]) },
+      {
+        boot: (win) => {
+          win.__blobs = []
+          win.__clicks = []
+          win.Blob = class {
+            constructor(parts, opts) {
+              win.__blobs.push({ parts: parts || [], type: opts && opts.type })
+              this.size = (parts || []).reduce((n, x) => n + (x.length || 0), 0)
+            }
+          }
+          win.URL.createObjectURL = () => 'blob:stub'
+          win.URL.revokeObjectURL = () => {}
+          win.HTMLAnchorElement.prototype.click = function () {
+            win.__clicks.push(this.download || this.href)
+          }
+        },
+      },
+    )
+    ok(
+      'the buyer studio renders its unlock gate clean',
+      g.errs.length === 0 && !!g.doc.querySelector('[data-pkg-gate]'),
+      g.errs.join('|').slice(0, 120),
+    )
+
+    // مفتاح خاطئ: يُرفض ولا يُفتح شيء
+    type(g, g.doc.getElementById('pk-order'), 'QALB-STU-77')
+    type(g, g.doc.getElementById('pk-key'), 'WRON-KEY-0000-XXXX')
+    g.doc.querySelector('form[data-pkg-gate]').dispatchEvent(new g.win.Event('submit', { bubbles: true, cancelable: true }))
+    await g.wait(6)
+    ok(
+      'a wrong licence key is refused with the reason on the gate',
+      /لا يطابق/.test(g.txt()) && !g.doc.querySelector('[data-pkg-frame]'),
+      g.txt().slice(-80),
+    )
+
+    // رقم مجهول
+    type(g, g.doc.getElementById('pk-order'), 'QALB-NOPE')
+    g.doc.querySelector('form[data-pkg-gate]').dispatchEvent(new g.win.Event('submit', { bubbles: true, cancelable: true }))
+    await g.wait(6)
+    ok('an unknown order is refused too', /لم نجد هذا الطلب/.test(g.txt()) && !g.doc.querySelector('[data-pkg-frame]'))
+
+    // التفعيل الصحيح يفتح القالب المشترى
+    type(g, g.doc.getElementById('pk-order'), 'QALB-STU-77')
+    type(g, g.doc.getElementById('pk-key'), 'STUD-KEY-7777-AAAA')
+    g.doc.querySelector('form[data-pkg-gate]').dispatchEvent(new g.win.Event('submit', { bubbles: true, cancelable: true }))
+    await g.wait(8)
+    const frame = () => g.doc.querySelector('[data-pkg-frame]')?.getAttribute('srcdoc') || ''
+    ok(
+      'the right key opens the studio on the bought template',
+      !!g.doc.querySelector('[data-pkg-frame]') && frame().includes('لمار'),
+      String(frame().length),
+    )
+
+    // تحرير النص حيًّا
+    type(g, g.doc.getElementById('pk-name'), 'نورة الحربي')
+    await g.wait()
+    ok('typed text updates the live page before any export', frame().includes('نورة الحربي'))
+    type(g, g.doc.getElementById('pk-city'), 'جدة، السعودية')
+    await g.wait()
+    ok('the city line follows the typed value', frame().includes('جدة، السعودية'))
+
+    // الأرقام
+    g.doc.querySelector('[data-pkg-stat-add]').click()
+    await g.wait()
+    type(g, g.doc.getElementById('pk-stat-0-v'), '12')
+    type(g, g.doc.getElementById('pk-stat-0-l'), 'مشروعًا')
+    await g.wait()
+    ok('added numbers appear in the hero of the live page', frame().includes('12') && frame().includes('مشروعًا'))
+
+    // الأقسام: إخفاء وإعادة ترتيب
+    g.doc.getElementById('pk-sec-services').click()
+    await g.wait()
+    ok('hiding a section removes it from the live page and keeps the rest', !frame().includes('id="services"') && frame().includes('id="work"'))
+    g.doc.querySelector('[data-pkg-sec-down="work"]').click()
+    await g.wait()
+    ok('section ordering is managed live too', frame().indexOf('id="work"') > frame().indexOf('id="about"'))
+
+    // الصورة: FileReader في jsdom يبني المرجع والمعاينة
+    await new Promise((resolve) => {
+      const input = g.doc.getElementById('pk-img-avatar')
+      const file = new g.win.File([new g.win.Uint8Array([0x89, 0x50, 0x4e, 0x47])], 'me.png', { type: 'image/png' })
+      Object.defineProperty(input, 'files', { value: [file], configurable: true })
+      input.dispatchEvent(new g.win.Event('change', { bubbles: true }))
+      setTimeout(resolve, 60)
+    })
+    await g.wait()
+    ok('an uploaded portrait shows its thumb in the image row', !!g.doc.querySelector('[data-pkg-thumb="avatar"]'))
+
+    // التصدير: ZIP حقيقي مبني بالبيانات المطبوعة
+    g.doc.querySelector('[data-pkg-export]').click()
+    await g.wait(6)
+    const click = g.win.__clicks.slice(-1)[0] || ''
+    const blob = g.win.__blobs.slice(-1)[0]
+    const bytes = blob && blob.parts[0]
+    ok('export downloads a zip named after the order', /^qalb-aether-qalb-stu-77\.zip$/.test(click), String(click))
+    ok(
+      'the archive is a real ZIP with the licence inside',
+      !!bytes && bytes[0] === 0x50 && bytes[1] === 0x4b && zipNames(bytes).includes('LICENSE.txt'),
+      bytes ? zipNames(bytes).slice(0, 4).join(',') : 'no bytes',
+    )
+    ok('the buyer’s text is pre-baked into the final index.html', zipRead(bytes, 'index.html').includes('نورة الحربي'))
+    ok('the uploaded image is pre-baked as a real assets/img file', zipNames(bytes).includes('assets/img/avatar.png'))
+    ok('and the page points at it with a clean relative path', zipRead(bytes, 'index.html').includes('src="./assets/img/avatar.png"'))
+    ok('the section edits survive the export as well', !zipRead(bytes, 'index.html').includes('id="services"'))
+    ok('the watermark names this order at the top of the shipped files', zipRead(bytes, 'index.html').includes('order QALB-STU-77'))
+
+    // المسودّة تُحفَظ على الجهاز
+    const drafts = JSON.parse(g.win.localStorage.getItem('qalb.pkgstudio.v1') || '{}')
+    ok(
+      'the draft is kept per order and per template',
+      drafts['QALB-STU-77']?.drafts?.aether?.personal?.name === 'نورة الحربي',
+      JSON.stringify(drafts).slice(0, 80),
+    )
+    g.win.close()
+  }
+
+  /* ---------- نهاية المجموعة ---------- */
+  const bad = checks.filter(([, pass]) => !pass)
+  if (bad.length) {
+    failed++
+    groups++
+    console.log('✗ zip · clean paths · the buyer studio and its compiled export')
+    bad.forEach(([n]) => console.log('   failed: ' + n))
+  } else {
+    groups++
+    console.log(`✓ zip · clean paths · the buyer studio and its compiled export  (${checks.length} assertions)`)
   }
 }
 

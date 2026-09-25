@@ -36,7 +36,8 @@ function dosTime(ms) {
 }
 
 /**
- * @param {{path:string, body:string}[]} files
+ * @param {{path:string, body:string|Uint8Array}[]} files — النصوص تُرمَّز UTF-8،
+ *   وما جاء Uint8Array (صور المستخدم في استوديو التصدير) يُكتب بايتاته كما هي
  * @param {number} [when] طابع تعديل المدخلات، افتراضيًا الآن
  * @returns {Uint8Array} بايتات أرشيف ZIP جاهزة للكتابة أو للـ Blob
  */
@@ -49,7 +50,7 @@ export function zipStore(files, when = Date.now()) {
 
   files.forEach((f) => {
     const name = enc.encode(String(f.path).replace(/\\/g, '/').replace(/^\/+/, ''))
-    const body = enc.encode(String(f.body))
+    const body = f.body instanceof Uint8Array ? f.body : enc.encode(String(f.body))
     const crc = crc32(body)
 
     const local = new Uint8Array(30 + name.length + body.length)
@@ -131,6 +132,15 @@ export function zipNames(bytes) {
  * يحتاج قراءة ما داخل الحزمة بلا مكتبة فك ضغط.
  */
 export function zipRead(bytes, want) {
+  const hit = zipBytes(bytes, want)
+  return hit ? new TextDecoder().decode(hit) : null
+}
+
+/**
+ * قراءة ملف واحد كبايتات خام (صور، خطوط) — نفس التحقق بـCRC، وبلا ترميز نصّي
+ * يُفسد ما ليس نصًّا.
+ */
+export function zipBytes(bytes, want) {
   const v = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
   const enc = new TextDecoder()
   let i = 0
@@ -142,8 +152,8 @@ export function zipRead(bytes, want) {
     const name = enc.decode(bytes.subarray(i + 30, i + 30 + nLen))
     const body = bytes.subarray(i + 30 + nLen, i + 30 + nLen + size)
     if (name === want) {
-      if (crc32(body) !== crc) throw new Error(`zipRead: crc mismatch in ${name}`)
-      return enc.decode(body)
+      if (crc32(body) !== crc) throw new Error(`zipBytes: crc mismatch in ${name}`)
+      return body
     }
     i += 30 + nLen + eLen + size
   }

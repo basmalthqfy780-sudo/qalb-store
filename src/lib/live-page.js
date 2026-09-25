@@ -3,10 +3,12 @@
  * `packageFiles` لا من نسخةٍ مرسومةٍ للعرض — مُعَدًّا ليعمل داخل iframe بـ`srcDoc`.
  *
  * ما يتغيّر عن الملفّ المُسلَّم ثلاثةُ أشياء فقط، كلُّها لازمةٌ لأن الإطار بلا مسار:
- *   1. `<link href="styles.css">` يُستبدل بمحتوى styles.css من الحزمة نفسها (مضمّنًا).
- *   2. `assets/content.js` يُحذف: الإطار معزول (`sandbox=""`) فلا سكربت يعمل أصلًا،
+ *   1. `<link href="./styles.css">` يُحذف: التنسيق مضمَّن أصلًا في الصفحة نفسها
+ *      (نسخةٌ من `styles.css` داخل `<style>`)، فلا يطلب الإطار مسارًا غير موجود
+ *      ولا تبقى الصفحة حافيةً لو مات الوصل.
+ *   2. `./assets/content.js` يُحذف: الإطار معزول (`sandbox=\"\"`) فلا سكربت يعمل أصلًا،
  *      والصفحة تحمل محتواها في HTML، فلا يتغيّر ما يُرى.
- *   3. `<base target="_blank">`: النقر على رابطٍ داخل الإطار المعزول لا يفتح شيئًا
+ *   3. `<base target=\"_blank\">`: النقر على رابطٍ داخل الإطار المعزول لا يفتح شيئًا
  *      (لا allow-popups)، بدل أن يتنقّل الإطار إلى مسارٍ غير موجود.
  */
 import { packageFiles } from '../data/deliverable.js'
@@ -27,11 +29,9 @@ export function livePage(tpl, kind) {
   }
   const page = files.find((f) => f.path === want)
   if (!page) return null
-  const css = files.find((f) => f.path === 'styles.css')
-  const style = `<style>${css ? css.body.replace(/<\/style/gi, '<\\/style') : ''}</style>`
   const html = page.body
-    .replace(/<link rel="stylesheet" href="\/?styles\.css"\s*\/?>/i, () => style)
-    .replace(/<script src="assets\/content\.js"[^>]*>\s*<\/script>/i, '')
+    .replace(/<link rel="stylesheet" href="[^"]*styles\.css"\s*\/?>/i, '')
+    .replace(/<script src="(?:\.\/)?assets\/content\.js"[^>]*>\s*<\/script>/i, '')
     .replace(/<head>/i, '<head>\n    <base target="_blank" />')
   const out = { html, file: want }
   cache.set(key, out)

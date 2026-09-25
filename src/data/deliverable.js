@@ -195,6 +195,104 @@ function applyPersonal(p, w) {
   return p
 }
 
+/* ==================== تخصيص الاستوديو: صور · أقسام · أرقام ==================== */
+
+/** أقسام كل نوع — تُدار من الاستوديو (إخفاء وإعادة ترتيب)؛ البطل/الترويسة ثابتة */
+export const SITE_SECTIONS = ['work', 'about', 'services', 'contact']
+export const CV_SECTIONS = ['summary', 'experience', 'skills', 'education', 'languages']
+
+/** سقوف التخصيص الممتد: ما يقبله الاستوديو لا يتجاوز هذا */
+export const CUSTOM_LIMITS = { statValue: 18, statLabel: 28, stats: 6, images: 8, imageBytes: 512 * 1024, city: 60 }
+
+const DATA_URL_RE = /^data:image\/(png|jpe?g|webp|gif);base64,[A-Za-z0-9+/]+={0,2}$/
+
+/** بايتات صورة مرفوعة — تعمل في المتصفح (atob) وفي Node (Buffer) بلا اعتماد */
+export function dataUrlBytes(dataUrl) {
+  const s = String(dataUrl || '')
+  const b64 = s.slice(s.indexOf(',') + 1)
+  const NodeBuffer = globalThis.Buffer // تعمل في المتصفح (atob) وفي Node (Buffer) بلا اعتماد
+  if (NodeBuffer) return new Uint8Array(NodeBuffer.from(b64, 'base64'))
+  const bin = atob(b64)
+  const out = new Uint8Array(bin.length)
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i)
+  return out
+}
+
+/** صورة واحدة: صيغة مسموحة وحجم تحت السقف وفتحة معروفة (avatar أو project:N) — وإلا null */
+export const sanitizeImage = (slot, dataUrl) => {
+  const s = String(dataUrl || '').trim()
+  if (!DATA_URL_RE.test(s)) return null
+  const bytes = Math.floor((s.length - s.indexOf(',') - 1) * 0.75)
+  if (!bytes || bytes > CUSTOM_LIMITS.imageBytes) return null
+  const ext = s.slice(s.indexOf('/') + 1, s.indexOf(';')).replace('jpeg', 'jpg')
+  const safeSlot = slot === 'avatar' ? 'avatar' : /^project:\d{1,2}$/.test(String(slot)) ? String(slot) : null
+  if (!safeSlot) return null
+  const path = safeSlot === 'avatar' ? `assets/img/avatar.${ext}` : `assets/img/project-${Number(safeSlot.split(':')[1]) + 1}.${ext}`
+  return { slot: safeSlot, path, dataUrl: s }
+}
+
+/**
+ * تنقية تخصيص الاستوديو قبل أن يُطبع في ملف مُسلَّم — والصور تُبعَد عن نصّ
+ * الملفّات: مرجعها النصّي فقط في profile.json وHTML (`./assets/img/…`)، وبايتاتها
+ * في `assets/img/`. ومُعرَّف بذاته (idempotent)، فيُستدعى من الواجهة ومن الخادم
+ * بلا خوف من التكرار.
+ */
+export function sanitizeCustom(raw, k = 'site') {
+  if (!raw || typeof raw !== 'object') return null
+  const ids = k === 'cv' ? CV_SECTIONS : SITE_SECTIONS
+  const hidden = [...new Set((Array.isArray(raw.hidden) ? raw.hidden : []).filter((x) => ids.includes(x)))]
+  const order = []
+  for (const x of Array.isArray(raw.order) ? raw.order : []) if (ids.includes(x) && !order.includes(x)) order.push(x)
+  for (const x of ids) if (!order.includes(x)) order.push(x)
+  const city = flat(raw.city, CUSTOM_LIMITS.city)
+  const stats = (Array.isArray(raw.stats) ? raw.stats : [])
+    .slice(0, CUSTOM_LIMITS.stats)
+    .map((s) => ({
+      v: flat(s && (s.v ?? s.value), CUSTOM_LIMITS.statValue),
+      en: flat(s && (s.en ?? s.label), CUSTOM_LIMITS.statLabel),
+    }))
+    .filter((s) => s.v)
+  const seen = new Set()
+  const images = []
+  for (const im of (Array.isArray(raw.images) ? raw.images : []).slice(0, CUSTOM_LIMITS.images * 2)) {
+    const clean = sanitizeImage(im && im.slot, im && im.dataUrl)
+    if (!clean || seen.has(clean.path)) continue
+    seen.add(clean.path)
+    images.push(clean)
+    if (images.length >= CUSTOM_LIMITS.images) break
+  }
+  const out = { city, hidden, order, stats, images }
+  const empty = !city && !hidden.length && !stats.length && !images.length && !(Array.isArray(raw.order) && raw.order.length)
+  return empty ? null : out
+}
+
+/** تُحقن نتائج التخصيص في الملف الشخصي: مسارات الصور فقط، والترتيب والإخفاء */
+function applyCustom(p, c) {
+  if (!c) return p
+  if (c.city) p.city = { ar: c.city, en: c.city }
+  if (c.stats && c.stats.length) p.stats = c.stats.map((s) => ({ v: s.v, e: s.v, en: s.en || '' }))
+  if (c.hidden && c.hidden.length) p.hidden = c.hidden
+  if (c.order && c.order.length) p.order = c.order
+  if (c.images && c.images.length) {
+    const imgs = { avatar: null, projects: {} }
+    for (const im of c.images) {
+      if (im.slot === 'avatar') imgs.avatar = im.path
+      else imgs.projects[String(Number(im.slot.split(':')[1]))] = im.path
+    }
+    p.images = imgs
+    p.qalb = { ...p.qalb, images: c.images.length }
+  }
+  return p
+}
+
+/** ترتيب الأقسام النهائي: ترتيب الاستوديو أولًا، فالمفقود يُلحق بأصله، والمُخفى يُحذف */
+export const seqIds = (ids, p) => {
+  const hidden = new Set(Array.isArray(p.hidden) ? p.hidden : [])
+  const want = (Array.isArray(p.order) && p.order.length ? p.order : []).filter((x) => ids.includes(x))
+  for (const x of ids) if (!want.includes(x)) want.push(x)
+  return want.filter((x) => !hidden.has(x))
+}
+
 /* ============================ مولّدات الملفات ============================ */
 
 /** لون النص فوق لون التمييز: داكن على الفاتح وفاتح على الغامق (AA في الحالتين) */
@@ -219,7 +317,7 @@ const accentFor = (tpl, site) => {
   return id && PALETTE.some((c) => c.id === id) ? accentHex(id) : BRAND_HEX
 }
 
-export const profileFor = (tpl, k, personal = null) => {
+export const profileFor = (tpl, k, personal = null, custom = null) => {
   const site = k !== 'cv' ? siteFor(tpl) : null
   const demo = k !== 'site' ? demoFor(tpl) : null
   const base = site || demo || {}
@@ -267,7 +365,8 @@ export const profileFor = (tpl, k, personal = null) => {
       : [],
     services: { ar: list(tpl.bestFor, 'ar'), en: list(tpl.bestFor, 'en') },
   }
-  return personal ? applyPersonal(prof, personal) : prof
+  const out = personal ? applyPersonal(prof, personal) : prof
+  return custom ? applyCustom(out, custom) : out
 }
 
 const readmeFor = (tpl, k, order, personal = null) => {
@@ -311,8 +410,10 @@ ${files.join('\n')}
     cd ${tpl.id}
     npm run dev        # خادم محلي على http://localhost:5173 — بلا npm install
 ${hasCv ? '    npm run check      # تقرير جاهزية ATS لملفّات السيرة وملاحظات قابلة للتنفيذ\n' : ''}
-بلا Node؟ \`index.html\` و\`resume.html\` يفتحان من القرص مباشرةً (من البيانات المضمّنة في كل
-ملف). أما \`npm run dev\` فيقرأ \`content/profile.json\` حيًّا، فتعدّل الملف وتُحدِّث الصفحة.
+بلا Node؟ \`index.html\` و\`resume.html\` يفتحان من القرص مباشرةً — التصميم والبيانات
+مضمَّنان في الصفحة نفسها (لهاذا تُفتح مصمَّمةً حتى من داخل الملف المضغوط)، و\`styles.css\`
+بجانبها مصدر تعديلٍ حيّ: ما غيّرته هناك يظهر عند التحديث. أما \`npm run dev\` فيقرأ
+\`content/profile.json\` حيًّا، فتعدّل الملف وتُحدِّث الصفحة.
 
 ## تعديل المحتوى
 
@@ -388,6 +489,8 @@ button.ghost:hover { color: var(--text); border-color: var(--accent) }
 .hero[data-layout="media"] { grid-template-columns: 1fr }
 .hero h1 { margin: 0; font-size: clamp(2.1rem, 5.4vw, 3.5rem); line-height: 1.1; letter-spacing: -.035em; font-weight: 800 }
 .hero p { margin: 0; color: var(--muted); max-width: 54ch }
+.avatar { display: block; width: 92px; height: 92px; border-radius: 26px; object-fit: cover; border: 1px solid var(--line); margin-bottom: 1rem }
+.thumb img { display: block; width: 100%; height: 100%; object-fit: cover }
 .cta { display: inline-flex; align-items: center; gap: .5rem; background: var(--accent); color: var(--accent-ink); font-weight: 800; padding: .8rem 1.1rem; border-radius: 14px; font-size: 15px; border: 0; cursor: pointer }
 .cta:hover { filter: brightness(1.06) }
 .stats { display: flex; flex-wrap: wrap; gap: 1.5rem; padding-top: 1rem }
@@ -509,7 +612,7 @@ const contentScript = `/**
     var y = document.getElementById('yr')
     if (y) y.textContent = String(new Date().getFullYear())
     if (location.protocol !== 'file:') {
-      fetch('content/profile.json')
+      fetch('./content/profile.json')
         .then(function (r) {
           return r.ok ? r.json() : null
         })
@@ -589,16 +692,18 @@ if (!body) {
   console.error('not found: resume.html or resume.md in the package root / لم أجد ملف السيرة في جذر الحزمة')
   process.exit(1)
 }
-const clean = body.replace(/<[^>]+>/g, ' ').replace(/\\s+/g, ' ').trim()
+// محتوى التنسيق لا يقرؤه قارئ سير ولا آلة فرز — والقياس نفسه في src/data/ats.js
+const bare = body.replace(/<style\\b[^>]*>[\\s\\S]*?<\\/style>/gi, ' ')
+const clean = bare.replace(/<[^>]+>/g, ' ').replace(/\\s+/g, ' ').trim()
 const words = (clean.match(/[\\p{L}\\p{N}'’-]+/gu) || []).length
-const li = [...body.matchAll(/<li[^>]*>([\\s\\S]*?)<\\/li>/gi)].map((m) => m[1].replace(/<[^>]+>/g, ' ').trim())
+const li = [...bare.matchAll(/<li[^>]*>([\\s\\S]*?)<\\/li>/gi)].map((m) => m[1].replace(/<[^>]+>/g, ' ').trim())
 const bullets = li.length
 const measured = li.filter((x) => /\\d/.test(x)).length
 const checks = RULES.map((r) => [r.name, new RegExp(r.src, r.flags + 'i').test(clean)])
 checks.push(['length ' + TARGET.minWords + '-' + TARGET.maxWords + ' words', words >= TARGET.minWords && words <= TARGET.maxWords])
 checks.push([TARGET.minBullets + '+ experience bullets', bullets >= TARGET.minBullets])
 checks.push(['half the bullets carry a number', bullets > 0 && measured * 2 >= bullets])
-checks.push(['no layout tables', !/<table/i.test(body)])
+checks.push(['no layout tables', !/<table/i.test(bare)])
 checks.push(['a profile link', LINKS.some((l) => clean.toLowerCase().includes(l))])
 const score = Math.round((checks.filter(([, ok]) => ok).length / checks.length) * 100)
 for (const [name, ok] of checks) console.log((ok ? ' ok  ' : ' MISS') + '  ' + name)
@@ -615,8 +720,8 @@ export const siteHtml = (tpl, p) => {
   const navAr = p.nav.ar.length ? p.nav.ar : nav
   const cards = p.projects
     .map(
-      (x, i) => `        <a class="card reveal${p.gallery === 'spotlight' && i === 0 ? ' spot' : ''}" href="${esc(x.file)}" style="--h:${x.hue}">
-          <div class="thumb" aria-hidden="true">${esc(x.title.en)}</div>
+      (x, i) => `        <a class="card reveal${p.gallery === 'spotlight' && i === 0 ? ' spot' : ''}" href="./${esc(x.file)}" style="--h:${x.hue}">
+          <div class="thumb" aria-hidden="true">${p.images?.projects?.[String(i)] ? `<img src="./${esc(p.images.projects[String(i)])}" alt="" />` : esc(x.title.en)}</div>
           <div class="body">
             <h3 data-i18n="projects.${i}.title">${esc(x.title.ar || x.title.en)}</h3>
             <p class="meta"><span class="tag" data-i18n="projects.${i}.cat">${esc(x.cat.ar || x.cat.en)}</span><span class="num">${esc(x.year)}</span></p>
@@ -626,6 +731,48 @@ export const siteHtml = (tpl, p) => {
     .join('\n')
   const stats = p.stats.map((s) => `          <div><b class="num">${esc(s.e ?? s.v)}</b><span>${esc(s.en ?? s.e ?? '')}</span></div>`).join('\n')
   const services = p.services.en.map((s, i) => `          <li data-i18n="services.${i}">${esc(s)}</li>`).join('\n')
+  const hidden = new Set(Array.isArray(p.hidden) ? p.hidden : [])
+  const navRows = nav
+    .map((x, i) => ({ x, i, id: SITE_SECTIONS[i] }))
+    .filter((o) => !o.id || !hidden.has(o.id))
+    .map((o) => `          <a href="#${slug(o.x, o.i)}" data-nav="${o.i}">${esc(navAr[o.i] || o.x)}</a>`)
+    .join('\n')
+  // كل قسمٍ كتلةٌ مستقلّة، فيديرها الاستوديو (إخفاء وإعادة ترتيب) دون أن تمسّ البنية
+  const blocks = {
+    work: `      <section class="wrap" id="work">
+        <h2 class="sec" data-bi data-bi-ar="الأعمال" data-bi-en="Selected work">الأعمال</h2>
+        <div class="grid" data-gallery="${esc(p.gallery)}">
+${cards}
+        </div>
+      </section>`,
+    about: `      <section class="wrap" id="about">
+        <h2 class="sec" data-bi data-bi-ar="عني" data-bi-en="About">عني</h2>
+        <p style="max-width:62ch" data-f="blurb">${esc(p.blurb.ar)}</p>
+        <p class="meta">${esc(p.city.ar)} · <span class="num">${esc(p.host)}</span></p>
+      </section>`,
+    services: `      <section class="wrap" id="services">
+        <h2 class="sec" data-bi data-bi-ar="لمن أعمل" data-bi-en="Best for">لمن أعمل</h2>
+        <ul class="clean">
+${services}
+        </ul>
+      </section>`,
+    contact: `      <section class="wrap" id="contact">
+        <h2 class="sec" data-bi data-bi-ar="تواصل" data-bi-en="Contact">تواصل</h2>
+        <!-- نموذج مضاد للسبام بلا اعتمادات: وجّه action إلى مزوّدك (Netlify Forms / Formspree / API خاص) -->
+        <form class="contact" method="post" action="">
+          <label><span data-bi data-bi-ar="الاسم" data-bi-en="Name">الاسم</span><input name="name" autocomplete="name" required /></label>
+          <label><span data-bi data-bi-ar="البريد الإلكتروني" data-bi-en="E-mail">البريد الإلكتروني</span><input name="email" type="email" autocomplete="email" required /></label>
+          <label><span data-bi data-bi-ar="الرسالة" data-bi-en="Message">الرسالة</span><textarea name="message" rows="4" required></textarea></label>
+          <label hidden aria-hidden="true" tabindex="-1">Bot trap<input name="company" autocomplete="off" /></label>
+          <div><button class="cta" type="submit"><span data-bi data-bi-ar="إرسال" data-bi-en="Send">إرسال</span></button></div>
+        </form>
+      </section>`,
+  }
+  const body = seqIds(SITE_SECTIONS, p)
+    .map((id) => blocks[id])
+    .join('\n\n')
+  const css = siteCssFor(tpl, p, kindOf(tpl)).replace(/<\/style/gi, '<\\/style')
+  const avatar = p.images?.avatar ? `          <img class="avatar" src="./${esc(p.images.avatar)}" alt="${esc(p.name.ar)}" />\n` : ''
   return `<!doctype html>
 <html lang="ar" dir="rtl" data-theme="${p.theme}">
   <head>
@@ -637,7 +784,8 @@ export const siteHtml = (tpl, p) => {
     <meta property="og:description" content="${esc(p.blurb.ar)}" />
     <meta property="og:type" content="website" />
     <meta name="theme-color" content="${p.theme === 'light' ? '#f7f8fa' : '#0a0c11'}" />
-    <link rel="stylesheet" href="styles.css" />
+    <style>${css}</style>
+    <link rel="stylesheet" href="./styles.css" />
     <script type="application/json" id="profile">${JSON.stringify(p)}</script>
   </head>
   <body>
@@ -646,7 +794,7 @@ export const siteHtml = (tpl, p) => {
       <div class="wrap bar">
         <a class="brand" href="./" data-brand>${esc(p.name.ar)}</a>
         <nav class="main" aria-label="main">
-${nav.map((x, i) => `          <a href="#${slug(x, i)}" data-nav="${i}">${esc(navAr[i] || x)}</a>`).join('\n')}
+${navRows}
         </nav>
         <button class="ghost" type="button" id="dirToggle" aria-label="تبديل اللغة والاتجاه / Toggle language">EN</button>
       </div>
@@ -655,48 +803,18 @@ ${nav.map((x, i) => `          <a href="#${slug(x, i)}" data-nav="${i}">${esc(na
     <main id="main">
       <section class="wrap hero" data-layout="${esc(p.hero)}">
         <div>
-          <h1 data-f="name">${esc(p.name.ar)}</h1>
+${avatar}          <h1 data-f="name">${esc(p.name.ar)}</h1>
           <p><span data-f="role">${esc(p.role.ar)}</span> — <span data-f="blurb">${esc(p.blurb.ar)}</span></p>
           <p style="padding-top:.7rem">
             <a class="cta" href="#contact"><span data-bi data-bi-ar="تواصل معي" data-bi-en="Get in touch">تواصل معي</span> ↗</a>
           </p>
         </div>
         <div class="stats">
-${stats || '          <div><b class="num">—</b><span>أضف أرقامك في content/profile.json ← stats</span></div>'}
+${stats}
         </div>
       </section>
 
-      <section class="wrap" id="work">
-        <h2 class="sec" data-bi data-bi-ar="الأعمال" data-bi-en="Selected work">الأعمال</h2>
-        <div class="grid" data-gallery="${esc(p.gallery)}">
-${cards || '          <p>أضف أعمالك في <code>content/profile.json → projects</code>، وملف دراسة حالة لكل عمل داخل <code>projects/</code>.</p>'}
-        </div>
-      </section>
-
-      <section class="wrap" id="about">
-        <h2 class="sec" data-bi data-bi-ar="عني" data-bi-en="About">عني</h2>
-        <p style="max-width:62ch" data-f="blurb">${esc(p.blurb.ar)}</p>
-        <p class="meta">${esc(p.city.ar)} · <span class="num">${esc(p.host)}</span></p>
-      </section>
-
-      <section class="wrap" id="services">
-        <h2 class="sec" data-bi data-bi-ar="لمن أعمل" data-bi-en="Best for">لمن أعمل</h2>
-        <ul class="clean">
-${services || '          <li>عدّل <code>content/profile.json → services</code></li>'}
-        </ul>
-      </section>
-
-      <section class="wrap" id="contact">
-        <h2 class="sec" data-bi data-bi-ar="تواصل" data-bi-en="Contact">تواصل</h2>
-        <!-- نموذج مضاد للسبام بلا اعتمادات: وجّه action إلى مزوّدك (Netlify Forms / Formspree / API خاص) -->
-        <form class="contact" method="post" action="">
-          <label><span data-bi data-bi-ar="الاسم" data-bi-en="Name">الاسم</span><input name="name" autocomplete="name" required /></label>
-          <label><span data-bi data-bi-ar="البريد الإلكتروني" data-bi-en="E-mail">البريد الإلكتروني</span><input name="email" type="email" autocomplete="email" required /></label>
-          <label><span data-bi data-bi-ar="الرسالة" data-bi-en="Message">الرسالة</span><textarea name="message" rows="4" required></textarea></label>
-          <label hidden aria-hidden="true" tabindex="-1">Bot trap<input name="company" autocomplete="off" /></label>
-          <div><button class="cta" type="submit"><span data-bi data-bi-ar="إرسال" data-bi-en="Send">إرسال</span></button></div>
-        </form>
-      </section>
+${body}
     </main>
 
     <footer class="site">
@@ -705,7 +823,7 @@ ${services || '          <li>عدّل <code>content/profile.json → services</c
         <span data-bi data-bi-ar="قالب · قالب — قالب مُرخّص" data-bi-en="Qalb — licensed template">${badgeMark(p)}</span>
       </div>
     </footer>
-    <script src="assets/content.js" defer></script>
+    <script src="./assets/content.js" defer></script>
   </body>
 </html>
 `
@@ -725,29 +843,51 @@ ${(j.bullets.en || j.bullets.ar || []).map((b) => `          <li>${esc(b)}</li>`
       </div>`,
         )
         .join('\n')
-    : '      <div class="job">\n        <p class="t">المسمى — الشركة</p>\n        <p class="p num">2023 — الآن</p>\n        <ul><li>ابدأ بفعل، واختم برقم: «خفّض زمن الاستجابة ٤٠٪».</li></ul>\n      </div>'
-  const skills = (p.skills.en || []).length
-    ? p.skills.en.map((s, i) => `<li data-i18n="skills.${i}">${esc((p.skills.ar || [])[i] || s)}</li>`).join('\n')
-    : '<li>عدّل content/profile.json ← skills</li>'
-  const aside = `      <h2 data-bi data-bi-ar="المهارات" data-bi-en="Skills">المهارات</h2>
+    : ''
+  const skillsItems = (p.skills.en || []).map((s, i) => `<li data-i18n="skills.${i}">${esc((p.skills.ar || [])[i] || s)}</li>`).join('\n')
+  const skillsLine = (p.skills.en || []).join(' · ')
+  const eduText = esc(p.edu.en || p.edu.ar || '—')
+  // أقسام منفصلة ككتل: يديرها الاستوديو، ولا تنطبع فيها أي تعليمات للمطوّر
+  const blocks = {
+    summary: `      <h2 data-bi data-bi-ar="ملخص مهني" data-bi-en="Summary">ملخص مهني</h2>
+      <p data-f="blurb">${esc(p.blurb.ar)}</p>`,
+    experience: jobs
+      ? `      <h2 data-bi data-bi-ar="الخبرة" data-bi-en="Experience">الخبرة</h2>
+${jobs}`
+      : '',
+    skills:
+      layout === 'side'
+        ? skillsItems
+          ? `      <h2 data-bi data-bi-ar="المهارات" data-bi-en="Skills">المهارات</h2>
       <ul class="clean">
-${skills}
-      </ul>
-      <h2 data-bi data-bi-ar="التعليم" data-bi-en="Education">التعليم</h2>
-      <p>${esc(p.edu.en || p.edu.ar || '—')}</p>
-      <h2 data-bi data-bi-ar="اللغات" data-bi-en="Languages">اللغات</h2>
-      <p>العربية (لغة أم) · الإنجليزية (مهنية)</p>`
-  const tail = `      <h2 data-bi data-bi-ar="المهارات" data-bi-en="Skills">المهارات</h2>
-      <p>${(p.skills.en || []).join(' · ') || 'عدّل content/profile.json ← skills'}</p>
-      <h2 data-bi data-bi-ar="التعليم" data-bi-en="Education">التعليم</h2>
-      <p>${esc(p.edu.en || p.edu.ar || '—')}</p>`
+${skillsItems}
+      </ul>`
+          : ''
+        : skillsLine
+          ? `      <h2 data-bi data-bi-ar="المهارات" data-bi-en="Skills">المهارات</h2>
+      <p>${skillsLine}</p>`
+          : '',
+    education: `      <h2 data-bi data-bi-ar="التعليم" data-bi-en="Education">التعليم</h2>
+      <p>${eduText}</p>`,
+    languages: `      <h2 data-bi data-bi-ar="اللغات" data-bi-en="Languages">اللغات</h2>
+      <p>العربية (لغة أم) · الإنجليزية (مهنية)</p>`,
+  }
+  const pick = (ids) =>
+    seqIds(ids, p)
+      .map((id) => blocks[id])
+      .filter(Boolean)
+      .join('\n')
+  const main = layout === 'side' ? pick(['summary', 'experience']) : pick(['summary', 'experience', 'skills', 'education'])
+  const aside = layout === 'side' ? pick(['skills', 'education', 'languages']) : ''
+  const css = siteCssFor(tpl, p, kindOf(tpl)).replace(/<\/style/gi, '<\\/style')
   const html = `<!doctype html>
 <html lang="ar" dir="rtl">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>${esc(p.name.ar)} — سيرة ذاتية</title>
-    <link rel="stylesheet" href="styles.css" />
+    <style>${css}</style>
+    <link rel="stylesheet" href="./styles.css" />
     <script type="application/json" id="profile">${JSON.stringify(p)}</script>
   </head>
   <body class="screen">
@@ -762,14 +902,11 @@ ${skills}
         <p class="role"><span data-f="role">${esc(p.role.ar)}</span> · <span data-f="city">${esc(p.city.ar)}</span></p>
         <p class="line"><span data-f="contact.email">${esc(p.contact.email || 'you@example.com')}</span> · <span data-f="contact.phone">${esc(p.contact.phone || '+966 5X XXX XXXX')}</span> · <span data-f="host">${esc(p.host)}</span></p>
       </header>
-      <h2 data-bi data-bi-ar="ملخص مهني" data-bi-en="Summary">ملخص مهني</h2>
-      <p data-f="blurb">${esc(p.blurb.ar)}</p>
-      <h2 data-bi data-bi-ar="الخبرة" data-bi-en="Experience">الخبرة</h2>
-${jobs}
-${layout === 'side' ? aside : tail}
+${main}
+${aside}
     </article>
     <footer class="site"><div class="wrap foot">${badgeMark(p)}</div></footer>
-    <script src="assets/content.js" defer></script>
+    <script src="./assets/content.js" defer></script>
   </body>
 </html>
 `
@@ -785,11 +922,11 @@ ${p.blurb.en || p.blurb.ar}
 
 ## Experience
 
-${p.jobs.length ? p.jobs.map((j) => `### ${j.title.en || j.title.ar}\n${j.period.en || j.period.ar}\n\n${(j.bullets.en || j.bullets.ar || []).map((b) => `- ${b}`).join('\n') || '- ابدأ بفعل واختم برقم.'}`).join('\n\n') : '### Role — Company\n2023 — Present\n\n- Start with a verb, end with a number.'}
+${p.jobs.length ? p.jobs.map((j) => `### ${j.title.en || j.title.ar}\n${j.period.en || j.period.ar}\n\n${(j.bullets.en || j.bullets.ar || []).map((b) => `- ${b}`).join('\n')}`).join('\n\n') : ''}
 
 ## Skills
 
-${p.skills.en.join(' · ') || 'edit content/profile.json'}
+${p.skills.en.join(' · ')}
 
 ## Education
 
@@ -893,7 +1030,7 @@ const t = (o) => (o && (o[lang] || o.ar)) || ''
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{t(profile.name)} — {t(profile.role)}</title>
     <meta name="description" content={t(profile.blurb)} />
-    <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
     <main>
@@ -937,7 +1074,7 @@ export default function Page() {
           {t(data.name, lang)} — {t(data.role, lang)}
         </title>
         <meta name="description" content={t(data.blurb, lang)} />
-        <link rel="stylesheet" href="/styles.css" />
+        <link rel="stylesheet" href="./styles.css" />
       </head>
       <body>
         <main>
@@ -1030,14 +1167,22 @@ export function packageFiles(tpl, ctx = {}) {
   const hasSite = k !== 'cv'
   const hasCv = k !== 'site'
   const personal = sanitizePersonal(ctx.personalize)
-  const p = profileFor(tpl, k, personal)
+  const custom = sanitizeCustom(ctx.custom, k)
+  const p = profileFor(tpl, k, personal, custom)
   // إزالةُ الشعار والحقوق تُشترى: رخصة White-label في إضافات الطلب تُسقطها،
   // واشتراك Pro (ومعه Plus) يُسقطها تلقائيًا — والقرارُ كله في badgeState لا هنا
   const bought = (Array.isArray(ctx.addons) ? ctx.addons : []).map((a) => (typeof a === 'string' ? a : a && a.id)).filter(Boolean)
   if (!badgeState({ plan: ctx.plan || 'free', addons: bought }).shown) p.qalb.badge = false
   const mark = markOf(order)
   const out = [{ path: 'LICENSE.txt', body: licenceText(tpl, order) }]
-  const add = (path, body) => out.push({ path, body: commentFor(path, mark) + body })
+  // علامة التتبّع في HTML تأتي بعد DOCTYPE لا قبله: تعليقٌ قبله يُدخل متصفّحاتٍ قديمة في وضع الـ quirks
+  const add = (path, body) => {
+    const head = commentFor(path, mark)
+    if (head && /\.html?$/i.test(path) && /^<!doctype/i.test(body)) {
+      const nl = body.indexOf('\n')
+      out.push({ path, body: body.slice(0, nl + 1) + head + body.slice(nl + 1) })
+    } else out.push({ path, body: head + body })
+  }
 
   add('README.md', readmeFor(tpl, k, order, personal))
 
@@ -1168,4 +1313,24 @@ export function readmeText(tpl, order = {}) {
 export function packageIndex(tpl) {
   const files = packageFiles(tpl, {})
   return { count: files.length, paths: files.map((f) => f.path), kb: Math.max(1, Math.round(files.reduce((s, f) => s + f.body.length, 0) / 1024)) }
+}
+
+/* ============================== تصدير الاستوديو ============================== */
+
+/**
+ * ما يبنيه الاستوديو للمشتري المتحكّم: نفس حزمة الطلب + ملفات صوره في
+ * `assets/img/` ببايتاتها الحقيقية — والصفحة تشير إليها بمسارات نسبية نظيفة
+ * (`./assets/img/…`)، فالحزمة مكتفية بذاتها وتفتح من القرص مباشرة.
+ */
+export function studioFiles(tpl, ctx = {}) {
+  const k = kindOf(tpl)
+  const custom = sanitizeCustom(ctx.custom, k)
+  const files = packageFiles(tpl, { ...ctx, custom })
+  for (const im of (custom && custom.images) || []) files.push({ path: im.path, body: dataUrlBytes(im.dataUrl) })
+  return files.sort((a, b) => a.path.localeCompare(b.path))
+}
+
+/** بايتات ZIP جاهزة للتنزيل من الاستوديو — صور المستخدم مضمّنة، لا روابط خارجية */
+export function studioZip(tpl, ctx = {}) {
+  return zipStore(studioFiles(tpl, ctx))
 }
