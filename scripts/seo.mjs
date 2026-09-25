@@ -99,23 +99,6 @@ writeFileSync(path.join(PUB, 'sitemap.xml'), xml)
 
 // البطاقة تُرسم بـ Pillow (تشكيل عربي صحيح)؛ لا نستخدم ImageMagick لأن
 // MSVG يفقد النصوص العربية المختلطة بالأرقام/Latin.
-const py = spawnSync('python3', [path.join(ROOT, 'scripts', 'og-cover.py')], { encoding: 'utf8' })
-const rasterized = py.status === 0 && existsSync(path.join(PUB, 'og-cover.png'))
-/**
- * سببُ التخطي كما قاله بايثون فعلًا — لا «no pillow» عامةً مهما كان النقص.
- * (كان التلخيص القديم يطبع «no pillow» والناقصُ `arabic_reshaper`، فيبحث
- * المشغّل عن علةٍ غير الموجودة وتبقى البطاقات قديمة.)
- */
-const ogWhy =
-  py.status === 0
-    ? ''
-    : String(py.stderr || py.stdout || '')
-        .trim()
-        .split('\n')
-        .pop()
-if (py.status !== 0) console.warn('og-cover: تخطّي —', ogWhy)
-
-/* ---------------- per-template social cards (public/og/<slug>.png) ---------------- */
 const hexOf = (id) => (PALETTE.find((c) => c.id === id) || PALETTE[3]).hex
 /** نفس قاعدة المتجر: أرقام هندية في البطاقة العربية (لا 249 بل ٢٤٩). */
 const arNum = (v) => String(v).replace(/\d/g, (d) => String.fromCharCode(0x0660 + Number(d)))
@@ -133,6 +116,36 @@ const rows = templates.map((x) => ({
   type: x.type,
   accent: hexOf(x.accent),
 }))
+/*
+ * سطرُ الغلاف كان ثابتًا في og-cover.py («١٥ منتجًا · من ٥٩ ر.س») والكتالوج يقول
+ * ٢٠ منتجًا وأرخصها ٤٩ — كذبةٌ مطبوعة على صورة المشاركة لا يراها فحص. صار يُحسب
+ * هنا من الكتالوج نفسه ويُسلَّم للرسم، ويدخل في الـmanifest فيلتقط CI أي قدمٍ فيه.
+ */
+const coverLine = `${arNum(templates.length)} منتجًا · من ${arNum(Math.min(...templates.map((x) => x.price)))} ر.س · شاملًا الضريبة`
+/*
+ * manifest.json هو عقدُ البطاقات: كل ما دخل في رسمها من الكتالوج والقاموس، نصًّا.
+ * فحصُ CI يقارنه هو لا بايتات الـPNG — فالبايتات تختلف بين البيئات (نسخُ الخطوط
+ * ومحرّكات الرسم) ولو ثُبّتت الإصدارات، أما النصُّ فدالّةٌ في محتوى المستودع وحده.
+ * فإن غيّر أحدٌ الكتالوج ولم يُعد التوليدَ سقط الفحص، وهو بالضبط مرضُ «١٤٢ تقييمًا».
+ */
+writeFileSync(path.join(PUB, 'og', 'manifest.json'), JSON.stringify({ coverLine, cards: rows }, null, 2) + '\n', 'utf8')
+const py = spawnSync('python3', [path.join(ROOT, 'scripts', 'og-cover.py'), '--cover-line', coverLine], { encoding: 'utf8' })
+const rasterized = py.status === 0 && existsSync(path.join(PUB, 'og-cover.png'))
+/**
+ * سببُ التخطي كما قاله بايثون فعلًا — لا «no pillow» عامةً مهما كان النقص.
+ * (كان التلخيص القديم يطبع «no pillow» والناقصُ `arabic_reshaper`، فيبحث
+ * المشغّل عن علةٍ غير الموجودة وتبقى البطاقات قديمة.)
+ */
+const ogWhy =
+  py.status === 0
+    ? ''
+    : String(py.stderr || py.stdout || '')
+        .trim()
+        .split('\n')
+        .pop()
+if (py.status !== 0) console.warn('og-cover: تخطّي —', ogWhy)
+
+/* ---------------- per-template social cards (public/og/<slug>.png) ---------------- */
 const cards = spawnSync('python3', [path.join(ROOT, 'scripts', 'og-cover.py'), '--cards'], {
   encoding: 'utf8',
   input: JSON.stringify(rows),
