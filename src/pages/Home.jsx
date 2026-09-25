@@ -9,7 +9,7 @@ import PlanCards from '../components/PlanCards'
 import QuickView from '../components/QuickView'
 import RecentlyViewed from '../components/RecentlyViewed'
 import { useSeo, siteGraph, faqLd } from '../components/Seo'
-import { Btn, Head, Icon, Money, Pill, Reveal, Stars } from '../components/ui'
+import { Btn, Head, Icon, Money, Pill, Reveal, REVEAL_OBSERVER, Stars } from '../components/ui'
 import { useStore } from '../store/StoreContext'
 
 const HERO_IDS = ['aether', 'mirrorbundle', 'nexus', 'nova']
@@ -534,7 +534,7 @@ function HowItWorks() {
 /* =============================== PROOF =============================== */
 function ProofBlock() {
   const { t } = useI18n()
-  const [seen, ref] = useInView(0.25)
+  const [seen, ref] = useInView()
   const pct = seen ? 96 : 0
 
   const bad = ['b1', 'b2', 'b3', 'b4'].map((k) => t(`proof.${k}`))
@@ -976,8 +976,12 @@ function CtaBand() {
 }
 
 /* =============================== helpers =============================== */
-/** One-shot "is it on screen yet" flag — used to fire the score meters. */
-function useInView(threshold = 0.35) {
+/**
+ * One-shot "is it on screen yet" flag — used to fire the score meters.
+ * يرث إعدادات الظهور نفسها التي ترثها البطاقات (`REVEAL_OBSERVER`): هامشٌ
+ * يسبق الدخول بـ150px، فلا يبدأ العدُّ بعد أن يستقرّ القسمُ في العين.
+ */
+function useInView(threshold = REVEAL_OBSERVER.threshold) {
   const ref = useRef(null)
   const [seen, setSeen] = useState(() => typeof IntersectionObserver === 'undefined')
   useEffect(() => {
@@ -990,7 +994,7 @@ function useInView(threshold = 0.35) {
           io.disconnect()
         }
       },
-      { threshold },
+      { rootMargin: REVEAL_OBSERVER.rootMargin, threshold },
     )
     io.observe(el)
     return () => io.disconnect()
