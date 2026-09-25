@@ -526,6 +526,19 @@ export function AssureRow({ className = '' }) {
 }
 
 /* ============================ scroll reveal ============================ */
+/**
+ * إعدادات مراقب الظهور — مصدرٌ واحد لكلِّ من يُشعل حركةً عند الوصول (بطاقاتُ
+ * `Reveal` وعدّادات الرئيسية على السواء). والغايةُ ألّا يرتبط الظهورُ بالوصول نفسه:
+ *
+ * - `rootMargin: '150px 0px'` توسّع منطقةَ الرصد 150px من أعلى وأسفل —
+ *   فيبدأ الانتقالُ قبل أن يبلغ العنصرُ حدَّ الشاشة، ولا يظهر «مقفلًا» لحظةَ
+ *   دخوله ثم يقفز. (اليمينُ واليسار صفرًا: التوسّعُ رأسيّ لا أفقيّ.)
+ * - `threshold: 0.1` تكفي معها عُشرُ البطاقة ليُعدّ السطرُ ظاهرًا.
+ *
+ * ولا يتكرّر الرقمان: من احتاج مراقبًا استوردهما من هنا.
+ */
+export const REVEAL_OBSERVER = { rootMargin: '150px 0px', threshold: 0.1 }
+
 export function Reveal({ children, delay = 0, y = 22, className = '', as: Cmp = 'div' }) {
   const ref = useRef(null)
   // بدون IntersectionObserver لا معنى للانتظار: نظهر فورًا من الحالة الأولية
@@ -533,17 +546,14 @@ export function Reveal({ children, delay = 0, y = 22, className = '', as: Cmp = 
   useEffect(() => {
     const el = ref.current
     if (!el || typeof IntersectionObserver === 'undefined') return
-    const io = new IntersectionObserver(
-      (ents) => {
-        ents.forEach((e) => {
-          if (e.isIntersecting) {
-            setSeen(true)
-            io.disconnect()
-          }
-        })
-      },
-      { rootMargin: '0px 0px -8% 0px', threshold: 0.08 },
-    )
+    const io = new IntersectionObserver((ents) => {
+      ents.forEach((e) => {
+        if (e.isIntersecting) {
+          setSeen(true)
+          io.disconnect()
+        }
+      })
+    }, REVEAL_OBSERVER)
     io.observe(el)
     return () => io.disconnect()
   }, [])

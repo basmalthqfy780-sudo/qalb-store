@@ -1132,6 +1132,97 @@ for (const c of cases) {
   }
 }
 
+/* ---------------- حركة الظهور · إعدادات المراقب الواحدة ---------------- */
+/*
+ * المؤشرُ ليس شيفرةَ الملف بل ما يصل إلى `IntersectionObserver` فعلًا: نُبدّل
+ * المراقب في window قبل الإقلاع ونسجّل كلَّ خيارٍ يُمرَّر له. فاختبارُ المصدر
+ * وحده كان سيمرّ حتى لو نُسيَ الوسيطُ في موضعٍ ثانٍ من التطبيق.
+ */
+{
+  const checks = []
+  const ok = (name, cond, extra = '') => checks.push([cond ? name : `${name} — ${extra}`, !!cond])
+  const read = (f) => readFileSync(new URL(f, import.meta.url), 'utf8')
+
+  /* ——— النصّ: الرقمان مكتوبان مرةً واحدة، وبقيّةُ الملفات تستوردهما ——— */
+  const ui = read('../src/components/ui.jsx')
+  const home = read('../src/pages/Home.jsx')
+  ok(
+    'the reveal options are one exported constant with the brief’s two values',
+    /export const REVEAL_OBSERVER = \{ rootMargin: '150px 0px', threshold: 0\.1 \}/.test(ui),
+  )
+  // الوسيطُ الثاني للمراقب هو الثابتُ نفسه — لا كائنٌ مكتوبٌ بجانبه (الشكل
+  // يتغيّر بتغيّر الطول: prettier يطويه في سطرٍ إذا اتّسع)
+  ok('the card observer hands that constant to the browser as it is', /new IntersectionObserver\([\s\S]{0,600}?\},\s*REVEAL_OBSERVER,?\s*\)/.test(ui))
+  ok('the late bottom margin of the old observer is gone', !/-8%/.test(ui))
+  ok(
+    'the score-meter hook inherits the same margin instead of declaring its own',
+    /rootMargin: REVEAL_OBSERVER\.rootMargin/.test(home) && /useInView\(\)/.test(home),
+  )
+  const creators = readdirSync(new URL('../src', import.meta.url), { recursive: true })
+    .map(String)
+    .filter((f) => /\.(js|jsx)$/.test(f))
+    .filter((f) => /new IntersectionObserver\(/.test(read('../src/' + f)))
+  ok(
+    'every file in the app that creates an observer imports the shared options',
+    creators.length >= 2 && creators.every((f) => /REVEAL_OBSERVER/.test(read('../src/' + f))),
+    creators.join(','),
+  )
+
+  /* ——— وما يصل إلى المتصفح: كلُّ مراقبٍ في الرئيسية بالهامش والعتبة نفسيهما ——— */
+  const seen = []
+  const g = await render(
+    'http://localhost/',
+    {},
+    {
+      boot(win) {
+        win.IntersectionObserver = class {
+          constructor(cb, opts) {
+            this.cb = cb
+            seen.push(opts)
+          }
+          // المراقبُ الحقيقيّ يُسلّم الحالةَ الأولى فور `observe` — ونفعل مثلها
+          observe(el) {
+            setTimeout(() => this.cb([{ isIntersecting: true, target: el }]), 0)
+          }
+          unobserve() {}
+          disconnect() {}
+        }
+      },
+    },
+  )
+  await g.wait()
+  ok('the home page opens more than one observer', seen.length >= 5, `count=${seen.length}`)
+  ok(
+    'each one asks for the 150px head start',
+    seen.length > 0 && seen.every((o) => o?.rootMargin === '150px 0px'),
+    JSON.stringify(seen.filter((o) => o?.rootMargin !== '150px 0px').slice(0, 2)),
+  )
+  ok(
+    'and the 0.1 threshold, never a stricter one',
+    seen.every((o) => o?.threshold === 0.1),
+    JSON.stringify(seen.map((o) => o?.threshold).slice(0, 6)),
+  )
+  const reveals = [...g.doc.querySelectorAll('.reveal')]
+  ok(
+    'so every revealed card leaves its hidden state once observed',
+    reveals.length >= 10 && reveals.every((el) => el.classList.contains('reveal-in')),
+    `${reveals.filter((el) => !el.classList.contains('reveal-in')).length}/${reveals.length} still hidden`,
+  )
+  ok('no console errors in this group', g.errs.filter((e) => !/not implemented/i.test(e)).length === 0, g.errs.slice(0, 1).join(' '))
+  g.dom.window.close()
+
+  const bad = checks.filter(([, pass]) => !pass)
+  if (bad.length) {
+    failed++
+    groups++
+    console.log('✗ scroll reveal · one observer configuration')
+    bad.forEach(([n]) => console.log('   failed: ' + n))
+  } else {
+    groups++
+    console.log(`✓ scroll reveal · one observer configuration  (${checks.length} assertions)`)
+  }
+}
+
 /* ---------------- growth v1.5.0 · الإضافات والاشتراك والعروض والخدمات ---------------- */
 {
   const checks = []
