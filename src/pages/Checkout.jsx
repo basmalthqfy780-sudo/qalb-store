@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { submitOrder, apiMode, createPayment } from '../api'
+import { submitOrder, apiMode, createPayment, isProdLocalDemo } from '../api'
 import { Link, useNavigate } from 'react-router-dom'
 import { useI18n, num, dec } from '../i18n'
 import { useStore, VAT } from '../store/StoreContext'
@@ -182,6 +182,14 @@ export default function Checkout() {
               {t('cart.summary')} · <span className="num">{num(totals.count)}</span> {t('cart.items')}
             </p>
           </div>
+
+          {/* بناءُ إنتاجٍ بلا خادم: لا يُترك المشتري يظن أن بطاقته خُصمت */}
+          {isProdLocalDemo ? (
+            <div role="status" className="mb-6 flex items-start gap-3 rounded-2xl border border-gold/40 bg-gold/10 p-4 text-[13px] leading-relaxed">
+              <Icon n="lock" className="mt-0.5 size-4 shrink-0" />
+              <span>{t('checkout.demoProd')}</span>
+            </div>
+          ) : null}
 
           {/* stepper */}
           <ol className="mb-8 flex items-center gap-2">

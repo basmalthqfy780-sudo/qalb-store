@@ -1002,6 +1002,8 @@ const en = {
     addonRail: 'Add-on — delivered by e-mail',
   },
   checkout: {
+    demoProd:
+      'Demo deployment: this build is published without the order server — the order is stored on the buyer’s device, no card is charged, and the package is generated in their browser. To sell for real, run server/ and set VITE_QALB_API=rest.',
     title: 'Checkout',
     step1: 'Details',
     step2: 'Payment',

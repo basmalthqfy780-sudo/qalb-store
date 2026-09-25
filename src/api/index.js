@@ -36,6 +36,20 @@ export const BASE = (env('VITE_QALB_API_BASE') || '').replace(/\/+$/, '')
  */
 export const apiMode = env('VITE_QALB_API') === 'rest' ? 'rest' : 'local'
 
+/**
+ * بناءُ إنتاجٍ بوضعٍ محلي: لا خادمَ يسجّل الطلب، ولا بوابةَ تقبض، والحزمُ تُبنى في
+ * المتصفح — أي أن المتجر معروضٌ للبيع بلا بيع. الوضعُ المحلي تجربةٌ على الجهاز
+ * (واللوحة تقول ذلك في شارة «وضع الجهاز»)، لكن نشرَه كما هو كان يمرّ بلا كلمةٍ
+ * واحدة. فالصفحة تقولها الآن، والبناء يقولها في الطرفية.
+ */
+export const isProdLocalDemo = (() => {
+  try {
+    return !!import.meta.env?.PROD && apiMode !== 'rest'
+  } catch {
+    return false
+  }
+})()
+
 const ORDERS = 'qalb.orders.v1'
 const LAST = 'qalb.lastOrder'
 export const read = (k, fb) => {

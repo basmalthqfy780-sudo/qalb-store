@@ -469,19 +469,35 @@ const cases = [
 async function settle(root, { quiet = 3, max = 4000 } = {}) {
   let prev = -1
   let still = 0
+  let confirmed = false
   const t0 = Date.now()
   while (Date.now() - t0 < max) {
     await new Promise((r) => setTimeout(r, 8))
     // a lazy route still showing its fallback looks "stable" — keep waiting
     if (root && root.querySelector('[data-route-fallback]')) {
       still = 0
+      confirmed = false
       continue
     }
     const n = root.querySelectorAll('*').length
     if (n === prev && n > 0) {
-      if (++still >= quiet) break
+      if (++still >= quiet) {
+        /*
+         * A redirect rendered on first paint (react-router's <Navigate>) lands in
+         * a transition, and the lazy page it points at suspends a beat LATER than
+         * this quiet window — so "nothing moved for 24ms" once meant "final" while
+         * the catalogue was still one hop away. One confirmation round: if the DOM
+         * moves again within it, we were watching the space between two renders.
+         */
+        if (confirmed) break
+        confirmed = true
+        still = 0
+        await new Promise((r) => setTimeout(r, 120))
+        continue
+      }
     } else {
       still = 0
+      confirmed = false
       prev = n
     }
   }
