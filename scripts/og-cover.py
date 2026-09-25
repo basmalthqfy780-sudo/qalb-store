@@ -199,6 +199,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default=os.path.join(here, "public", "og-cover.png"))
     ap.add_argument("--cards", action="store_true", help="read a JSON array on stdin and render public/og/<slug>.png for each")
+    ap.add_argument("--cover-line", default=None, help="سطر الغلاف المحسوب من الكتالوج (يمرّره scripts/seo.mjs)")
     args = ap.parse_args()
 
     if args.cards:
@@ -258,7 +259,9 @@ def main():
     for i, line in enumerate(["معاينة حيّة قبل الشراء", "تعديل نصّي ونشر على Vercel", "ملف ATS جاهز للتقديم"]):
         rtl(px, (rx, 300 + i * 44), line, font(FD, 26), DIM)
     px.line([(700, 462), (rx, 462)], fill=(52, 211, 153, 120), width=2)
-    rtl(px, (rx, 498), "١٥ منتجًا · من ٥٩ ر.س · شاملًا الضريبة", font(FB, 26), GOLD)
+    if not args.cover_line:
+        raise SystemExit("og-cover: سطر الغلاف لم يعد ثابتًا هنا — شغّله عبر npm run gen:seo ليمرّر --cover-line من الكتالوج")
+    rtl(px, (rx, 498), args.cover_line, font(FB, 26), GOLD)
 
     px.text((72, 580), "QALB · MADE IN JEDDAH · qalb.store", font=font(FD, 20), fill=(107, 116, 132), spacing=3)
 

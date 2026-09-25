@@ -38,11 +38,15 @@ jobs:
       - name: Build
         run: npm run build
 
-      # البناء (prebuild) يُعيد توليد البطاقات وrobots وsitemap وllms وكتلة meta في
-      # index.html. فإن اختلف القرص عمّا في المستودع فالتوليدُ لم يُلحق بالكتالوج —
-      # وهذا بالضبط الانحرافُ الذي عاش بصمتًا، فيُرفض الدمج بدل نشر صورةٍ قديمة.
+      # البناء (prebuild) يُعيد توليد كل الأصول المولَّدة. فالمقارنةُ تكون على ما هو
+      # دالّةٌ في محتوى المستودع وحده: manifest البطاقات (كل نصٍّ دخل في رسمها:
+      # الأسعار والتقييمات وسطر الغلاف المحسوب من الكتالوج) وrobots وsitemap وllms
+      # وكتلة meta في index.html. فإن غيّر أحدٌ الكتالوج ولم يُعد التوليد سقط الفحص —
+      # وهذا بالضبط مرضُ بطاقةٍ تعلن ١٤٢ تقييمًا والكتالوج يقول ٨.
+      # (لا نقارن بايتات الـPNG: raster العربي يختلف بين البيئات ولو ثُبّتت الإصدارات،
+      # فالبايتات ليست عقدًا — والعقد هو الـmanifest.)
       - name: Generated assets match the catalog (no silent drift)
-        run: git diff --exit-code -- public/ index.html
+        run: git diff --exit-code -- public/og/manifest.json public/robots.txt public/sitemap.xml public/llms.txt index.html
 
       - name: Tests (real app rendered in jsdom + admin API over a spawned server)
         run: npm test
