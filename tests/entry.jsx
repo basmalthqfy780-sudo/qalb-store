@@ -2,6 +2,13 @@ import { createRoot } from 'react-dom/client'
 import React from 'react'
 import { BrowserRouter } from 'react-router-dom'
 import { LangProvider } from '../src/i18n'
+/*
+ * القاموسان يُحقنان هنا صراحةً: التطبيق يطلب الإنجليزية chunk ديناميكيًا عند
+ * الحاجة (انظر src/i18n/loader.js)، والاختبار لا يجوز أن ينتظر وحدةً ديناميكية
+ * ولا أن يعتمد على timing — فيدخل باللغتين معًا ويرسم متزامنًا كما كان.
+ */
+import ar from '../src/i18n/locales/ar.js'
+import en from '../src/i18n/locales/en.js'
 import { StoreProvider } from '../src/store/StoreContext'
 import App from '../src/App'
 import ErrorBoundary from '../src/components/ErrorBoundary'
@@ -18,7 +25,7 @@ createRoot(el).render(
   React.createElement(
     BrowserRouter,
     null,
-    React.createElement(LangProvider, null, React.createElement(StoreProvider, null, React.createElement(App, null))),
+    React.createElement(LangProvider, { dicts: { ar, en } }, React.createElement(StoreProvider, null, React.createElement(App, null))),
   ),
 )
 
@@ -50,7 +57,11 @@ if (CASE === 'stale' || CASE === 'plain') {
     React.createElement(
       BrowserRouter,
       null,
-      React.createElement(LangProvider, null, React.createElement(ErrorBoundary, { onRetry: () => {} }, React.createElement(Thrower, null))),
+      React.createElement(
+        LangProvider,
+        { dicts: { ar, en } },
+        React.createElement(ErrorBoundary, { onRetry: () => {} }, React.createElement(Thrower, null)),
+      ),
     ),
   )
 }

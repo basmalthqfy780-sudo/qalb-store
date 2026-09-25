@@ -2634,6 +2634,46 @@ for (const c of cases) {
   }
 }
 
+/* ------------- i18n loader: language per chunk, arabic with the entry ------------- */
+{
+  const checks = []
+  const bad = []
+  const ok = (name, cond, extra = '') => {
+    checks.push(name)
+    if (!cond) bad.push(name + (extra ? ` (${extra})` : ''))
+  }
+  const loader = await import('../src/i18n/loader.js')
+  const arMod = await import('../src/i18n/locales/ar.js')
+  const enMod = await import('../src/i18n/locales/en.js')
+  /*
+   * Why this exists: the dictionary used to be one module holding both languages,
+   * so every visitor downloaded the language they would never read — about half the
+   * entry chunk. Arabic now ships with the entry (first paint waits for nothing) and
+   * English is a chunk fetched when it is chosen. These assertions hold that shape:
+   * if someone re-imports the bilingual aggregator from the app graph, the split is
+   * silently undone and the entry chunk grows back.
+   */
+  ok('arabic is available synchronously — first paint waits for no fetch', loader.dictOf('ar') === arMod.default)
+  const before = loader.dictOf('en')
+  ok('a language not yet loaded falls back to arabic, never to raw keys', before === arMod.default || before === enMod.default)
+  const loaded = await loader.loadDict('en')
+  ok('loadDict resolves the english chunk', loaded === enMod.default)
+  ok('and caches it, so switching back and forth fetches once', (await loader.loadDict('en')) === loaded)
+  ok('the aggregator still serves both languages to node readers', dict.ar === arMod.default && dict.en === enMod.default)
+  ok('the app graph no longer imports the bilingual aggregator', !/from '\.\/translations'/.test(readFileSync('src/i18n/index.jsx', 'utf8')))
+  ok('main.jsx waits for english only when the visitor opens in english', /initialLang\(\) === 'en'/.test(readFileSync('src/main.jsx', 'utf8')))
+
+  if (bad.length) {
+    failed++
+    groups++
+    console.log('✗ i18n · one language per chunk')
+    bad.forEach((n) => console.log('   failed: ' + n))
+  } else {
+    groups++
+    console.log(`✓ i18n · one language per chunk  (${checks.length} assertions)`)
+  }
+}
+
 /* ---------------- css: a hand-written reset must never outrank a utility ---------------- */
 {
   const checks = []
