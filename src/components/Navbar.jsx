@@ -36,12 +36,12 @@ export function Logo({ compact = false }) {
   const { t } = useI18n()
   return (
     <Link to="/" aria-label={t('brand.name')} className="group inline-flex items-center gap-2.5">
-      <span className="relative grid size-9 place-items-center rounded-[11px] bg-ink text-bg transition-transform duration-300 group-hover:-rotate-6 light:bg-brand light:text-brandink">
+      <span className="relative grid size-9 shrink-0 place-items-center rounded-[11px] bg-ink text-bg transition-transform duration-300 group-hover:-rotate-6 light:bg-brand light:text-brandink">
         <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
           <path d="M7 4.5h6.2a4.3 4.3 0 0 1 .8 8.5L17 19.5h-3l-2.4-5.4" />
           <path d="M7 4.5v15" />
         </svg>
-        <span className="absolute -end-0.5 -top-0.5 size-2 rounded-full bg-gold ring-2 ring-bg" />
+        <span className="absolute -end-1 -top-1 size-2 rounded-full bg-gold ring-2 ring-bg" />
       </span>
       {!compact && (
         <span className="flex flex-col leading-none">

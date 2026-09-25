@@ -129,7 +129,7 @@ export default function Pricing() {
                   {LA(publishPlan?.bullets)
                     .slice(0, 2)
                     .map((b, i) => (
-                      <li key={i} className="flex items-start gap-2 text-[12.5px] leading-relaxed text-ink/80">
+                      <li key={i} className="flex items-start gap-2 text-[12.5px] leading-relaxed text-ink">
                         <Icon n="check" className="mt-0.5 size-3.5 shrink-0 text-brand" />
                         <span>{b}</span>
                       </li>
@@ -167,7 +167,7 @@ export default function Pricing() {
               </div>
               <ul className="mt-4 flex-1 space-y-2">
                 {LA(PUBLISH_DONE.bullets).map((b, i) => (
-                  <li key={i} className="flex items-start gap-2 text-[13px] leading-relaxed text-ink/80">
+                  <li key={i} className="flex items-start gap-2 text-[13px] leading-relaxed text-ink">
                     <Icon n="check" className="mt-0.5 size-3.5 shrink-0 text-[#3ecf8e]" />
                     <span>{b}</span>
                   </li>

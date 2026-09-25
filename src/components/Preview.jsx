@@ -29,7 +29,7 @@ export function ArtTile({ tpl, size = 44, className = '', label }) {
     >
       {isSite ? (
         <>
-          <span style={{ position: 'absolute', inset: 0, background: `linear-gradient(140deg, ${a}, ${a}55 55%, #0d0f14)` }} />
+          <span style={{ position: 'absolute', inset: 0, background: `linear-gradient(140deg, ${a}, ${a}99 55%, #1a2233)` }} />
           <span style={{ position: 'absolute', top: 0, insetInline: 0, height: '22%', background: 'rgba(255,255,255,.22)' }} />
           <span
             style={{

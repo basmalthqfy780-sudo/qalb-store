@@ -98,7 +98,7 @@ export default function TemplateCard({ tpl, onQuick, className = '' }) {
           <span className="font-bold text-dim" aria-hidden="true">
             —
           </span>{' '}
-          <span data-tpl-licence className="font-bold text-ink/80">
+          <span data-tpl-licence className="font-bold text-ink">
             {t('card.oneTime')}
           </span>
           {tpl.oldPrice ? (
@@ -127,7 +127,13 @@ export default function TemplateCard({ tpl, onQuick, className = '' }) {
             {lang === 'ar' ? kind.ar : kind.en}
           </span>{' '}
           <span className="num ms-auto inline-flex items-center gap-1 text-[11px] font-semibold text-dim">
-            <Stars value={tpl.rating} size={11} show={false} /> {tpl.reviews} {t('misc.reviews')}
+            {tpl.isNew ? (
+              <span className="font-bold text-brand">{t('card.new')}</span>
+            ) : (
+              <>
+                <Stars value={tpl.rating} size={11} show={false} /> {tpl.rating.toFixed(1)}
+              </>
+            )}
           </span>
         </div>{' '}
         {/* ٥. زرّانِ صريحان في صفٍّ واحد — mt-auto يُلصقهما بالأسفل فتتساوى ارتفاعات الشبكة */}

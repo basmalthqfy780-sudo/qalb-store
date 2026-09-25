@@ -116,7 +116,7 @@ export default function Personalize({ compact = false, className = '' }) {
 
           <div className="mt-3.5 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-xl border border-line bg-panel/70 px-3 py-2 text-[11.5px] leading-relaxed text-dim">
             <Icon n="check" className="size-3.5 shrink-0 text-brand" sw={2.8} />
-            <span className="font-bold text-ink/80">{t('personal.preview')}</span>
+            <span className="font-bold text-ink">{t('personal.preview')}</span>
             {shown.length ? (
               <span className="min-w-0">{shown.map(([k, v]) => `${t(k === 'website' ? 'personal.site' : `personal.${k}`)}: ${v}`).join(' · ')}</span>
             ) : (

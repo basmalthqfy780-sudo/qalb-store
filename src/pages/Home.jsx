@@ -192,8 +192,8 @@ function Hero({ onQuick }) {
               {[
                 [`${num(templates.length)}+`, t('hero.statTemplates')],
                 ['4.9', t('hero.statRating')],
-                ['24K', t('hero.statHired')],
-                ['38', t('hero.statCountries')],
+                ['20+', t('hero.statHired')],
+                ['2', t('hero.statCountries')],
               ].map(([v, l]) => (
                 <div key={l}>
                   <dt className="num text-2xl font-extrabold tracking-tight">{v}</dt>
@@ -298,7 +298,7 @@ function Trust() {
             ما دام الـ gap يفصل النسختين، فتظهر القفزة كأنها خطأ برمجي. */}
         <ul className="flex flex-1 flex-wrap items-center gap-x-8 gap-y-3 md:justify-between">
           {list.map((b) => (
-            <li key={b} className="whitespace-nowrap font-display text-[18px] font-bold opacity-45 transition hover:opacity-100">
+            <li key={b} className="whitespace-nowrap font-display text-[18px] font-bold opacity-75 transition hover:opacity-100">
               {b}
             </li>
           ))}
@@ -512,7 +512,7 @@ function HowItWorks() {
                 <span className="relative grid size-[52px] place-items-center rounded-2xl bg-bg text-brand ring-1 ring-line">
                   <Icon n={s.icon} className="size-6" />
                 </span>
-                <span className="num absolute end-5 top-4 font-display text-[34px] font-extrabold leading-none text-line select-none">{s.k}</span>
+                <span className="num absolute end-5 top-4 font-display text-[34px] font-extrabold leading-none text-dim opacity-60 select-none">{s.k}</span>
                 <h3 className="mt-5 font-display text-[19px] font-extrabold">{s.title}</h3>
                 <p className="mt-2 text-[14px] leading-relaxed text-dim">{s.d}</p>
               </div>
@@ -846,7 +846,7 @@ function Testimonials() {
           right={
             <div className="flex items-center gap-3 rounded-2xl border border-line bg-panel px-4 py-3">
               <Stars value={4.9} size={15} />
-              <span className="num text-[13px] font-bold">4.9 · 6,214</span>
+              <span className="num text-[13px] font-bold">4.9 · 12</span>
             </div>
           }
         />
@@ -855,9 +855,9 @@ function Testimonials() {
         {testimonials.map((x, k) => (
           <Reveal key={x.id} delay={k * 70} className="h-full">
             <figure className="relative flex h-full flex-col rounded-2xl border border-line bg-panel p-6 transition-all duration-300 hover:-translate-y-1 hover:border-brand/30 hover:shadow-soft">
-              <Icon n="quote" className="absolute end-5 top-5 size-8 text-line" fill sw={0} />
+              <Icon n="quote" className="absolute end-5 top-5 size-8 text-dim opacity-40" fill sw={0} />
               <Stars value={x.stars} size={13} show={false} />
-              <blockquote className="mt-4 flex-1 text-[14.5px] leading-[1.85] text-ink/90">{L(x.text)}</blockquote>
+              <blockquote className="mt-4 flex-1 text-[14.5px] leading-[1.85] text-ink">{L(x.text)}</blockquote>
               <figcaption className="mt-6 flex items-center gap-3 border-t border-line pt-5">
                 <span className="grid size-10 shrink-0 place-items-center rounded-full bg-brand/12 font-display text-[15px] font-extrabold text-brand">
                   {L(x.name).trim().charAt(0)}
@@ -947,9 +947,9 @@ function CtaBand() {
           <div className="relative flex flex-col items-start justify-between gap-8 lg:flex-row lg:items-center">
             <div className="max-w-2xl">
               <h2 className="font-display text-[clamp(1.55rem,3.2vw,2.3rem)] font-extrabold leading-[1.25]">{t('cta.title')}</h2>
-              <p className="mt-3 text-[15px] leading-relaxed opacity-75">{t('cta.sub')}</p>
-              <p className="num mt-5 text-[12.5px] font-semibold opacity-70">
-                {num(24128)} · {t('hero.pill')}
+              <p className="mt-3 text-[15px] leading-relaxed opacity-90">{t('cta.sub')}</p>
+              <p className="num mt-5 text-[12.5px] font-semibold opacity-85">
+                {t('hero.pill')}
               </p>
             </div>
             <div className="flex w-full shrink-0 flex-col gap-3 sm:w-auto sm:flex-row">

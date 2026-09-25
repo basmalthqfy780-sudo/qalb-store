@@ -580,7 +580,7 @@ function Review({ label, value }) {
 function Row({ label, v, dim, brand }) {
   return (
     <div className="flex items-center justify-between">
-      <span className={dim ? 'text-dim' : 'text-ink/80'}>{label}</span>
+      <span className={dim ? 'text-dim' : 'text-ink'}>{label}</span>
       <span className={`num font-semibold ${brand ? 'text-brand' : ''}`}>
         {v < 0 ? '− ' : ''}
         {dec(Math.abs(v))}

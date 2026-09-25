@@ -83,7 +83,7 @@ export default function PlanCards({ toggle = true, className = '' }) {
 
                 <ul className="mt-5 flex-1 space-y-2.5 border-t border-line pt-5">
                   {LA(p.bullets).map((b, i) => (
-                    <li key={i} className="flex items-start gap-2 text-[13px] leading-relaxed text-ink/80">
+                    <li key={i} className="flex items-start gap-2 text-[13px] leading-relaxed text-ink">
                       <Icon n="check" className="mt-0.5 size-3.5 shrink-0 text-[#3ecf8e]" />
                       <span>{b}</span>
                     </li>
