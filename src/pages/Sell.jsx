@@ -277,7 +277,9 @@ export default function Sell() {
     return (
       <div className="page-x mx-auto max-w-[720px] pb-24 pt-16">
         <Head as="h1" kicker={t('sell.kicker')} title={t('sell.needAccount')} sub={t('sell.needAccountSub')} />
-        <Btn to="/account" size="lg" className="mt-6">
+        {/* الزرُّ يقصد صفحة التسجيل نفسها، لا اللوحة المسوَّرة — فالعنوان «أنشئ حسابك»
+            يجب أن يُنزل الزائر حيث يُنشَأ الحساب فعلًا (src/pages/Auth.jsx) */}
+        <Btn to="/register" size="lg" className="mt-6">
           {t('sell.createCta')}
         </Btn>
       </div>

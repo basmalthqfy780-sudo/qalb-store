@@ -9,10 +9,20 @@ import PlanCards from '../components/PlanCards'
 import QuickView from '../components/QuickView'
 import RecentlyViewed from '../components/RecentlyViewed'
 import { useSeo, siteGraph, faqLd } from '../components/Seo'
-import { Btn, Head, Icon, Money, Pill, Reveal, REVEAL_OBSERVER, Stars } from '../components/ui'
+import { Btn, Head, Icon, Money, Pill, Reveal, REVEAL_OBSERVER } from '../components/ui'
 import { useStore } from '../store/StoreContext'
+import { packageIndex } from '../data/deliverable'
+import { VAT } from '../data/tax.js'
 
 const HERO_IDS = ['aether', 'mirrorbundle', 'nexus', 'nova']
+/*
+ * أرقامُ البطل تُحسَب هنا مرةً واحدة من بيانات المستودع، فلا رقمَ في الشاشة
+ * لا يسنده سطر: أدنى درجة ATS بين قوالب السيرة، ومدى عدد ملفات أي حزمة تسليم.
+ */
+const minAts = Math.min(...templates.filter((t) => t.type !== 'portfolio' && t.ats).map((t) => t.ats))
+const fileCounts = templates.map((t) => packageIndex(t)?.count || 0).filter(Boolean)
+const minFiles = Math.min(...fileCounts)
+const maxFiles = Math.max(...fileCounts)
 const FAQ_KEYS = ['1', '2', '3', '4', '5', '6']
 const DEPLOY_CMDS = [
   'git clone https://github.com/qalb/aether.git my-portfolio',
@@ -190,10 +200,16 @@ function Hero({ onQuick }) {
           <Reveal delay={240}>
             <dl className="mt-11 grid max-w-lg grid-cols-2 gap-x-6 gap-y-7 border-t border-line pt-8 sm:grid-cols-4">
               {[
+                /*
+                 * أرقامُ البطاقة كلها من المستودع نفسه: عددُ المنتجات، أدنى درجة
+                 * فحص في قوالب السيرة، مدى ملفّات الحزمة، ونسبةُ الضريبة. كان
+                 * هنا «٤٫٩ متوسط التقييم» و«٢٠+ ملفًا منشورًا» و«٢ دولة» — ثلاثةُ
+                 * أرقامٍ لا سندَ لها في متجرٍ لم يبع بعد.
+                 */
                 [`${num(templates.length)}+`, t('hero.statTemplates')],
-                ['4.9', t('hero.statRating')],
-                ['20+', t('hero.statHired')],
-                ['2', t('hero.statCountries')],
+                [`${minAts}+`, t('hero.statAts')],
+                [`${minFiles}–${maxFiles}`, t('hero.statFiles')],
+                [`${Math.round(VAT * 100)}%`, t('hero.statVat')],
               ].map(([v, l]) => (
                 <div key={l}>
                   <dt className="num text-2xl font-extrabold tracking-tight">{v}</dt>
@@ -853,20 +869,34 @@ function Testimonials() {
         <Head
           title={t('testimonials.title')}
           sub={t('testimonials.sub')}
+          /* كان هنا صندوقُ «★ 4.9 · 12» — متوسطُ تقييمٍ لعشرات لم تُقَس. صار
+             مكانه سطرٌ يقول ما هي هذه الآراء فعلًا. */
           right={
-            <div className="flex items-center gap-3 rounded-2xl border border-line bg-panel px-4 py-3">
-              <Stars value={4.9} size={15} />
-              <span className="num text-[13px] font-bold">4.9 · 12</span>
+            <div className="flex items-center gap-2.5 rounded-2xl border border-line bg-panel px-4 py-3">
+              <Icon n="clock" className="size-4 text-gold" />
+              <span className="text-[12.5px] font-bold">{t('testimonials.early')}</span>
             </div>
           }
         />
       </Reveal>
-      <div className="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+      {/* سطرُ البيان: الآراءُ انطباعاتُ مرحلة الإطلاق، والرقمُ الحقيقي يُقرأ من
+          سجلّ الطلبات لا من مصفوفةٍ في الشيفرة — النصّ نفسه محفوظٌ في القاموس */}
+      <p
+        className="mt-6 flex items-start gap-2.5 rounded-2xl border border-line bg-bg2/60 px-4 py-3 text-[12.5px] leading-relaxed text-dim"
+        data-testimonials-note
+      >
+        <Icon n="shield" className="mt-0.5 size-4 shrink-0 text-gold" />
+        {t('testimonials.note')}
+      </p>
+      <div className="mt-6 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
         {testimonials.map((x, k) => (
           <Reveal key={x.id} delay={k * 70} className="h-full">
             <figure className="relative flex h-full flex-col rounded-2xl border border-line bg-panel p-6 transition-all duration-300 hover:-translate-y-1 hover:border-brand/30 hover:shadow-soft">
               <Icon n="quote" className="absolute end-5 top-5 size-8 text-slate-300 light:text-slate-500" fill sw={0} />
-              <Stars value={x.stars} size={13} show={false} />
+              <span className="inline-flex items-center gap-1.5 rounded-md border border-line bg-bg/60 px-2 py-0.5 text-[10.5px] font-bold text-dim">
+                <Icon n="clock" className="size-3" />
+                {t('testimonials.early')}
+              </span>
               <blockquote className="mt-4 flex-1 text-[14.5px] leading-[1.85] text-ink">{L(x.text)}</blockquote>
               <figcaption className="mt-6 flex items-center gap-3 border-t border-line pt-5">
                 <span className="grid size-10 shrink-0 place-items-center rounded-full bg-brand/12 font-display text-[15px] font-extrabold text-brand">
@@ -875,10 +905,6 @@ function Testimonials() {
                 <span className="min-w-0">
                   <span className="block truncate text-[13.5px] font-bold">{L(x.name)}</span>
                   <span className="block truncate text-[11.5px] text-slate-300 light:text-slate-500">{L(x.role)}</span>
-                </span>
-                <span className="num ms-auto inline-flex shrink-0 items-center gap-1 rounded-md border border-brand/25 bg-brand/10 px-1.5 py-0.5 text-[10px] font-bold text-brand">
-                  <Icon n="check" className="size-3" sw={2.8} />
-                  {t('testimonials.verified')}
                 </span>
               </figcaption>
             </figure>

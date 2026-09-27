@@ -79,7 +79,10 @@ function apply({ title, desc, jsonLd, type = 'website', robots, image }) {
     setMeta('property', 'og:image', href)
     setMeta('property', 'og:image:width', '1200')
     setMeta('property', 'og:image:height', '630')
+    // نصٌّ بديل للصورة: قارئُ الشاشة وبطاقةُ المشاركة يذكران الاسم لا «image.png»
+    setMeta('property', 'og:image:alt', rawText(title) || document.title)
     setMeta('name', 'twitter:image', href)
+    setMeta('name', 'twitter:image:alt', rawText(title) || document.title)
     setMeta('name', 'twitter:card', 'summary_large_image')
   }
   setMeta('name', 'twitter:title', rawText(title) || document.title)
@@ -299,16 +302,13 @@ export const productLd = (tpl, lang, t) => {
       priceValidUntil: `${new Date().getFullYear() + 1}-12-31`,
       seller: { '@type': 'Organization', name: t('brand.name') },
     },
-    ...(tpl.rating
-      ? {
-          aggregateRating: {
-            '@type': 'AggregateRating',
-            ratingValue: tpl.rating,
-            reviewCount: tpl.reviews,
-            bestRating: 5,
-          },
-        }
-      : {}),
+    /*
+     * لا `aggregateRating`. كان يُبنى من `tpl.rating` و`tpl.reviews` — رقمين
+     * مكتوبين بخط اليد في بيانات المنتج. وسياسة Google للبيانات المنظّمة تمنع
+     * تقييمًا مُجمَّعًا بلا مراجعاتٍ حقيقية على الصفحة، وعقوبتها إسقاطُ النتيجة
+     * الغنية أو إجراءٌ يدوي على الموقع كله. يُعاد الحقل يوم يصير لدينا تقييمٌ
+     * مقروءٌ من سجلّ الطلبات (`src/data/stats.js`).
+     */
   }
 }
 

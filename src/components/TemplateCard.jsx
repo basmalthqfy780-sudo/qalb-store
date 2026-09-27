@@ -1,9 +1,13 @@
 import { Link } from 'react-router-dom'
 import Preview from './Preview'
-import { Icon, Money, Pill, Stars, Heart } from './ui'
+import { Icon, Money, Pill, Heart } from './ui'
 import { useI18n } from '../i18n'
 import { useStore } from '../store/StoreContext'
 import { categories } from '../data/templates'
+import { proofKeyOf, scoreOf } from '../data/proof'
+
+/** أيقونةُ الشريحة: ليست عمقًا بلا معنى — «فاحص» لِما قيس، و«لوحة» لِما اعتُمد */
+const PROOF_ICON = { approved: 'palette', tested: 'scan', early: 'clock' }
 
 const typeLabel = {
   portfolio: { ar: 'موقع', en: 'Site' },
@@ -126,13 +130,20 @@ export default function TemplateCard({ tpl, onQuick, className = '' }) {
             <Icon n={tpl.type === 'cv' ? 'file' : tpl.type === 'bundle' ? 'layers' : 'globe'} className="size-3" />
             {lang === 'ar' ? kind.ar : kind.en}
           </span>{' '}
-          <span className="num ms-auto inline-flex items-center gap-1 text-[11px] font-semibold text-dim">
-            {tpl.isNew ? (
-              <span className="font-bold text-brand">{t('card.new')}</span>
-            ) : (
-              <>
-                <Stars value={tpl.rating} size={11} show={false} /> {tpl.rating.toFixed(1)}
-              </>
+          {/*
+            الشريحةُ الأخيرة كانت «★ 4.9» — رقمٌ مكتوبٌ بخط اليد لا سندَ له.
+            صارت تقول ما نعرفه فعلًا: درجةٌ مقيسة إن وُجدت، وإلا شريحةُ صدق
+            من `proof.js` (تصميم معتمد · مفحوص آليًا · تقييمات مبكرة).
+          */}
+          <span className="ms-auto flex flex-wrap items-center justify-end gap-1.5" data-tpl-proof={tpl.proof || 'early'}>
+            <span className="inline-flex items-center gap-1 rounded-md border border-line bg-bg/60 px-1.5 py-0.5 text-[10.5px] font-semibold text-dim">
+              <Icon n={PROOF_ICON[tpl.proof] || PROOF_ICON.early} className="size-3" />
+              {t(proofKeyOf(tpl))}
+            </span>
+            {scoreOf(tpl) != null && (
+              <span className="num inline-flex items-center gap-1 rounded-md border border-gold/30 bg-gold/10 px-1.5 py-0.5 text-[10.5px] font-bold text-gold">
+                {t('chips.score', { n: scoreOf(tpl) })}
+              </span>
             )}
           </span>
         </div>{' '}

@@ -173,8 +173,10 @@ def product_card(row, out):
         ow = px.textlength(old, font=of)
         rtl(px, (ox - 14, 476), old, of, dim + (200,))
         px.line([(ox - 14 - ow, 476), (ox - 14, 476)], fill=dim + (200,), width=3)
-    if row.get("ratingLabel"):
-        rtl(px, (rx, 512), row["ratingLabel"], font(FD, 22), dim)
+    # سطرُ النجوم (★ ٤.٩ · ١٢ تقييمًا) كان يُرسم من رقمٍ مكتوبٍ بخط اليد في
+    # الكتالوج. صار سطرَ صدق: شريحةُ المنتج، ودرجةُ الفحص حين تكون مقيسة.
+    if row.get("proofLabel"):
+        rtl(px, (rx, 512), row["proofLabel"], font(FD, 22), dim)
 
     if row.get("bestLabel"):
         bw2 = 210

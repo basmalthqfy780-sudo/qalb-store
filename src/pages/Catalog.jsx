@@ -9,6 +9,13 @@ import { Btn, Head, Icon, Pill, Reveal } from '../components/ui'
 import RecentlyViewed from '../components/RecentlyViewed'
 import { useSeo, productItemList, breadcrumbLd, graph } from '../components/Seo'
 
+/*
+ * الترتيبُ لا يجوز أن يكون ادّعاءً: `pop` كانت «الأكثر رواجًا» وتُرتَّب على
+ * `sales`، و`rate` كانت «الأعلى تقييمًا» وتُرتَّب على `rating` — وحقلان لم
+ * يبقَ لهما وجود (انظر src/data/templates.js وsrc/data/proof.js). المعرّفان
+ * بقيَا كما هما في الرابط، والمعنى صار ما يمكن إثباته: اختيارُ الفريق أولًا،
+ * ودرجةُ الفحص (ATS ثم الأداء) للأعلى.
+ */
 const SORTS = [
   ['pop', 'catalog.sortPop'],
   ['new', 'catalog.sortNew'],
@@ -106,12 +113,14 @@ export default function Catalog() {
       }
       return true
     })
+    const pick = (x) => (x.best ? 2 : x.featured ? 1 : 0)
+    const score = (x) => (x.ats || 0) * 1000 + (x.perf || 0)
     const cmp = {
-      pop: (a, b) => b.sales - a.sales,
+      pop: (a, b) => pick(b) - pick(a) || a.addedDays - b.addedDays,
       new: (a, b) => a.addedDays - b.addedDays,
       low: (a, b) => a.price - b.price,
       high: (a, b) => b.price - a.price,
-      rate: (a, b) => b.rating - a.rating || b.reviews - a.reviews,
+      rate: (a, b) => score(b) - score(a),
     }[sort]
     out = [...out].sort(cmp)
     return out

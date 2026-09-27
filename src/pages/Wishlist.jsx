@@ -10,7 +10,7 @@ import { useState } from 'react'
 
 export default function Wishlist() {
   const { t } = useI18n()
-  const { wish } = useStore()
+  const { wish, owner } = useStore()
   const [quick, setQuick] = useState(null)
   const list = useMemo(() => templates.filter((x) => wish.includes(x.id)), [wish])
 
@@ -20,6 +20,16 @@ export default function Wishlist() {
     <div className="relative">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-60 grad-mesh" />
       <div className="page-x relative mx-auto max-w-[1400px] py-14">
+        {/* سطرُ الملكية: يقول صراحةً إن كانت هذه مفضّلة حسابٍ أو مفضّلة متصفحٍ فقط */}
+        <p
+          className={`mt-6 inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-[12px] font-semibold ${
+            owner ? 'border-brand/30 bg-brand/10 text-brand' : 'border-line bg-panel/60 text-dim'
+          }`}
+          data-wish-owner={owner || 'guest'}
+        >
+          <Icon n={owner ? 'user' : 'heart'} className="size-3.5" />
+          {owner ? t('auth.linked', { mail: owner }) : t('auth.guestCart')}
+        </p>
         <Head
           as="h1"
           kicker={t('nav.wishlist')}

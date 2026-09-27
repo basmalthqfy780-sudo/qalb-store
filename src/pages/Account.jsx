@@ -4,6 +4,7 @@ import { useI18n } from '../i18n'
 import { useSeo } from '../components/Seo'
 import { Btn, Head, Icon, Money, Pill } from '../components/ui'
 import { account } from '../api/account'
+import { auth as authApi } from '../api/auth'
 import { sites } from '../api/hosting'
 import { answerSummary, canCreate } from '../data/account'
 import { PLANS, planById, withWatermark } from '../data/plans'
@@ -31,6 +32,14 @@ import { canExportSource, recordSourceExport, sourceLeft, sourceQuotaOf, sourceU
 export default function Account() {
   const { t, L } = useI18n()
   const [rec, setRec] = useState(() => account.local())
+  /**
+   * جلسةُ الموقع (بريد + اسم) منفصلةٌ عن سجلّ الحساب (`qalb.account.v1`): الأولى
+   * تقول مَن دخل، والثاني يقول ما الذي حُلّ. تُشتقّ مرةً وتُشترك، وتُعرض شرائحُ
+   * الجلسة هنا حتى يعرف الزائر تحت أي بريدٍ يُسجَّل عمله.
+   */
+  const [session, setSession] = useState(() => authApi.current())
+  useEffect(() => authApi.subscribe(setSession), [])
+  const owner = session?.email || null
   const [sel, setSel] = useState(() => account.local()?.created?.[0]?.slug || '')
   const [sheet, setSheet] = useState(null)
   const [busy, setBusy] = useState(false)
@@ -93,41 +102,33 @@ export default function Account() {
     return (
       <div className="page-x mx-auto max-w-[720px] pb-24 pt-16">
         <Head as="h1" kicker={t('account.kicker')} title={t('account.emptyTitle')} sub={t('account.emptySub')} />
-        {/* التسجيل هنا لا في «أنشئ قالبك»: بريدٌ واحد وإقرار، ثم تفتح اللوحة.
-            ولا رسالةَ تأكيدٍ تُوعد — لا مُرسِل موصول في هذه النسخة (create.noMailer) */}
-        <form
-          className="mt-6 rounded-3xl border border-line bg-panel/60 p-5"
-          data-account-signup
-          noValidate
-          onSubmit={async (e) => {
-            e.preventDefault()
-            const mail = e.currentTarget.elements.mail?.value || ''
-            const consent = e.currentTarget.elements.consent?.checked === true
-            const r = await account.signUp({ email: mail, consent })
-            setRec(account.local())
-            say(r.ok ? 'good' : 'bad', r.ok ? t('account.planRecorded', { p: t('account.free') }) : t('account.planFail'))
-          }}
-        >
-          <label className="block text-[12.5px] font-bold" htmlFor="acc-mail">
-            {t('create.mailLabel')}
-          </label>
-          <input
-            id="acc-mail"
-            name="mail"
-            type="email"
-            required
-            placeholder="you@studio.sa"
-            className="mt-2 h-11 w-full rounded-xl border border-line bg-bg px-3 text-[13.5px] outline-none transition focus:border-brand/50"
-          />
-          <label className="mt-3 flex items-start gap-2.5 text-[12px] leading-relaxed text-dim" htmlFor="acc-consent">
-            <input id="acc-consent" name="consent" type="checkbox" className="mt-0.5 size-4 shrink-0 accent-[var(--c-brand)]" />
-            <span>{t('create.consent')}</span>
-          </label>
-          <Btn type="submit" size="lg" className="mt-4 w-full">
-            {t('create.start')}
-          </Btn>
-          <p className="mt-3 text-[11.5px] leading-relaxed text-dim">{t('create.noMailer')}</p>
-        </form>
+        {/*
+          لوحةُ الحساب لم تبقَ مكانَ التسجيل: صار له صفحةٌ واحدة (`/register`)
+          تشرح ما يعنيه الحساب (سلةٌ ومفضّلةٌ مرتبطتان، وملفّاتٌ تُعاد) وتُنشئ
+          السجلّ عبر `api/auth`. هنا نُوجّه إليها، ونُبقي الشرح كما هو: لا
+          رسالةَ تأكيدٍ مدَّعاة، ولا كلمةَ مرور — لا خادمَ في هذه النسخة.
+        */}
+        <div className="mt-6 rounded-3xl border border-line bg-panel/60 p-5" data-account-gateway>
+          <ul className="grid gap-2.5">
+            {['bcart', 'bwish', 'bfiles', 'blicence'].map((k) => (
+              <li key={k} className="flex items-start gap-2.5 text-[13px] leading-relaxed text-dim">
+                <Icon n="check" sw={2.6} className="mt-0.5 size-4 shrink-0 text-brand" />
+                <span>
+                  <b className="font-bold text-ink">{t(`auth.${k}`)}</b> — {t(`auth.${k}Sub`)}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <div className="mt-5 flex flex-wrap gap-2.5">
+            <Btn to="/register" size="lg">
+              {t('auth.registerCta')}
+            </Btn>
+            <Btn to="/login" size="lg" variant="ghost">
+              {t('auth.signIn')}
+            </Btn>
+          </div>
+          <p className="mt-3 text-[11.5px] leading-relaxed text-dim">{t('auth.localNote')}</p>
+        </div>
       </div>
     )
   }
@@ -195,7 +196,12 @@ export default function Account() {
         kicker={t('account.kicker')}
         title={rec.email}
         sub={t('account.sub', { p: L(plan.name), n: gate.used, max: gate.max == null ? '∞' : gate.max })}
-        right={<Pill tone={plan.price > 0 ? 'brand' : 'line'}>{L(plan.name)}</Pill>}
+        right={
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <Pill tone={owner ? 'brand' : 'line'}>{owner ? t('auth.myAccount') : t('auth.guestCart')}</Pill>
+            <Pill tone={plan.price > 0 ? 'brand' : 'line'}>{L(plan.name)}</Pill>
+          </div>
+        }
       />
 
       {note ? (
