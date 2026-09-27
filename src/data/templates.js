@@ -4,6 +4,13 @@
  * number here is illustrative content, not a real charge.
  *
  * type: 'portfolio' (موقع) | 'cv' (سيرة ذاتية) | 'bundle' (حزمة: موقع + سيرة)
+ *
+ * **لا نجوم ولا مبيعات مكتوبة بخط اليد.** كان كل منتج يحمل `rating` و`reviews`
+ * و`sales` (١٧٬٦٩٠ «مبيعة» في متجرٍ لم يبع بعد) — أرقامٌ تُقرأ في Google وفي
+ * JSON-LD وفي بطاقات المشاركة، وتُسائل عليها تجاريًا. صارت `proof`: شريحةٌ
+ * واحدة تقول ما نعرفه فعلًا عن المنتج (نصُّها في القاموس تحت `proof.*`)،
+ * وكلُّ رقمٍ حقيقي عن البيع يُقرأ من سجلّ الطلبات (`src/data/stats.js`) لا
+ * يُكتب هنا. ودرجةُ الفحص (`perf`/`ats`) قياسٌ على الملفّات المُسلَّمة نفسها.
  */
 
 export const TYPES = [
@@ -664,9 +671,7 @@ export const templates = [
     level: 'mid',
     price: 199,
     oldPrice: 249,
-    rating: 4.9,
-    reviews: 12,
-    sales: 1180,
+    proof: 'approved',
     perf: 99,
     theme: 'dark',
     best: true,
@@ -711,9 +716,7 @@ export const templates = [
     level: 'mid',
     price: 249,
     oldPrice: 279,
-    rating: 4.8,
-    reviews: 8,
-    sales: 720,
+    proof: 'approved',
     perf: 96,
     theme: 'light',
     featured: true,
@@ -749,9 +752,7 @@ export const templates = [
     level: 'senior',
     price: 199,
     oldPrice: 219,
-    rating: 4.9,
-    reviews: 14,
-    sales: 1440,
+    proof: 'approved',
     perf: 100,
     theme: 'dark',
     best: true,
@@ -789,9 +790,7 @@ export const templates = [
     level: 'beginner',
     price: 149,
     oldPrice: 199,
-    rating: 4.7,
-    reviews: 11,
-    sales: 1310,
+    proof: 'approved',
     perf: 98,
     theme: 'light',
     addedDays: 210,
@@ -825,9 +824,7 @@ export const templates = [
     cats: ['motion', 'photo'],
     level: 'mid',
     price: 299,
-    rating: 4.8,
-    reviews: 7,
-    sales: 410,
+    proof: 'approved',
     perf: 92,
     theme: 'dark',
     isNew: true,
@@ -860,9 +857,7 @@ export const templates = [
     level: 'mid',
     price: 179,
     oldPrice: 219,
-    rating: 4.9,
-    reviews: 9,
-    sales: 640,
+    proof: 'approved',
     perf: 99,
     theme: 'light',
     font: 'serif',
@@ -898,9 +893,7 @@ export const templates = [
     level: 'senior',
     price: 349,
     oldPrice: 429,
-    rating: 4.7,
-    reviews: 6,
-    sales: 290,
+    proof: 'approved',
     perf: 88,
     theme: 'dark',
     featured: true,
@@ -932,9 +925,7 @@ export const templates = [
     cats: ['design', 'corporate'],
     level: 'exec',
     price: 399,
-    rating: 4.8,
-    reviews: 6,
-    sales: 220,
+    proof: 'approved',
     perf: 95,
     theme: 'light',
     best: true,
@@ -968,9 +959,7 @@ export const templates = [
     level: 'mid',
     price: 449,
     oldPrice: 619,
-    rating: 5,
-    reviews: 10,
-    sales: 960,
+    proof: 'early',
     perf: 98,
     ats: 100,
     theme: 'dark',
@@ -1009,9 +998,7 @@ export const templates = [
     level: 'senior',
     price: 379,
     oldPrice: 479,
-    rating: 4.9,
-    reviews: 9,
-    sales: 830,
+    proof: 'early',
     perf: 100,
     ats: 100,
     theme: 'dark',
@@ -1049,9 +1036,7 @@ export const templates = [
     level: 'beginner',
     price: 199,
     oldPrice: 259,
-    rating: 4.8,
-    reviews: 13,
-    sales: 1620,
+    proof: 'early',
     perf: 99,
     ats: 100,
     theme: 'light',
@@ -1086,9 +1071,7 @@ export const templates = [
     level: 'mid',
     price: 89,
     oldPrice: 129,
-    rating: 4.9,
-    reviews: 14,
-    sales: 2140,
+    proof: 'tested',
     ats: 100,
     layout: 'single',
     accent: 'azure',
@@ -1126,9 +1109,7 @@ export const templates = [
     level: 'senior',
     price: 99,
     oldPrice: 139,
-    rating: 4.8,
-    reviews: 13,
-    sales: 1580,
+    proof: 'tested',
     ats: 92,
     layout: 'side',
     accent: 'ink',
@@ -1162,9 +1143,7 @@ export const templates = [
     level: 'exec',
     price: 129,
     oldPrice: 169,
-    rating: 5,
-    reviews: 8,
-    sales: 620,
+    proof: 'tested',
     ats: 100,
     layout: 'serif',
     accent: 'rust',
@@ -1197,9 +1176,7 @@ export const templates = [
     level: 'beginner',
     price: 59,
     oldPrice: 89,
-    rating: 4.8,
-    reviews: 16,
-    sales: 1970,
+    proof: 'tested',
     ats: 100,
     layout: 'single',
     accent: 'teal',
@@ -1236,9 +1213,7 @@ export const templates = [
     level: 'mid',
     price: 119,
     oldPrice: 159,
-    rating: 4.8,
-    reviews: 7,
-    sales: 410,
+    proof: 'tested',
     pages: 1,
     layout: 'single',
     accent: 'azure',
@@ -1274,9 +1249,7 @@ export const templates = [
     level: 'beginner',
     price: 49,
     oldPrice: 79,
-    rating: 4.9,
-    reviews: 8,
-    sales: 560,
+    proof: 'tested',
     pages: 1,
     layout: 'single',
     accent: 'teal',
@@ -1314,9 +1287,7 @@ export const templates = [
     level: 'mid',
     price: 279,
     oldPrice: 359,
-    rating: 4.9,
-    reviews: 7,
-    sales: 340,
+    proof: 'early',
     perf: 99,
     ats: 100,
     theme: 'light',
@@ -1356,9 +1327,7 @@ export const templates = [
     level: 'beginner',
     price: 119,
     oldPrice: 159,
-    rating: 4.9,
-    reviews: 6,
-    sales: 260,
+    proof: 'tested',
     ats: 100,
     layout: 'side',
     accent: 'pine',
@@ -1397,9 +1366,7 @@ export const templates = [
     level: 'senior',
     price: 109,
     oldPrice: 149,
-    rating: 4.8,
-    reviews: 6,
-    sales: 190,
+    proof: 'tested',
     ats: 100,
     layout: 'band',
     accent: 'ink',
@@ -1429,6 +1396,14 @@ export const siteFor = (t) => (t?.site ? siteDemo[t.site] : null)
 export const accentHex = (id) => (PALETTE.find((c) => c.id === id) || PALETTE[0]).hex
 export const fontCss = (id) => (FONTS.find((f) => f.id === id) || FONTS[0]).css
 
+/**
+ * انطباعاتُ مرحلة الإطلاق — لا تقييماتُ مشترين.
+ *
+ * كان لكل سطرٍ هنا `stars: 5` وشارةُ «شراء موثّق» وتاريخُ مراجعة، والدفاترُ في
+ * المستودع تقول إن أحدًا لم يشترِ بعد. صارت البيانات نصًّا بلا نجوم: الصفحة
+ * تعرضها تحت «تقييمات مبكرة» مع سطرٍ يقول ما هي، وأول تقييمٍ حقيقي يُقرأ من
+ * سجلّ الطلبات (`src/data/stats.js`) لا من هذه المصفوفة.
+ */
 export const testimonials = [
   {
     id: 1,
@@ -1438,7 +1413,6 @@ export const testimonials = [
       ar: 'أفتح مئات الملفات أسبوعيًا. من استخدم «دِب باك» صار موقعه وسيرته بنفس الهوية — والحكم الأول كان للموقع.',
       en: 'I open hundreds of files a week. DevPack users show a site and a CV in one identity — the site is what gets the first yes.',
     },
-    stars: 5,
   },
   {
     id: 2,
@@ -1448,7 +1422,6 @@ export const testimonials = [
       ar: 'نشرت «أيثر» بعد عطلة نهاية أسبوع. ثلاثة استفسارات عمل في الأسبوع الأول، وسعر المشروع غطّى التكلفة ٢٠٠ مرة.',
       en: 'Shipped Aether over a weekend. Three inbound leads in week one — the first project paid for it 200 times.',
     },
-    stars: 5,
   },
   {
     id: 3,
@@ -1458,7 +1431,6 @@ export const testimonials = [
       ar: '«فِست ستيب» جعل عندي موقع وسيرة في ليلة واحدة. الإرشادات كانت داخل الملفات، فما سألت أحدًا.',
       en: 'First Step gave me a site and a CV in one night. The guidance was inside the files, so I never had to ask.',
     },
-    stars: 5,
   },
   {
     id: 4,
@@ -1468,7 +1440,6 @@ export const testimonials = [
       ar: 'طلبت نسخة «نُكسَس» لثلاثة من فريقي. أسرع موقع رأيت أحدًا ينشره: ١٨ دقيقة من git clone إلى رابط حي.',
       en: 'I set up Nexus for three of my team. Fastest site launch I have seen: 18 minutes from clone to live URL.',
     },
-    stars: 5,
   },
   {
     id: 5,
@@ -1478,7 +1449,6 @@ export const testimonials = [
       ar: 'بدّلت اللون إلى عنابي وتعديلات الخط، فصارت النسخة مطابقة لهويتي. لوحة التحكم بالأعمال سهّلت النشر شهريًا.',
       en: 'Switched to a maroon accent and my type, and it matched my brand exactly. The work panel makes monthly publishing easy.',
     },
-    stars: 4,
   },
   {
     id: 6,
@@ -1488,12 +1458,19 @@ export const testimonials = [
       ar: 'صفحة الحجز في «أتيلييه» وفّرت عليّ ٦ مكالمات أسبوعيًا. الصور تُحمّل بسرعة حتى على 4G.',
       en: 'Atelier’s booking page removed six calls a week. Images still load fast on 4G.',
     },
-    stars: 5,
   },
 ]
 
-export const brands = ['مستقل', 'حسوب', 'منصة', 'أُفق', 'نمو', 'نيوم', 'طيران الرياض', 'مرسول', 'سِمة', 'دار نشر']
-export const brandsEn = ['Estqlaal', 'Hasoub', 'Mansa', 'Ufuq', 'Numu', 'NEOM', 'Riyadh Air', 'Mrsool', 'Sima', 'Dar Press']
+/**
+ * صفّ المنصّات — لا شعارات عملاء.
+ *
+ * كان الصفُّ يحمل أسماء شركاتٍ حقيقية (نيوم، طيران الرياض، مرسول…) تحت عبارة
+ * «منصّات يعمل عليها عملاؤنا» — أي إيحاءَ عملاءَ لم يوقّعوا شيئًا، وهو خطرٌ
+ * نظامي (علاماتٌ مسجّلة تُستعمل بلا إذن). الصفُّ الآن يقول ما يصدق: المنصّاتُ
+ * التي تعمل عليها القوالب فعلًا — وكلُّ اسمٍ منها مذكور في `stack` لمنتجه.
+ */
+export const brands = ['Vercel', 'Netlify', 'Astro', 'Next.js', 'Tailwind', 'Sanity CMS', 'Workday', 'Greenhouse']
+export const brandsEn = ['Vercel', 'Netlify', 'Astro', 'Next.js', 'Tailwind', 'Sanity CMS', 'Workday', 'Greenhouse']
 
 /**
  * جدول الكوبونات — المصدر الوحيد الذي يقرؤه المتجر (السلة) والخادم (إعادة الختم).

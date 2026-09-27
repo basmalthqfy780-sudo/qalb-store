@@ -2,10 +2,11 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import Preview, { showSite } from './Preview'
-import { Btn, Icon, Money, Pill, Stars } from './ui'
+import { Btn, Icon, Money, Pill } from './ui'
 import { useI18n } from '../i18n'
 import { useStore } from '../store/StoreContext'
 import { LAYOUTS, PALETTE, FONTS, HEROES, GALLERIES, DEVICES, accentHex } from '../data/templates'
+import { proofKeyOf, scoreOf } from '../data/proof'
 
 export default function QuickView({ tpl, onClose, initial = {} }) {
   const { t, L } = useI18n()
@@ -163,12 +164,17 @@ export default function QuickView({ tpl, onClose, initial = {} }) {
             <h3 className="font-display text-2xl font-extrabold">{L(tpl.name)}</h3>
             <p className="mt-1 text-[13px] text-dim">{L(tpl.tagline)}</p>
           </div>
-          <div className="flex items-center gap-2">
-            <Stars value={tpl.rating} />
-            {tpl.isNew ? (
-              <span className="text-[12px] font-bold text-brand">{t('card.new')}</span>
-            ) : (
-              <span className="text-[12px] text-dim">{tpl.rating.toFixed(1)}</span>
+          {/* نفس شرائح صفحة المنتج: شريحةُ صدق + درجةٌ مقيسة — لا نجومٌ مُخترعة */}
+          <div className="flex flex-wrap items-center gap-2" data-qv-proof={tpl.proof || 'early'}>
+            {tpl.isNew && <span className="text-[12px] font-bold text-brand">{t('card.new')}</span>}
+            <span className="inline-flex items-center gap-1 rounded-md border border-line bg-bg/60 px-2 py-0.5 text-[11px] font-semibold text-dim">
+              <Icon n={tpl.proof === 'tested' ? 'scan' : tpl.proof === 'approved' ? 'palette' : 'clock'} className="size-3" />
+              {t(proofKeyOf(tpl))}
+            </span>
+            {scoreOf(tpl) != null && (
+              <span className="num inline-flex items-center gap-1 rounded-md border border-gold/30 bg-gold/10 px-2 py-0.5 text-[11px] font-bold text-gold">
+                {t('chips.score', { n: scoreOf(tpl) })}
+              </span>
             )}
           </div>
           <p className="line-clamp-4 text-[13.5px] leading-relaxed text-dim">{L(tpl.desc)}</p>

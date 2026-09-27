@@ -164,7 +164,7 @@ const cases = [
     url: 'http://localhost/',
     expect: [
       'قالب',
-      'الأكثر رواجًا',
+      'المختارة أولًا',
       // جولة الواجهة: العنوان والوصف كما كُتبا في الطلب حرفيًّا
       'بورتفوليو وسيرة ذاتية',
       'بهوية واحدة',
@@ -197,7 +197,7 @@ const cases = [
     lang: 'en',
     expect: [
       'Qalb',
-      'Trending',
+      'Picks first',
       'A portfolio and a résumé',
       'carrying one identity',
       'Browse templates',
@@ -427,9 +427,17 @@ const cases = [
   {
     name: 'account / no account on this device',
     url: 'http://localhost/account',
-    // v1.8.0: الحالة الفارغة استمارةُ تسجيلٍ في الصفحة نفسها — لا زرٌّ يقود إلى /create
-    expect: ['لا حساب على هذا الجهاز بعد', 'بريدك الإلكتروني', 'بالمتابعة أُقرّ', 'ابدأ مجانًا', 'لا نرسل رسالة تأكيد'],
-    absent: ['أنشئ قالبك من إجاباتك'],
+    // جولة الحساب: التسجيلُ انتقل إلى صفحةٍ واحدة (/register) تشرح ما يفتحه الحساب —
+    // فاللوحةُ هنا تُوجّه إليها ولا تُكرّر استمارةً ثانية.
+    expect: [
+      dict.ar.account.emptyTitle,
+      dict.ar.auth.bcart,
+      dict.ar.auth.bwish,
+      dict.ar.auth.localNote,
+      dict.ar.auth.registerCta,
+      dict.ar.auth.signIn,
+    ],
+    absent: ['أنشئ قالبك من إجاباتك', 'أنشئ قالبك من إجاباتك'],
   },
   {
     name: 'account / a free account sees the watermark rule',
@@ -1583,13 +1591,13 @@ for (const c of cases) {
     const tpl = bySlug('aether-portfolio')
     ok(
       'product page emits Product schema',
-      prod &&
-        prod['@type'] === 'Product' &&
-        Number(prod.offers.price) === tpl.price &&
-        prod.offers.priceCurrency === 'SAR' &&
-        prod.aggregateRating.reviewCount === tpl.reviews,
+      prod && prod['@type'] === 'Product' && Number(prod.offers.price) === tpl.price && prod.offers.priceCurrency === 'SAR',
       prod ? `${prod['@type']} ${prod.offers?.price}` : 'missing',
     )
+    // جولة الحساب: لا aggregateRating. كان يُبنى من حقلَي rating/reviews في الكتالوج،
+    // وقد حُذفا (لا مراجعات حقيقية بعد). وسياسة جوجل للبيانات المنظّمة تمنع
+    // تقييمًا مُجمَّعًا بلا مراجعات على الصفحة — فالفحصُ الآن يمنع رجوعه.
+    ok('and no invented aggregateRating comes back', !prod?.aggregateRating, JSON.stringify(prod?.aggregateRating))
     ok('and carries its breadcrumb trail beside the product', ld?.['@graph']?.some((x) => x['@type'] === 'BreadcrumbList') === true)
     ok(
       'hreflang alternates cover ar/en/x-default on every route',
@@ -1663,7 +1671,7 @@ for (const c of cases) {
   {
     const g = await render('http://localhost/', {}, { boot: deadBoot })
     const txt = g.txt()
-    ok('the home page still renders with the API unreachable', /الأكثر رواجًا/.test(txt) && /449/.test(txt), txt.replace(/\s+/g, ' ').slice(0, 50))
+    ok('the home page still renders with the API unreachable', /المختارة أولًا/.test(txt) && /449/.test(txt), txt.replace(/\s+/g, ' ').slice(0, 50))
     ok('a failed /catalog does not trip the error screen', !/حدث خطأ غير متوقع/.test(txt))
     ok('the shell is mounted around the content', !!g.doc.querySelector('nav') && !!g.doc.querySelector('footer'))
     ok(
@@ -1983,8 +1991,16 @@ for (const c of cases) {
   const names = cells.map((x) => (x.textContent || '').trim()).filter(Boolean)
   ok(
     'every platform is listed once (no doubled copy for a loop)',
-    names.length === 10 && new Set(names).size === 10,
+    // جولة الحساب: الشرائحُ صارت منصّاتٍ نعمل عليها فعلًا (Vercel، Netlify، Astro،
+    // Next.js، Tailwind، Sanity، Workday، Greenhouse) بعد أن كانت أسماءَ عملاء
+    // لا وجود لهم في المستودع. فالعشرةُ صارت ثمانيةً، والفحصُ يتبع البيان.
+    names.length === 8 && new Set(names).size === 8,
     `${names.length} cells / ${new Set(names).size} unique`,
+  )
+  ok(
+    'and the strip says what they are, not that they bought',
+    g.txt().includes(dict.ar.trust.label) && !/عملاء|اشتروا|يستخدمونه/.test(dict.ar.trust.label),
+    dict.ar.trust.label,
   )
   ok('the strip is a real list, not animated spans', cells.length > 0 && cells[0].parentElement?.tagName === 'UL' && cells[0].tagName === 'LI')
 
@@ -2185,9 +2201,17 @@ for (const c of cases) {
   )
   ok(
     'the name is never glued to the description in one element',
-    parts.every((x) => !x.name.includes(x.desc) && !x.desc.includes(x.name)),
+    // الاحتواءُ وحده لا يقيس البنية: «ستوديو» موجودةٌ داخل «لاستوديوهات»، فكان
+    // القالبُ السليم يُسقَط باسمٍ يحمل اسمَه داخل كلمةٍ أطول. المقصودُ أن
+    // يكونا عنصرين مختلفين، لا أن يتقاطع حرفُ الاسم مع حرف الوصف.
+    parts.every((x) => !x.name.includes(x.desc)) &&
+      cards.every((c) => {
+        const n = c.querySelector('[data-tpl-name]')
+        const d = c.querySelector('[data-tpl-desc]')
+        return n && d && n !== d && !n.contains(d) && !d.contains(n)
+      }),
     parts
-      .filter((x) => x.name.includes(x.desc) || x.desc.includes(x.name))
+      .filter((x) => x.name.includes(x.desc))
       .map((x) => `${x.id}:${x.name}`)
       .join(' | '),
   )
@@ -5129,6 +5153,268 @@ for (const c of cases) {
   } else {
     groups++
     console.log(`✓ seo · raw links, robots, product data and card alignment  (${checks.length} assertions)`)
+  }
+}
+
+/* ================= v2.0 · المشاركة: نسخةٌ ثابتة لكل قالب — الزاحفُ بلا JS يقرأ بطاقتَه ================= */
+{
+  const checks = []
+  const ok = (name, cond, extra = '') => checks.push([cond ? name : `${name} — ${extra}`, !!cond])
+  const { productShare } = await import('../src/data/share-meta.js')
+
+  /** `t` بلا React: نفسُ صيغة القاموس `{var}` — وهي التي يستعملها المولّد أيضًا */
+  const arT = (key, vars) => {
+    const out = key.split('.').reduce((o, k) => (o && o[k] != null ? o[k] : undefined), dict.ar) || key
+    return vars ? out.replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? '') : out
+  }
+  const expected = templates.map((tpl) => productShare(tpl, 'ar', arT))
+  const shim = (slug) => `dist/template/${slug}/index.html`
+  const metaOf = (html, attr, key) => (html.match(new RegExp(`<meta ${attr}="${key}" content="([^"]*)"`)) || [])[1]
+  const linkOf = (html, rel) => (html.match(new RegExp(`<link rel="${rel}" href="([^"]*)"`)) || [])[1]
+
+  ok(
+    'a static page is built for every template',
+    templates.every((tpl) => existsSync(shim(tpl.slug))),
+    'dist/template/<slug>/index.html — يكتبه scripts/share-html.mjs في postbuild',
+  )
+  if (templates.every((tpl) => existsSync(shim(tpl.slug)))) {
+    const docs = templates.map((tpl) => readFileSync(shim(tpl.slug), 'utf8'))
+    ok('titles are unique across the twenty links', new Set(expected.map((x) => x.title)).size === templates.length)
+    ok(
+      'and so are the cards',
+      new Set(expected.map((x) => x.image)).size === templates.length && new Set(expected.map((x) => x.desc)).size === templates.length,
+    )
+    ok(
+      'every static page prints its own title, description and card',
+      docs.every(
+        (html, i) =>
+          metaOf(html, 'property', 'og:title') === expected[i].title &&
+          metaOf(html, 'name', 'description') === expected[i].desc &&
+          metaOf(html, 'property', 'og:image') === `${SITE_URL}${expected[i].image}`,
+      ),
+      docs
+        .map((html, i) => `${i}:${metaOf(html, 'property', 'og:image') === `${SITE_URL}${expected[i].image}` ? 'ok' : 'no'}`)
+        .filter((x) => x.endsWith('no'))
+        .join(','),
+    )
+    ok(
+      'and its own canonical and og:url — no page points at another',
+      docs.every(
+        (html, i) =>
+          linkOf(html, 'canonical') === `${SITE_URL}${expected[i].path}` && metaOf(html, 'property', 'og:url') === `${SITE_URL}${expected[i].path}`,
+      ),
+    )
+    ok(
+      'the hreflang trio is on every card, and the English one keeps ?lang=en',
+      docs.every((html) => ['ar', 'en', 'x-default'].every((h) => new RegExp(`hreflang="${h}"`).test(html))) &&
+        docs.every((html) => {
+          const arHref = html.match(/<link rel="alternate" href="([^"]+)" hreflang="ar"/)?.[1]
+          return (
+            !!arHref &&
+            html.includes(`<link rel="alternate" href="${arHref}?lang=en" hreflang="en"`) &&
+            html.includes(`<link rel="alternate" href="${arHref}" hreflang="x-default"`)
+          )
+        }),
+    )
+    ok(
+      'every static page boots the same built bundle as the home page',
+      docs.every((html) => /<script type="module"[^>]*src="\/assets\/index-[\w-]+\.js"><\/script>/.test(html)),
+    )
+    ok(
+      'no private route gets a static share page',
+      ['login', 'register', 'account', 'cart', 'checkout'].every((p) => !existsSync(`dist/${p}/index.html`)),
+    )
+  }
+
+  /* ——— الحيّةُ والثابتة: نفسُ العنوان ونفسُ الكانونيكال (لا انجراف) ——— */
+  {
+    const slug = templates[0].slug
+    const g = await render(`http://localhost/template/${slug}`)
+    const liveOg = g.doc.head.querySelector('meta[property="og:image"]')?.getAttribute('content') || ''
+    const liveCanon = g.doc.head.querySelector('link[rel="canonical"]')?.getAttribute('href') || ''
+    if (existsSync(shim(slug))) {
+      const html = readFileSync(shim(slug), 'utf8')
+      const want = expected[0]
+      ok(
+        'the live page and its static twin say the same title',
+        g.doc.title === metaOf(html, 'property', 'og:title'),
+        `${g.doc.title} / ${metaOf(html, 'property', 'og:title')}`,
+      )
+      ok('the same canonical', liveCanon === linkOf(html, 'canonical'), `${liveCanon} / ${linkOf(html, 'canonical')}`)
+      ok('and the same card', liveOg === metaOf(html, 'property', 'og:image'), `${liveOg} / ${metaOf(html, 'property', 'og:image')}`)
+      ok('the alt text names the template, not the file', metaOf(html, 'property', 'og:image:alt') === want.title)
+      ok('the share page says «product», like the live one', metaOf(html, 'property', 'og:type') === 'product')
+    } else {
+      ok('a static share page is built for the first template (run npm run build)', false)
+    }
+    g.dom.window.close()
+  }
+
+  const bad = checks.filter(([, pass]) => !pass)
+  if (bad.length) {
+    failed++
+    groups++
+    console.log('✗ share · نسخةٌ ثابتة لكل قالب')
+    bad.forEach(([n]) => console.log('   failed: ' + n))
+  } else {
+    groups++
+    console.log(`✓ share · نسخةٌ ثابتة لكل قالب  (${checks.length} assertions)`)
+  }
+}
+
+/* ================= v2.0 · الجلسة: بريدٌ يربط السلة والمفضلة ================= */
+{
+  const checks = []
+  const ok = (name, cond, extra = '') => checks.push([cond ? name : `${name} — ${extra}`, !!cond])
+  const { cartKeyFor, wishKeyFor, SESSION_KEY, USERS_KEY } = await import('../src/data/auth.js')
+  /* الكتابةُ في حقل React تحتاج مستقرَّ القيمة الأصلي: `node.value =` وحدها
+     تُحدّث المتتبّع فيتجاهل React الحدث، ويُرسل النموذجُ فراغًا. */
+  const setField = (g, id, value) => {
+    const el = g.doc.getElementById(id)
+    if (!el) throw new Error(`no field #${id}`)
+    Object.getOwnPropertyDescriptor(g.win.HTMLInputElement.prototype, 'value').set.call(el, value)
+    el.dispatchEvent(new g.win.Event('input', { bubbles: true }))
+  }
+  const clickSubmit = (g, sel) => {
+    const form = g.doc.querySelector(sel)
+    const b = form && [...form.querySelectorAll('button')].find((x) => x.type === 'submit')
+    if (!b) throw new Error(`no submit button in ${sel}`)
+    b.click()
+  }
+  const { ACCOUNT_KEY } = await import('../src/data/account.js')
+  const mail = 'noura@qalb.store'
+
+  /* ——— صفحتا الحساب: موجودتان، noindex، وبما تقوله فعلًا لا بما تعد به ——— */
+  {
+    const g = await render('http://localhost/login')
+    ok(
+      'the sign-in page opens and asks for the email alone',
+      !!g.doc.querySelector('[data-auth-form="login"]') && !!g.doc.querySelector('#auth-mail'),
+    )
+    ok('and it names no password field', !g.doc.querySelector('input[type="password"]'))
+    ok('no «we sent you a link» promise either', !/أرسلنا|رابط تفعيل على بريدك|سنرسل/.test(g.txt()))
+    ok('the page is noindex, not a landing page', (g.doc.head.querySelector('meta[name="robots"]')?.getAttribute('content') || '') === 'noindex')
+    g.dom.window.close()
+
+    const r = await render('http://localhost/register')
+    ok(
+      'the register page asks for the optional name too',
+      !!r.doc.querySelector('[data-auth-form="register"]') && !!r.doc.querySelector('#auth-name'),
+    )
+    ok('it states where the account lives (this browser, no server)', r.txt().includes(dict.ar.auth.localNote))
+    ok('and lists what the account opens', !!r.doc.querySelector('[data-auth-benefit="cart"]') && !!r.doc.querySelector('[data-auth-benefit="wish"]'))
+    r.dom.window.close()
+  }
+
+  /* ——— التسجيل: سجلٌّ وجلسة، والرابط المجهول لا يُنشئ حسابًا صامتًا ——— */
+  {
+    const g = await render('http://localhost/register', {
+      'qalb.cart.v1': JSON.stringify([{ id: 'aether', qty: 1 }]),
+      'qalb.wish.v1': JSON.stringify(['aether']),
+    })
+    setField(g, 'auth-mail', mail)
+    clickSubmit(g, '[data-auth-form="register"] form')
+    await g.wait()
+    const users = JSON.parse(g.win.localStorage.getItem(USERS_KEY) || '{}')
+    const session = JSON.parse(g.win.localStorage.getItem(SESSION_KEY) || 'null')
+    ok('registering writes the device registry', !!users[mail] && !!users[mail].record)
+    ok('and an open session with that email', session?.email === mail)
+    ok('the account itself is the one /account reads', JSON.parse(g.win.localStorage.getItem(ACCOUNT_KEY) || 'null')?.email === mail)
+    const merged = JSON.parse(g.win.localStorage.getItem(cartKeyFor(mail)) || '[]')
+    ok(
+      'the guest cart moves into the account cart',
+      merged.some((l) => l.id === 'aether' && l.qty === 1),
+      JSON.stringify(merged),
+    )
+    ok(
+      'the guest cart is emptied so the next visitor does not inherit it',
+      g.win.localStorage.getItem('qalb.cart.v1') === null || JSON.parse(g.win.localStorage.getItem('qalb.cart.v1') || '[]').length === 0,
+    )
+    const wish = JSON.parse(g.win.localStorage.getItem(wishKeyFor(mail)) || '[]')
+    ok('and so does the wishlist', wish.includes('aether'))
+    g.dom.window.close()
+  }
+
+  /* ——— الدخول: بريدٌ معروف يسترجع، ومجهولٌ يقول الحقيقة ——— */
+  {
+    const users = {
+      [mail]: {
+        email: mail,
+        name: 'نورة',
+        since: '2026-09-01',
+        last: '2026-09-01',
+        record: { email: mail, plan: 'free', created: [], consents: { terms: true } },
+      },
+    }
+    // الحسابُ فيه «nova ×2» والضيفُ أضاف «nova ×1» و«aether ×1» قبل أن يدخل:
+    // الدمجُ يجب أن يجمع الكمّية ويحفظ الجديد — بلا فقدانِ ما أُضيف قبل الدخول.
+    const g = await render('http://localhost/login', {
+      [USERS_KEY]: JSON.stringify(users),
+      [cartKeyFor(mail)]: JSON.stringify([{ id: 'nova', qty: 2 }]),
+      'qalb.cart.v1': JSON.stringify([
+        { id: 'nova', qty: 1 },
+        { id: 'aether', qty: 1 },
+      ]),
+      [wishKeyFor(mail)]: JSON.stringify(['nova']),
+      'qalb.wish.v1': JSON.stringify(['aether']),
+    })
+    setField(g, 'auth-mail', mail)
+    clickSubmit(g, '[data-auth-form="login"] form')
+    await g.wait()
+    ok('signing in with a known email opens the session', JSON.parse(g.win.localStorage.getItem(SESSION_KEY) || 'null')?.email === mail)
+    ok('and its account record is restored for /account', JSON.parse(g.win.localStorage.getItem(ACCOUNT_KEY) || 'null')?.email === mail)
+    const lines = JSON.parse(g.win.localStorage.getItem(cartKeyFor(mail)) || '[]')
+    const qtyOf = (id) => lines.find((l) => l.id === id)?.qty
+    ok('the guest cart merges into the account without losing a line', qtyOf('nova') === 3 && qtyOf('aether') === 1, JSON.stringify(lines))
+    // «مُفرَغ» لا «ممحو»: المخزن يكتب [] بعد النقل، والمهمّ ألّا يجد الزائرُ التالي
+    // سطرًا واحدًا من سلّة غيره — لا شكلُ المفتاح.
+    const empty = (key, parse = JSON.parse) => {
+      const raw = g.win.localStorage.getItem(key)
+      return raw == null || parse(raw).length === 0
+    }
+    ok('the guest keys are emptied after the merge', empty('qalb.cart.v1') && empty('qalb.wish.v1'))
+    ok(
+      'and the wishlist is the union of both',
+      JSON.parse(g.win.localStorage.getItem(wishKeyFor(mail)) || '[]')
+        .sort()
+        .join() === 'aether,nova',
+    )
+    // الخروجُ يعيد المتجر إلى مفاتيح الضيف، وسلّةُ الحساب تبقى في مفتاحها لمن يعود
+    g.win.document.querySelector('[data-auth-signout]')?.click()
+    await g.wait()
+    ok('signing out closes the session', g.win.localStorage.getItem(SESSION_KEY) === null)
+    ok('and leaves the account cart in its own key', JSON.parse(g.win.localStorage.getItem(cartKeyFor(mail)) || '[]').length === 2)
+    g.dom.window.close()
+
+    const anon = await render('http://localhost/login')
+    setField(anon, 'auth-mail', 'ghost@qalb.store')
+    clickSubmit(anon, '[data-auth-form="login"] form')
+    await anon.wait()
+    ok('an unknown email never signs itself up', anon.win.localStorage.getItem(SESSION_KEY) === null && !anon.win.localStorage.getItem(USERS_KEY))
+    ok('it says there is no account and offers the one-step way', anon.txt().includes(dict.ar.auth.errNoAccount))
+    anon.dom.window.close()
+  }
+
+  /* ——— الشريط: يقرأ الجلسة ويُعلنها ——— */
+  {
+    const g = await render('http://localhost/templates')
+    ok('a guest sees a sign-in door, not a fake profile', g.doc.querySelector('[data-auth-nav="guest"]') !== null)
+    g.dom.window.close()
+
+    const on = await render('http://localhost/templates', { [SESSION_KEY]: JSON.stringify({ email: mail, name: 'نورة', since: '2026-09-01' }) })
+    ok('a signed-in visitor sees their account instead', on.doc.querySelector(`[data-auth-nav="${mail}"]`) !== null)
+    on.dom.window.close()
+  }
+
+  const bad = checks.filter(([, pass]) => !pass)
+  if (bad.length) {
+    failed++
+    groups++
+    console.log('✗ auth · جلسةُ البريد وربطُ السلة والمفضلة')
+    bad.forEach(([n]) => console.log('   failed: ' + n))
+  } else {
+    groups++
+    console.log(`✓ auth · جلسةُ البريد وربطُ السلة والمفضلة  (${checks.length} assertions)`)
   }
 }
 

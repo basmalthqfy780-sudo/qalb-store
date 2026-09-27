@@ -74,7 +74,7 @@ export default function Ats() {
     if (!field) return []
     return templates
       .filter((x) => (x.cats || []).includes(field))
-      .sort((a, b) => (b.rating || 0) - (a.rating || 0))
+      .sort((a, b) => (b.ats || 0) - (a.ats || 0) || (b.perf || 0) - (a.perf || 0))
       .slice(0, 3)
   }, [field])
 

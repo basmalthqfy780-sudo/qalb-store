@@ -4,10 +4,12 @@ import { VAT } from '../data/tax.js'
 import { applyOverlay } from '../data/catalog'
 import { upsellById } from '../data/upsells'
 import { fetchCatalog } from '../api'
+import { auth as authApi } from '../api/auth'
+import { cartKeyFor, wishKeyFor, mergeLines, mergeWish } from '../data/auth'
 
 const StoreCtx = createContext(null)
-const CART_KEY = 'qalb.cart.v1'
-const WISH_KEY = 'qalb.wish.v1'
+// مفاتيحُ السلّة والمفضّلة لم تبقَ ثابتة: تُشتقّ من صاحب الجلسة في src/data/auth.js
+// (`cartKeyFor` و`wishKeyFor`) — ومفتاحُ الضيف هو نفسُه القديم، فلا تفقد سلّةَ أحد.
 const COUPON_KEY = 'qalb.coupon.v1'
 const RECENT_KEY = 'qalb.recent.v1'
 const PERSONAL_KEY = 'qalb.personalize.v1'
@@ -36,8 +38,14 @@ const save = (k, v) => {
 export { VAT } from '../data/tax.js'
 
 export function StoreProvider({ children }) {
-  const [lines, setLines] = useState(() => load(CART_KEY, []))
-  const [wish, setWish] = useState(() => load(WISH_KEY, []))
+  /**
+   * صاحبُ السلّة: بريدُ الجلسة أو فراغٌ للضيف. المفاتيحُ تُشتقّ منه
+   * (`qalb.cart.v2.<email>`)، فسلّةُ حسابٍ لا تختلط بسلّة ضيفٍ على جهازٍ مشترك،
+   * وحسابان على جهازٍ واحد يجد كلٌّ منهما ما تركه.
+   */
+  const [owner, setOwner] = useState(() => authApi.current()?.email || '')
+  const [lines, setLines] = useState(() => load(cartKeyFor(authApi.current()?.email), []))
+  const [wish, setWish] = useState(() => load(wishKeyFor(authApi.current()?.email), []))
   const [coupon, setCoupon] = useState(() => load(COUPON_KEY, null))
   const [recent, setRecent] = useState(() => load(RECENT_KEY, []))
   // إضافات الطلب — خدماتٍ بشرية واشتراكات وتقارير، من src/data/upsells.js وحده:
@@ -56,13 +64,57 @@ export function StoreProvider({ children }) {
    */
   const [catalogStatus, setCatalogStatus] = useState('syncing')
   const seq = useRef(0)
+  /**
+   * نسخةٌ محدَّثة من الحالتين يقرؤها مستمعُ الجلسة. لا تُكتب أثناء الرندر (قاعدة
+   * react-hooks هنا) بل في أثرٍ مجرَّد، والجلسةُ تتغير بنقرة مستخدم بعد رسمٍ كامل.
+   */
+  const linesRef = useRef(lines)
+  const wishRef = useRef(wish)
+  useEffect(() => {
+    linesRef.current = lines
+  }, [lines])
+  useEffect(() => {
+    wishRef.current = wish
+  }, [wish])
 
-  useEffect(() => save(CART_KEY, lines), [lines])
-  useEffect(() => save(WISH_KEY, wish), [wish])
+  // كلُّ كتابةٍ تذهب إلى مفتاح صاحبها الحالي (ضيفٌ أو حساب) — لا مفتاح واحد للجميع
+  useEffect(() => save(cartKeyFor(owner), lines), [lines, owner])
+  useEffect(() => save(wishKeyFor(owner), wish), [wish, owner])
   useEffect(() => save(COUPON_KEY, coupon), [coupon])
   useEffect(() => save(RECENT_KEY, recent), [recent])
   useEffect(() => save(PERSONAL_KEY, personal), [personal])
   useEffect(() => save(ADDON_KEY, addons), [addons])
+
+  /**
+   * الدخول والخروج كما يراهما المتجر:
+   *   • **دخول**: تُدمج سلّةُ الضيف في سلّة الحساب (لا يُفقد ما أُضيف قبل الدخول)،
+   *     وتُفرَّغ مفاتيحُ الضيف، ثم تصير الكتابةُ إلى مفتاح الحساب.
+   *   • **خروج**: تُقرأ سلّةُ الضيف (فارغةٌ عادةً) ويرجع المتجر إليها — فلا يرى
+   *     زائرٌ تالٍ سلّةَ من سبقه على الجهاز نفسه.
+   */
+  useEffect(() => {
+    const apply = (session) => {
+      const email = session?.email || ''
+      setOwner(email)
+      if (!email) {
+        setLines(load(cartKeyFor(''), []))
+        setWish(load(wishKeyFor(''), []))
+        return
+      }
+      const key = cartKeyFor(email)
+      const wkey = wishKeyFor(email)
+      const merged = mergeLines(load(key, []), linesRef.current)
+      const mergedW = mergeWish(load(wkey, []), wishRef.current)
+      save(key, merged)
+      save(wkey, mergedW)
+      save(cartKeyFor(''), [])
+      save(wishKeyFor(''), [])
+      setLines(merged)
+      setWish(mergedW)
+    }
+    const off = authApi.subscribe(apply)
+    return () => off()
+  }, [])
 
   /**
    * الاستثناءات المكتوبة من لوحة الإدارة تُدمج هنا وحدها — نفس الوحدة التي
@@ -231,6 +283,12 @@ export function StoreProvider({ children }) {
   const resetPersonal = useCallback(() => setPersonalState({ ...EMPTY_PERSONAL }), [])
 
   const value = {
+    /**
+     * `owner` بريدُ صاحب السلّة الحالي ('' للضيف) — يقرؤه الشريط وصفحتا السلّة
+     * والمفضّلة ليقولا إن كانت هذه «سلّتي» أم «سلّة هذا المتصفح».
+     */
+    owner,
+    cartKey: cartKeyFor(owner),
     personal,
     setPersonal,
     resetPersonal,

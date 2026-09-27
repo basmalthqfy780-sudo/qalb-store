@@ -416,7 +416,7 @@ export function fieldOf(text) {
  */
 export function pickTemplates(text, { n = 3, field } = {}) {
   const f = field || fieldOf(text)
-  const inField = templates.filter((x) => (x.cats || []).includes(f)).sort((a, b) => (b.rating || 0) - (a.rating || 0))
+  const inField = templates.filter((x) => (x.cats || []).includes(f)).sort((a, b) => (b.ats || 0) - (a.ats || 0) || (b.perf || 0) - (a.perf || 0))
   const atsCv = templates
     .filter((x) => x.ats != null)
     .sort((a, b) => (b.ats || 0) - (a.ats || 0))

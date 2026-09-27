@@ -11,7 +11,8 @@ import { useSeo } from '../components/Seo'
 
 export default function Cart() {
   const { t, L, lang } = useI18n()
-  const { items, addonItems, totals, catalog, setQty, remove, clear, coupon, applyCoupon, clearCoupon, toggleAddon, hasAddon, toast } = useStore()
+  const { items, addonItems, totals, catalog, setQty, remove, clear, coupon, applyCoupon, clearCoupon, toggleAddon, hasAddon, toast, owner } =
+    useStore()
   const [code, setCode] = useState('')
   const [err, setErr] = useState(false)
   const [errExpired, setErrExpired] = useState(false)
@@ -75,6 +76,20 @@ export default function Cart() {
           <h1 className="font-display text-[32px] font-extrabold leading-tight">{t('cart.title')}</h1>
           <p className="num mt-1.5 text-[13px] text-dim">
             {num(totals.count)} {totals.count === 1 ? t('cart.item') : t('cart.items')}
+          </p>
+          {/*
+            مِلكُ السلة: زائرٌ ← «تُحفظ في هذا المتصفح»، ومسجَّلٌ ← «مرتبطة بحسابك
+            وتُستعاد عند الدخول». النصّان مختلفان لأن الفعل مختلف — وهذا آخر ما
+            يمنع وعدًا لا نسنده: لا شيء يُحفظ على خادمٍ لا وجود له.
+          */}
+          <p
+            className={`mt-2.5 inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11.5px] font-semibold ${
+              owner ? 'border-brand/30 bg-brand/10 text-brand' : 'border-line bg-panel/60 text-dim'
+            }`}
+            data-cart-owner={owner || 'guest'}
+          >
+            <Icon n={owner ? 'user' : 'lock'} className="size-3.5" />
+            {owner ? t('auth.linked', { mail: owner }) : t('auth.guestCart')}
           </p>
         </div>
         <div className="flex items-center gap-4">

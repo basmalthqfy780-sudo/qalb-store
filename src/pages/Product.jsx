@@ -1,28 +1,18 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useI18n, num } from '../i18n'
-import {
-  FONTS,
-  LAYOUTS,
-  PALETTE,
-  HEROES,
-  GALLERIES,
-  DEVICES,
-  categories,
-  accentHex,
-  bySlug,
-  siteFor,
-  templates,
-  testimonials,
-} from '../data/templates'
+import { FONTS, LAYOUTS, PALETTE, HEROES, GALLERIES, DEVICES, categories, accentHex, bySlug, siteFor, templates } from '../data/templates'
 import { packageIndex } from '../data/deliverable'
 import Preview, { showSite } from '../components/Preview'
 import TemplateCard from '../components/TemplateCard'
 import QuickView from '../components/QuickView'
 import { useSeo, productLd, breadcrumbLd, graph } from '../components/Seo'
-import { AssureRow, Btn, Head, Icon, Money, Pill, Reveal, Stars } from '../components/ui'
+import { AssureRow, Btn, Head, Icon, Money, Pill, Reveal } from '../components/ui'
 import { livePage } from '../lib/live-page'
+import { SUPPORT_MAILTO } from '../data/contact'
 import { useStore } from '../store/StoreContext'
+import { proofKeyOf, scoreOf, perfOf } from '../data/proof'
+import { productShare } from '../data/share-meta'
 import Personalize from '../components/Personalize'
 
 export default function Product() {
@@ -51,24 +41,23 @@ export default function Product() {
 
   const related = useMemo(() => (tpl ? templates.filter((x) => x.id !== tpl.id && x.cats.some((c) => tpl.cats.includes(c))).slice(0, 3) : []), [tpl])
 
-  useSeo(
-    tpl ? `${L(tpl.name)} · ${t('brand.name')}` : `${t('catalog.noResults')} · ${t('brand.name')}`,
-    tpl ? t('meta.productDesc', { tag: L(tpl.tagline) }) : t('meta.notFoundDesc'),
-    {
-      jsonLd: tpl
-        ? graph(
-            productLd(tpl, lang, t),
-            breadcrumbLd([
-              { name: t('crumb.home'), path: '/' },
-              { name: t('nav.templates'), path: '/templates' },
-              { name: L(tpl.name), path: `/template/${tpl.slug}` },
-            ]),
-          )
-        : null,
-      type: 'product',
-      image: tpl ? `/og/${tpl.slug}.png` : undefined,
-    },
-  )
+  // العنوانُ والوصفُ والصورة من `src/data/share-meta.js` — الوحدةِ نفسها التي يقرأ
+  // منها مولّدُ النسخة الثابتة (scripts/share-html.mjs)، فلا تنجرف الحيّةُ عن الثابتة
+  const share = tpl ? productShare(tpl, lang, t) : null
+  useSeo(share ? share.title : `${t('catalog.noResults')} · ${t('brand.name')}`, share ? share.desc : t('meta.notFoundDesc'), {
+    jsonLd: tpl
+      ? graph(
+          productLd(tpl, lang, t),
+          breadcrumbLd([
+            { name: t('crumb.home'), path: '/' },
+            { name: t('nav.templates'), path: '/templates' },
+            { name: L(tpl.name), path: `/template/${tpl.slug}` },
+          ]),
+        )
+      : null,
+    type: 'product',
+    image: share ? share.image : undefined,
+  })
 
   // "recently viewed" only counts real product views
   useEffect(() => {
@@ -372,7 +361,7 @@ export default function Product() {
               {[
                 ['details', t('product.details')],
                 ['sections', `${t('product.sections')}`],
-                ['reviews', `${t('product.reviews')} (${num(tpl.reviews)})`],
+                ['reviews', t('product.reviews')],
               ].map(([v, label]) => (
                 <button
                   type="button"
@@ -432,51 +421,37 @@ export default function Product() {
               </div>
             )}
 
+            {/*
+              التبويب كان يعرض توزيعَ نجومٍ (٨٨٪ خمس نجوم) وقائمةَ تقييمات
+              بتواريخ وشارة «شراء موثّق» — وكلُّها مكتوبةٌ في الشيفرة، والدفاتر
+              في المستودع تقول إن أحدًا لم يشترِ بعد. صار يقول حالته، ويشرح
+              كيف يُنشر التقييم الحقيقي — من سجلّ الطلبات لا من هذه الصفحة.
+            */}
             {tab === 'reviews' && (
-              <div className="mt-6 grid gap-6 lg:grid-cols-[240px_minmax(0,1fr)]">
-                <div className="rounded-2xl border border-line bg-panel p-5 text-center">
-                  <p className="num font-display text-[42px] font-extrabold leading-none">{tpl.rating.toFixed(1)}</p>
-                  <div className="mt-2 flex justify-center">
-                    <Stars value={tpl.rating} size={15} show={false} />
-                  </div>
-                  <p className="mt-2 text-[12px] text-dim">{t('product.basedOn', { n: num(tpl.reviews) })}</p>
-                  <div className="mt-4 space-y-1.5">
-                    {[5, 4, 3, 2, 1].map((sv) => {
-                      const p = sv === 5 ? 88 : sv === 4 ? 9 : sv === 3 ? 2 : sv === 2 ? 1 : 0
-                      return (
-                        <div key={sv} className="flex items-center gap-2">
-                          <span className="num w-3 text-[10px] font-bold text-dim">{sv}</span>
-                          <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-line">
-                            <span className="block h-full rounded-full bg-gold" style={{ width: `${p}%` }} />
-                          </span>
-                          <span className="num w-7 text-[10px] text-dim">{p}%</span>
-                        </div>
-                      )
-                    })}
-                  </div>
+              <div className="mt-6 grid gap-5" data-reviews-empty>
+                <div className="rounded-2xl border border-dashed border-line bg-panel/50 p-6 text-center">
+                  <span className="mx-auto grid size-12 place-items-center rounded-2xl border border-line bg-bg text-dim">
+                    <Icon n="quote" className="size-5" />
+                  </span>
+                  <h3 className="mt-4 font-display text-[19px] font-extrabold">{t('product.reviewsNone')}</h3>
+                  <p className="mx-auto mt-2 max-w-md text-[13px] leading-relaxed text-dim">{t('product.reviewsNoneSub')}</p>
                 </div>
-                <div className="space-y-3">
-                  {testimonials.slice(0, 4).map((rv, i) => (
-                    <article key={rv.id} className="rounded-2xl border border-line bg-panel p-5">
-                      <div className="flex items-center gap-3">
-                        <span className="grid size-9 shrink-0 place-items-center rounded-full bg-brand/12 font-display text-[14px] font-extrabold text-brand">
-                          {L(rv.name).trim().charAt(0)}
+                <div className="rounded-2xl border border-line bg-panel p-5">
+                  <p className="text-[12.5px] font-bold">{t('product.reviewsHow')}</p>
+                  <ol className="mt-3 grid gap-2.5">
+                    {['reviewsHow1', 'reviewsHow2', 'reviewsHow3'].map((k, i) => (
+                      <li key={k} className="flex items-start gap-2.5 text-[13px] leading-relaxed text-dim">
+                        <span className="num grid size-6 shrink-0 place-items-center rounded-lg border border-line bg-bg text-[11px] font-bold text-brand">
+                          {i + 1}
                         </span>
-                        <div className="min-w-0">
-                          <p className="truncate text-[13.5px] font-bold">{L(rv.name)}</p>
-                          <p className="truncate text-[11.5px] text-dim">{L(rv.role)}</p>
-                        </div>
-                        <span className="ms-auto flex items-center gap-1">
-                          <Stars value={rv.stars} size={11} show={false} />
-                        </span>
-                      </div>
-                      <p className="mt-3 text-[13.5px] leading-[1.85] text-ink/85">{L(rv.text)}</p>
-                      <p className="mt-3 flex items-center gap-1.5 text-[11px] font-semibold text-brand">
-                        <Icon n="check" className="size-3" sw={2.8} />
-                        {t('testimonials.verified')} · {['2026-06', '2026-03', '2025-12', '2025-09'][i]}
-                      </p>
-                    </article>
-                  ))}
+                        {t(`product.${k}`)}
+                      </li>
+                    ))}
+                  </ol>
+                  <a href={SUPPORT_MAILTO} className="mt-4 inline-flex items-center gap-1.5 text-[12.5px] font-bold text-brand hover:underline">
+                    <Icon n="mail" className="size-3.5" />
+                    {t('product.reviewsAsk')}
+                  </a>
                 </div>
               </div>
             )}
@@ -500,14 +475,31 @@ export default function Product() {
               <h1 className="mt-3 font-display text-[28px] font-extrabold leading-tight">{L(tpl.name)}</h1>
               <p className="mt-1.5 text-[14px] text-dim">{L(tpl.tagline)}</p>
 
-              <div className="mt-3 flex flex-wrap items-center gap-3">
-                <Stars value={tpl.rating} />
-                <a href="#reviews" className="text-[12px] font-semibold text-brand hover:underline">
-                  {num(tpl.reviews)} {t('misc.reviews')}
-                </a>
-                <span className="num text-[12px] text-dim">
-                  · {num(tpl.sales)} {t('misc.sold')}
+              {/*
+                كان هنا «★ 4.9 · ١٢ تقييمًا · ١١٨٠ مبيعة» — أرقامٌ مكتوبة بخط
+                اليد في بيانات المنتج. الشريحةُ الآن تقول ما نعرفه فعلًا،
+                والدرجةُ المقيسة تُعرض من `src/data/proof.js`.
+              */}
+              <div className="mt-3 flex flex-wrap items-center gap-2" data-buy-proof={tpl.proof || 'early'}>
+                <span className="inline-flex items-center gap-1.5 rounded-md border border-line bg-bg/60 px-2 py-1 text-[11.5px] font-bold text-dim">
+                  <Icon n={tpl.proof === 'tested' ? 'scan' : tpl.proof === 'approved' ? 'palette' : 'clock'} className="size-3.5" />
+                  {t(proofKeyOf(tpl))}
                 </span>
+                {scoreOf(tpl) != null && (
+                  <span className="num inline-flex items-center gap-1.5 rounded-md border border-gold/30 bg-gold/10 px-2 py-1 text-[11.5px] font-bold text-gold">
+                    <Icon n="scan" className="size-3.5" />
+                    {t('chips.score', { n: scoreOf(tpl) })}
+                  </span>
+                )}
+                {perfOf(tpl) != null && (
+                  <span className="num inline-flex items-center gap-1.5 rounded-md border border-brand/30 bg-brand/10 px-2 py-1 text-[11.5px] font-bold text-brand">
+                    <Icon n="bolt" className="size-3.5" />
+                    {t('chips.perf', { n: perfOf(tpl) })}
+                  </span>
+                )}
+                <a href="#reviews" className="text-[12px] font-semibold text-brand hover:underline">
+                  {t('product.reviews')}
+                </a>
               </div>
 
               <div className="mt-5 flex items-end justify-between border-y border-line py-5">

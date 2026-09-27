@@ -15,7 +15,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const imp = (rel) => import(path.join(ROOT, rel))
 
 /** ما يخصُّ شخصًا واحدًا أو يغيّر البيانات: ممنوعٌ على كلِّ وكيل، بلا استثناء. */
-export const PRIVATE_PATHS = ['/checkout', '/order', '/cart', '/admin', '/studio', '/account', '/sell']
+export const PRIVATE_PATHS = ['/checkout', '/order', '/cart', '/admin', '/studio', '/account', '/sell', '/login', '/register']
 
 /** وكلاءُ الذكاء الاصطناعي الذين نرحّب بهم على المحتوى العامّ صراحةً، لا ضمنيًّا. */
 export const AI_AGENTS = [

@@ -109,7 +109,8 @@ const rows = templates.map((x) => ({
   priceLabel: `${arNum(x.price)} ر.س`,
   oldLabel: x.oldPrice ? `${arNum(x.oldPrice)} ر.س` : '',
   discount: x.oldPrice ? `خصم ${arNum(Math.round((1 - x.price / x.oldPrice) * 100))}٪` : '',
-  ratingLabel: x.rating ? `★ ${arNum(x.rating)} · ${arNum(x.reviews || 0)} تقييمًا` : '',
+  // الشريحةُ التي يراها الزائر على البطاقة: من نفس وحدة الشرائح التي تقرؤها الواجهة
+  proofLabel: [dict.ar.chips[x.proof] || dict.ar.chips.early, x.ats ? `ATS ${arNum(x.ats)}/100` : ''].filter(Boolean).join(' · '),
   bestLabel: x.best ? dict.ar.card.best : '',
   typeLabel: dict.ar.types[x.type],
   theme: x.theme || 'light',

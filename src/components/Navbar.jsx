@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useI18n, dateLabel } from '../i18n'
 import { useStore } from '../store/StoreContext'
+import { auth as authApi } from '../api/auth'
 import { categories, templates, couponInfo } from '../data/templates'
 import { Icon, Btn } from './ui'
 import { ArtTile } from './Preview'
@@ -67,6 +68,13 @@ export default function Navbar() {
   // يُقرأ عند كل رسم: تجاوزُ منتصف الليل في تبويبٍ مفتوح يُخفي الشريط في التنقّل التالي
   const sale = couponInfo('SALE25')
   const { totals, wish } = useStore()
+  /**
+   * الجلسةُ تُقرأ مرةً وتُشترك بعدها: تغييرُها من أي صفحة (دخول/خروج) يحرّك هذا
+   * الشريط فورًا. الاعتمادُ على قراءةٍ واحدة كان يُبقي الزرّ «دخول» بعد الدخول
+   * حتى يُحدَّث أحدٌ الصفحة.
+   */
+  const [session, setSession] = useState(() => authApi.current())
+  useEffect(() => authApi.subscribe(setSession), [])
   const [scrolled, setScrolled] = useState(false)
   const [mega, setMega] = useState(false)
   const [menu, setMenu] = useState(false)
@@ -313,6 +321,24 @@ export default function Navbar() {
               <Count n={totals.count} />
             </Link>
 
+            {/*
+              مدخلُ الحساب في الشريط: زائرٌ ← «دخول»، وصاحبُ جلسةٍ ← حسابه.
+              الزرّان يقولان الوجهةَ في `aria-label` و`title` (الأيقونةُ وحدها
+              لا تكفي)، ويعرضان أثرَ الجلسة في `data-auth-nav` فيقرؤه الفحص.
+            */}
+            <Link
+              to={session ? '/account' : '/login'}
+              aria-label={session ? t('auth.myAccount') : t('auth.signIn')}
+              title={session ? t('auth.signedIn', { mail: session.email }) : t('auth.signIn')}
+              data-auth-nav={session ? session.email : 'guest'}
+              className={`relative hidden h-10 items-center gap-1.5 rounded-xl border px-3 text-[12.5px] font-bold transition sm:inline-flex ${
+                session ? 'border-brand/40 bg-brand/10 text-brand' : 'border-line bg-panel/50 text-ink hover:border-brand/40'
+              }`}
+            >
+              <Icon n={session ? 'user' : 'lock'} className="size-4" />
+              <span className="hidden lg:inline">{session ? t('auth.myAccount') : t('auth.signIn')}</span>
+            </Link>
+
             <Btn to="/templates" size="sm" className="hidden md:inline-flex">
               {t('hero.ctaPrimary')}
             </Btn>
@@ -435,6 +461,34 @@ export default function Navbar() {
                   <div>
                     <p className="mb-2 px-2 text-[11px] font-bold uppercase tracking-[0.14em] text-dim">{t('nav.support')}</p>
                     <div className="grid gap-0.5">{MENU_SUPPORT.map(menuRow)}</div>
+                    {/* الحساب في القائمة نفسها: دخول/تسجيل، أو حسابي وخروج */}
+                    <p className="mb-2 mt-4 px-2 text-[11px] font-bold uppercase tracking-[0.14em] text-dim">{t('auth.kicker')}</p>
+                    <div className="grid gap-0.5">
+                      {session ? (
+                        <>
+                          {menuRow({ to: '/account', k: 'auth.myAccount', icon: 'user' })}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              authApi.signOut()
+                              setMenu(false)
+                            }}
+                            data-auth-signout
+                            className="flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-start transition hover:bg-panel2"
+                          >
+                            <span className="grid size-8 shrink-0 place-items-center rounded-lg border border-line bg-bg text-danger">
+                              <Icon n="logout" className="size-4" />
+                            </span>
+                            <span className="text-[13px] font-semibold">{t('auth.signOut')}</span>
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          {menuRow({ to: '/login', k: 'auth.signIn', icon: 'lock' })}
+                          {menuRow({ to: '/register', k: 'auth.registerCta', icon: 'user' })}
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -520,6 +574,31 @@ export default function Navbar() {
             {menuRow({ to: '/offers', k: 'nav.offers', icon: 'gift' })}
             {menuRow({ to: '/host', k: 'nav.host', icon: 'globe' })}
             {menuRow({ to: '/#deploy', k: 'footer.siteGuide', icon: 'rocket' })}
+            <p className="px-1 pb-2 pt-4 text-[11px] font-bold uppercase tracking-[0.14em] text-dim">{t('auth.kicker')}</p>
+            {session ? (
+              <>
+                {menuRow({ to: '/account', k: 'auth.myAccount', icon: 'user' })}
+                <button
+                  type="button"
+                  onClick={() => {
+                    authApi.signOut()
+                    setDrawer(false)
+                  }}
+                  data-auth-signout
+                  className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-start transition hover:bg-panel2"
+                >
+                  <span className="grid size-8 shrink-0 place-items-center rounded-lg border border-line bg-bg text-danger">
+                    <Icon n="logout" className="size-4" />
+                  </span>
+                  <span className="text-[13px] font-semibold">{t('auth.signOut')}</span>
+                </button>
+              </>
+            ) : (
+              <>
+                {menuRow({ to: '/login', k: 'auth.signIn', icon: 'lock' })}
+                {menuRow({ to: '/register', k: 'auth.registerCta', icon: 'user' })}
+              </>
+            )}
             <p className="px-1 pb-2 pt-4 text-[11px] font-bold uppercase tracking-[0.14em] text-dim">{t('nav.support')}</p>
             {MENU_SUPPORT.map(menuRow)}
             <div className="mt-5 grid grid-cols-2 gap-2">

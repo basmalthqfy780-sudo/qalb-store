@@ -35,6 +35,9 @@ const B2B = lazy(() => import('./pages/B2B'))
 // نموذج الربح: الخطط، إنشاء القالب الأول، الحساب، سوق المصممين، ولوحة البائع
 const Pricing = lazy(() => import('./pages/Pricing'))
 const Account = lazy(() => import('./pages/Account'))
+// الحساب: صفحةٌ واحدة بشكلين — دخولٌ أو تسجيل، وكلتاهما noindex
+const Login = lazy(() => import('./pages/Auth'))
+const Register = lazy(() => import('./pages/Auth'))
 const Sell = lazy(() => import('./pages/Sell'))
 const Creators = lazy(() => import('./pages/Creators'))
 const Services = lazy(() => import('./pages/Services'))
@@ -203,6 +206,9 @@ export default function App() {
                   فلا رابطٌ قديم يسقط في صفحةٍ لا وجود لها */}
               <Route path="/create" element={<Navigate to="/templates" replace />} />
               <Route path="/account" element={<Account />} />
+              {/* الدخول والتسجيل: مسارٌ لكل واحد حتى تُشارَك الروابط ويُفهم من العنوان */}
+              <Route path="/login" element={<Login mode="login" />} />
+              <Route path="/register" element={<Register mode="register" />} />
               <Route path="/creators" element={<Creators />} />
               <Route path="/sell" element={<Sell />} />
               <Route path="/studio" element={<Studio />} />
